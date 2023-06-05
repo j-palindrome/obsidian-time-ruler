@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-time-ruler",
+  "name": "Time Ruler",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "A time ruler allowing drag-and-drop scheduling of tasks.",
+  "author": "Joshua Reinier",
+  "authorUrl": "https://joshuareinier.com",
+  "fundingUrl": "https://joshuareinier.com",
+  "isDesktopOnly": false
+}
