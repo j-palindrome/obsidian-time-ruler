@@ -1,22 +1,20 @@
 import $ from 'jquery'
 import _ from 'lodash'
 import { DateTime, Duration } from 'luxon'
-import { Component, MarkdownView, Notice, TFile } from 'obsidian'
+import { App, Component, MarkdownView, Notice, TFile } from 'obsidian'
 import { DataArray, DataviewApi, STask, getAPI } from 'obsidian-dataview'
 import { getters, setters } from '../app/store'
+import { sounds } from '../assets/assets'
 import TimeRulerPlugin from '../main'
-import invariant from 'tiny-invariant'
 import {
   RESERVED_FIELDS,
   TaskPriorities,
-  TasksEmojiToKey as TasksEmojiToKey,
+  TasksEmojiToKey,
   keyToTasksEmoji,
   priorityKeyToNumber,
   priorityNumberToKey
 } from '../types/enums'
 import { isDateISO } from './util'
-import { sounds } from '../assets/assets'
-import { Timer } from '../components/Timer'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
@@ -31,9 +29,11 @@ export default class ObsidianAPI extends Component {
   excludePaths?: RegExp
   dailyNotePath: RegExp
   settings: TimeRulerPlugin['settings']
+  app: App
 
-  constructor(settings: ObsidianAPI['settings']) {
+  constructor(settings: ObsidianAPI['settings'], app: App) {
     super()
+    this.app = app
     dv = getAPI() as DataviewApi
     this.load()
     this.settings = settings
@@ -49,8 +49,8 @@ export default class ObsidianAPI extends Component {
    * There isn't a way to get native Obsidian settings so we read them from disk. This will ignore tasks from any folders that the user has specified globally.
    */
   private async getExcludePaths() {
-    const configFile = await app.vault.adapter.read(
-      `${app.vault.configDir}/app.json`
+    const configFile = await this.app.vault.adapter.read(
+      `${this.app.vault.configDir}/app.json`
     )
     if (!configFile) return
     const excludePaths: string[] | undefined =
@@ -63,8 +63,8 @@ export default class ObsidianAPI extends Component {
 
   private async getDailyPath() {
     try {
-      const configFile = await app.vault.adapter.read(
-        `${app.vault.configDir}/daily-notes.json`
+      const configFile = await this.app.vault.adapter.read(
+        `${this.app.vault.configDir}/daily-notes.json`
       )
       if (!configFile) return
       const dailyNotes: string | undefined = JSON.parse(configFile)?.['folder']
@@ -265,7 +265,7 @@ export default class ObsidianAPI extends Component {
 
   async onload() {
     this.registerEvent(
-      app.metadataCache.on(
+      this.app.metadataCache.on(
         // @ts-ignore
         'dataview:metadata-change',
         (_type, _file, _oldPath) => {
@@ -276,14 +276,6 @@ export default class ObsidianAPI extends Component {
     await this.getExcludePaths()
     await this.getDailyPath()
     this.loadTasks()
-  }
-
-  generateStaticURL(src: string) {
-    return app.vault.adapter.getResourcePath(
-      app.vault.configDir +
-        '/plugins/obsidian-time-ruler' +
-        src.replace(/^\.\//, '/')
-    )
   }
 
   private taskToText(task: TaskProps) {
@@ -378,8 +370,9 @@ export default class ObsidianAPI extends Component {
     }
 
     if (heading) {
-      const file = app.vault.getAbstractFileByPath(path) as TFile
-      const text = await app.vault.read(file)
+      const file = this.app.vault.getAbstractFileByPath(path)
+      if (!(file instanceof TFile)) return
+      const text = await this.app.vault.read(file)
       const lines = text.split('\n')
       const headingLine = lines.findIndex(line =>
         new RegExp(`#+ ${_.escapeRegExp(heading)}$`).test(line)
@@ -405,34 +398,52 @@ export default class ObsidianAPI extends Component {
     }
 
     await this.saveTask(defaultTask, true)
-    openTask(defaultTask)
+    this.openTask(defaultTask)
   }
 
   async saveTask(task: TaskProps, newLine?: boolean) {
-    var abstractFilePath = app.vault.getAbstractFileByPath(task.path)
+    var abstractFile = this.app.vault.getAbstractFileByPath(task.path)
 
     const taskToText = this.taskToText.bind(this)
-    if (abstractFilePath) {
-      await new Promise(resolve =>
-        app.vault
-          .read(abstractFilePath as TFile)
-          .then(async function (fileText) {
-            const lines = fileText.split('\n')
-            lines[task.position.start.line] =
-              lines[task.position.start.line].slice(
-                0,
-                task.position.start.col
-              ) +
-              taskToText(task) +
-              (newLine ? '\n' : '') +
-              lines[task.position.start.line].slice(task.position.end.col)
+    if (abstractFile && abstractFile instanceof TFile) {
+      const fileText = await this.app.vault.read(abstractFile)
+      const lines = fileText.split('\n')
 
-            app.vault
-              .modify(abstractFilePath as TFile, lines.join('\n'))
-              .then(() => resolve(true))
-          })
-      )
+      lines[task.position.start.line] =
+        (lines[task.position.start.line].match(/^\s*/)?.[0] ?? '') +
+        taskToText(task) +
+        (newLine ? '\n' : '') +
+        lines[task.position.start.line].slice(task.position.end.col)
+
+      await this.app.vault.modify(abstractFile, lines.join('\n'))
     }
+  }
+
+  async openTask(task: TaskProps) {
+    await this.app.workspace.openLinkText('', task.path)
+
+    const mdView = this.app.workspace.getActiveViewOfType(MarkdownView)
+    if (!mdView) return
+
+    var cmEditor = mdView.editor
+
+    cmEditor.setSelection(
+      {
+        line: task.position.end.line,
+        ch: task.position.end.col
+      },
+      {
+        line: task.position.end.line,
+        ch: task.position.end.col
+      }
+    )
+
+    cmEditor.focus()
+
+    /**
+     * There's a glitch with Obsidian where it doesn't show this when opening a link from Time Ruler.
+     */
+    if (this.app['isMobile']) this.app['mobileNavbar'].show()
   }
 }
 
@@ -455,34 +466,4 @@ export function openTaskInRuler(line: number, path: string) {
   foundTask.addClass('!bg-accent')
   setTimeout(() => foundTask.removeClass('!bg-accent'), 1000)
   setTimeout(() => setters.set({ findingTask: null }))
-}
-
-export function openTask(task: TaskProps) {
-  app.workspace.openLinkText('', task.path).then(() => {
-    const leaf = app.workspace.getLeaf()
-    const view = leaf.getViewState()
-    view.state.mode = 'source' // mode = source || preview
-    leaf.setViewState(view)
-    // @ts-ignore
-
-    const mdView = leaf.view as MarkdownView
-    var cmEditor = mdView.editor
-
-    cmEditor.setSelection(
-      {
-        line: task.position.end.line,
-        ch: task.position.end.col
-      },
-      {
-        line: task.position.end.line,
-        ch: task.position.end.col
-      }
-    )
-
-    cmEditor.focus()
-    /**
-     * There's a glitch with Obsidian where it doesn't show this when opening a link from Time Ruler.
-     */
-    if (app['isMobile']) app['mobileNavbar'].show()
-  })
 }

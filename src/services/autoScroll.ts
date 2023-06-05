@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { useAppStore } from '../app/store'
 import $ from 'jquery'
+import { useEffect, useRef } from 'react'
 
 export const useAutoScroll = (dragging: boolean) => {
   const dragRef = useRef<boolean>(dragging)
@@ -34,7 +33,7 @@ export const useAutoScroll = (dragging: boolean) => {
 
       el.scrollBy({
         ...scrollInfo,
-        behavior: 'smooth',
+        behavior: 'smooth'
       })
     }
 
@@ -57,7 +56,7 @@ export const useAutoScroll = (dragging: boolean) => {
     )
 
     const yTargets = targets.filter(
-      (el) => el.getAttribute('data-auto-scroll') === 'y'
+      el => el.getAttribute('data-auto-scroll') === 'y'
     )
     for (let el of yTargets) {
       const rect = el.getBoundingClientRect()
@@ -75,7 +74,7 @@ export const useAutoScroll = (dragging: boolean) => {
     }
 
     const xTargets = targets.filter(
-      (el) => el.getAttribute('data-auto-scroll') === 'x'
+      el => el.getAttribute('data-auto-scroll') === 'x'
     )
     for (let el of xTargets) {
       const rect = el.getBoundingClientRect()

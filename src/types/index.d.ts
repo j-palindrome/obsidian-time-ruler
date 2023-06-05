@@ -1,7 +1,7 @@
 import { STask } from 'obsidian-dataview'
 import { GroupProps } from '../components/Block'
-import { TaskComponentProps } from '../components/Task'
 import { EventComponentProps } from '../components/Event'
+import { TaskComponentProps } from '../components/Task'
 
 declare global {
   type EventProps = {

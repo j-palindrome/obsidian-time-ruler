@@ -1,16 +1,14 @@
-import _, { isDate } from 'lodash'
+import _ from 'lodash'
 import { DateTime } from 'luxon'
 import { Fragment, useEffect, useState } from 'react'
-import { setters, useAppStore } from '../app/store'
-import { isDateISO } from '../services/util'
 import { shallow } from 'zustand/shallow'
-import Block from './Block'
+import { setters, useAppStore } from '../app/store'
+import { openTaskInRuler } from '../services/obsidianApi'
+import { isDateISO } from '../services/util'
+import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
 import Times, { TimeSpanTypes } from './Times'
-import { openTaskInRuler } from '../services/obsidianApi'
-import Logo from './Logo'
-import Button from './Button'
 
 export default function Timeline({
   startISO,

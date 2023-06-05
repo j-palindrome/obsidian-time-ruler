@@ -1,11 +1,10 @@
-import { DateTime } from 'luxon'
-import { setters, useAppStore } from '../app/store'
-import { isDateISO } from '../services/util'
-import Droppable from './Droppable'
-import Editor from './Editor'
-import Times, { TimeSpanTypes } from './Times'
 import { useDraggable } from '@dnd-kit/core'
+import { DateTime } from 'luxon'
+import { useAppStore } from '../app/store'
+import { isDateISO } from '../services/util'
 import Block from './Block'
+import Droppable from './Droppable'
+import Times, { TimeSpanTypes } from './Times'
 
 export type EventComponentProps = {
   id?: string

@@ -1,10 +1,9 @@
 import { produce } from 'immer'
-import _ from 'lodash'
+import { useRef } from 'react'
 import { create } from 'zustand'
+import CalendarAPI from '../services/calendarApi'
 import ObsidianAPI from '../services/obsidianApi'
 import { TaskActions } from '../types/enums'
-import { useRef } from 'react'
-import CalendarAPI from '../services/calendarApi'
 
 export type AppState = {
   tasks: Record<string, TaskProps>
@@ -24,7 +23,7 @@ export const useAppStore = create<AppState>(() => ({
   apis: {},
   dragData: null,
   findingTask: null,
-  inScroll: 0,
+  inScroll: 0
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
@@ -50,12 +49,12 @@ export const setters = {
       await obsidianAPI.saveTask(savedTask)
     }
     if (task.completion) obsidianAPI.playComplete()
-  },
+  }
 }
 
 export const getters = {
   getEvent: (id: string) => useAppStore.getState().events[id],
   getTask: (id: string) => useAppStore.getState().tasks[id],
   getObsidianAPI: () => useAppStore.getState().apis.obsidian as ObsidianAPI,
-  getCalendarAPI: () => useAppStore.getState().apis.calendar as CalendarAPI,
+  getCalendarAPI: () => useAppStore.getState().apis.calendar as CalendarAPI
 }

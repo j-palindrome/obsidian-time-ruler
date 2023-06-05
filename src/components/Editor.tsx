@@ -10,7 +10,7 @@ export default function Editor({
   placeholder = 'notes...',
   onClick = () => {},
   multiLine = false,
-  focus = false,
+  focus = false
 }: {
   handleSave: (data: string) => void
   text: string
@@ -55,7 +55,7 @@ export default function Editor({
       )
       .replace(/\n\n+/g, '\n\n')
       .split('\n')
-      .map((x) => '<div>' + x + '</div>')
+      .map(x => '<div>' + x + '</div>')
       .join('')
   }
 
@@ -69,7 +69,7 @@ export default function Editor({
     const formatted = htmlToText(thisFrame.current.innerHTML, {
       wordwrap: false,
       preserveNewlines: true,
-      whitespaceCharacters: '\r\n',
+      whitespaceCharacters: '\r\n'
     })
       .replace(/\n\n\n+/g, '\n\n')
       .replace(/\n+$/g, '')
@@ -113,16 +113,15 @@ export default function Editor({
   return (
     <div
       ref={thisFrame}
-      onClick={(ev) => {
+      onClick={ev => {
         toggleComplete(ev)
         onClick(ev)
       }}
       contentEditable
-      className={`font-sans outline-none whitespace-pre-wrap min-h-[1em] min-w-[3em] font-[200] ${className} empty:before:content-[attr(data-hold)] cursor-text pt-[2.5px] child:min-h-[1em]`}
+      className={`min-h-[1em] min-w-[3em] whitespace-pre-wrap font-sans font-[200] outline-none ${className} cursor-text pt-[2.5px] empty:before:content-[attr(data-hold)] child:min-h-[1em]`}
       data-hold={placeholder}
       onBlur={() => !confirm && handleSave(unFormat())}
       dangerouslySetInnerHTML={{ __html: format(text) }}
-      onKeyDown={handleKeyDown}
-    ></div>
+      onKeyDown={handleKeyDown}></div>
   )
 }

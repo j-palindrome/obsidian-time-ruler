@@ -9,7 +9,7 @@ export default function Times({
   type = 'minutes',
   chopEnd,
   chopStart,
-  due,
+  due
 }: {
   startISO: string
   endISO: string
@@ -25,7 +25,7 @@ export default function Times({
   const modifier: { [K in TimeSpanTypes]: Parameters<DateTime['plus']>[0] } = {
     minutes: { minutes: 15 },
     hours: { hours: 1 },
-    days: { days: 1 },
+    days: { days: 1 }
   }
   if (chopStart) start = start.plus(modifier[type])
   if (chopEnd) end = end.minus(modifier[type])
@@ -43,7 +43,7 @@ export default function Times({
 
   return (
     <div className={`min-h-[4px]`}>
-      {times.map((time) => (
+      {times.map(time => (
         <Time key={time.toISO()} {...{ type, time, due }} />
       ))}
     </div>
@@ -59,12 +59,12 @@ function Time({ time, type, due }: TimeProps) {
   const iso = time.toISO({
     includeOffset: false,
     suppressMilliseconds: true,
-    suppressSeconds: true,
+    suppressSeconds: true
   }) as string
 
   const { isOver, setNodeRef } = useDroppable({
     id: iso + (due ? '::due' : '::scheduled'),
-    data: due ? { due: iso } : ({ scheduled: iso } as DropData),
+    data: due ? { due: iso } : ({ scheduled: iso } as DropData)
   })
 
   return (
@@ -72,8 +72,7 @@ function Time({ time, type, due }: TimeProps) {
       className={`flex h-[16px] items-center justify-end`}
       key={time.toISO()}
       ref={setNodeRef}
-      onMouseUp={() => {}}
-    >
+      onMouseUp={() => {}}>
       <hr
         className={`border-t border-faint ${
           isOver ? '!w-full' : 'active:w-full'
@@ -103,13 +102,11 @@ function Time({ time, type, due }: TimeProps) {
             : minutes % 30 === 0
             ? 'w-2'
             : 'w-1'
-        }`}
-      ></hr>
+        }`}></hr>
       <div
         className={`ml-1 flex-none font-menu text-xs text-muted ${
           type === 'days' ? 'w-8' : 'w-4'
-        }`}
-      >
+        }`}>
         {type === 'days'
           ? [1, 5].includes(day)
             ? `${time.month}/${date}`

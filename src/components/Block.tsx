@@ -1,8 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
-import { DateTime } from 'luxon'
 import { useAppStore } from '../app/store'
-import Droppable from './Droppable'
 import Task from './Task'
 
 const UNGROUPED = '__ungrouped'
@@ -29,10 +27,12 @@ export default function Block({
       else {
         const parentAlreadyIncludedInList = taskIds.includes(parentID)
         if (parentAlreadyIncludedInList) return []
-        const parentTask = _.cloneDeep(state.tasks[parentID])
-        parentTask.children = children.map(x => x.id)
-        parentTask.type = 'parent'
-        return parentTask
+        const parentTask = state.tasks[parentID]
+        return {
+          ...parentTask,
+          children: children.map(x => x.id),
+          type: 'parent'
+        } as TaskProps
       }
     })
   )
@@ -125,7 +125,13 @@ export function Group({ name, tasks, type, level, due }: GroupProps) {
             />
           ))
         : tasks.map((task, i) => (
-            <Task key={task.id} id={task.id} type={task.type} due={due} />
+            <Task
+              key={task.id}
+              id={task.id}
+              type={task.type}
+              due={due}
+              children={task.children}
+            />
           ))}
     </div>
   )

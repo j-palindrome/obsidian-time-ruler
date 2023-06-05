@@ -12,8 +12,7 @@ const Button = forwardRef<
     <div
       className={`clickable-icon whitespace-nowrap font-menu text-sm ${className}`}
       {...rest}
-      ref={ref}
-    >
+      ref={ref}>
       {src ? <Logo src={src} /> : children ?? null}
     </div>
   )

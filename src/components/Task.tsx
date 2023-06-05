@@ -1,28 +1,27 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
+import { openTaskInRuler } from 'src/services/obsidianApi'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
-import { sounds } from '../assets/assets'
-import { openTask, openTaskInRuler } from '../services/obsidianApi'
+import { isDateISO } from '../services/util'
 import { TaskPriorities } from '../types/enums'
 import Block from './Block'
-import { isDateISO } from '../services/util'
 import Button from './Button'
 
 export type TaskComponentProps = {
   id: string
-  childTasks?: TaskProps[]
+  children?: string[]
   type: TaskProps['type']
 }
 export default function Task({
   id,
-  childTasks,
+  children,
   type,
   highlight,
   due
 }: TaskComponentProps & { highlight?: boolean; due?: boolean }) {
-  const task = useAppStore(state => state.tasks[id])
+  let task = useAppStore(state => state.tasks[id])
 
   const completeTask = () => {
     setters.patchTasks([id], {
@@ -31,20 +30,14 @@ export default function Task({
   }
 
   const subtasks = useAppStore(state => {
-    return (
-      childTasks ??
-      task.children.flatMap(child => {
-        const subtask = state.tasks[child]
-        return subtask
-      })
-    )
+    return (children ?? task.children).flatMap(child => state.tasks[child])
   }, shallow)
 
   const dragData: DragData = {
     dragType: 'task',
     type,
     id,
-    childTasks
+    children
   }
   const { setNodeRef, setActivatorNodeRef, attributes, listeners } =
     useDraggable({
@@ -97,7 +90,7 @@ export default function Task({
           onPointerDown={() => false}
           onClick={() => {
             if (isLink) openTaskInRuler(task.position.start.line, task.path)
-            else openTask(task)
+            else getters.getObsidianAPI().openTask(task)
           }}>
           {task.title}
         </div>

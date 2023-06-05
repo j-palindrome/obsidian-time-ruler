@@ -1,15 +1,15 @@
+import _ from 'lodash'
 import { ItemView, WorkspaceLeaf } from 'obsidian'
 import * as React from 'react'
 import { Root, createRoot } from 'react-dom/client'
-import TimeRulerPlugin from './main'
 import App from './components/App'
-import ObsidianAPI from './services/obsidianApi'
+import TimeRulerPlugin from './main'
 import CalendarAPI from './services/calendarApi'
-import _ from 'lodash'
+import ObsidianAPI from './services/obsidianApi'
 
-export const RIVERBANK_VIEW = 'time-ruler-view'
+export const TIME_RULER_VIEW = 'time-ruler-view'
 
-export default class AppView extends ItemView {
+export default class TimeRulerView extends ItemView {
   plugin: TimeRulerPlugin
   obsidianAPI: ObsidianAPI
   calendarLinkAPI: CalendarAPI
@@ -23,7 +23,7 @@ export default class AppView extends ItemView {
   }
 
   getViewType() {
-    return RIVERBANK_VIEW
+    return TIME_RULER_VIEW
   }
 
   getDisplayText() {
@@ -31,7 +31,7 @@ export default class AppView extends ItemView {
   }
 
   async onOpen() {
-    this.obsidianAPI = new ObsidianAPI(this.plugin.settings)
+    this.obsidianAPI = new ObsidianAPI(this.plugin.settings, this.app)
     this.calendarLinkAPI = new CalendarAPI(
       this.plugin.settings.calendars,
       calendar => {

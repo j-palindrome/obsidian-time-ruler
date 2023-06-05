@@ -1,7 +1,6 @@
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import { useStopwatch, useTimer } from 'react-timer-hook'
-import Logo from './Logo'
 import Button from './Button'
 
 export function Timer() {
@@ -20,7 +19,7 @@ export function Timer() {
       stopwatch.start()
       setNegative(true)
     },
-    autoStart: false,
+    autoStart: false
   })
 
   useEffect(() => {
@@ -48,7 +47,7 @@ export function Timer() {
       stopwatch.start()
     } else {
       if (input.includes(':')) {
-        const split = input.split(':').map((x) => parseInt(x))
+        const split = input.split(':').map(x => parseInt(x))
         hours = split[0]
         minutes = split[1]
       } else {
@@ -68,7 +67,7 @@ export function Timer() {
     width = (currentTime / maxSeconds) * 100
   }
 
-  const change: React.ChangeEventHandler<HTMLInputElement> = (ev) => {
+  const change: React.ChangeEventHandler<HTMLInputElement> = ev => {
     if (/\d*(:\d*)?/.test(ev.target.value)) {
       setInput(ev.target.value)
     }
@@ -117,26 +116,23 @@ export function Timer() {
     <div
       className={`relative my-1 flex h-6 w-full flex-none items-center justify-center rounded-icon bg-primary-alt py-1 font-menu text-sm child:relative child:h-full ${
         negative ? 'bg-red-800/50' : ''
-      }`}
-    >
+      }`}>
       <div
         className={`!absolute left-0 top-0 h-full flex-none rounded-icon ${
           width === 0 ? '' : 'transition-width duration-1000 ease-linear'
         } ${negative ? 'bg-red-500/20' : 'bg-selection'}`}
         style={{
-          width: `${width}%`,
-        }}
-      ></div>
+          width: `${width}%`
+        }}></div>
 
       {!playing && currentTime <= 0 ? (
         <input
           type='number'
           value={input}
           placeholder={'mins'}
-          onKeyDown={(ev) => ev.key === 'Enter' && start()}
+          onKeyDown={ev => ev.key === 'Enter' && start()}
           onChange={change}
-          className='w-[4em] !border-none bg-transparent text-center !shadow-none'
-        ></input>
+          className='w-[4em] !border-none bg-transparent text-center !shadow-none'></input>
       ) : (
         <pre className='my-0 mr-1 !h-fit'>{`${negative ? '-' : ''}${
           hours > 0 ? hours + ':' : ''

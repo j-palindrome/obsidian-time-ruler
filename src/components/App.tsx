@@ -16,6 +16,7 @@ import _ from 'lodash'
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import useStateRef from 'react-usestateref'
+import { shallow } from 'zustand/shallow'
 import {
   AppState,
   getters,
@@ -23,20 +24,17 @@ import {
   useAppStore,
   useAppStoreRef
 } from '../app/store'
+import { useAutoScroll } from '../services/autoScroll'
 import { TaskActions } from '../types/enums'
-import { shallow } from 'zustand/shallow'
 import Block, { Group, Heading } from './Block'
+import Button from './Button'
 import Droppable from './Droppable'
+import Event from './Event'
 import Search from './Search'
 import Task from './Task'
 import Timeline from './Timeline'
 import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
-import Event from './Event'
-import invariant from 'tiny-invariant'
-import { useAutoScroll } from '../services/autoScroll'
-import Logo from './Logo'
-import Button from './Button'
 
 function Unscheduled() {
   const unscheduled = useAppStore(
@@ -60,15 +58,19 @@ function Unscheduled() {
 export default function App({ apis }: { apis: AppState['apis'] }) {
   useEffect(() => setters.set({ apis }), [apis])
 
-  const [_now, setNow] = useState(DateTime.now().toMillis())
+  const [now, setNow] = useState(DateTime.now())
   useEffect(() => {
-    const update = () => setNow(DateTime.now().toMillis())
+    const update = () => {
+      console.log('now', DateTime.now())
+
+      setNow(DateTime.now())
+    }
     const FIFTEEN_MINUTES = 1000 * 60 * 15
-    const interval = window.setInterval(update, FIFTEEN_MINUTES)
+    const interval = window.setInterval(update, 60000)
     return () => window.clearInterval(interval)
   }, [])
 
-  const today = DateTime.now().startOf('day')
+  const today = now.startOf('day')
   const [datesShown, setDatesShown] = useState(7)
 
   const times: Parameters<typeof Timeline>[0][] = [
@@ -141,7 +143,7 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
           </Droppable>
           <Droppable
             id='upcoming::button'
-            data={{ due: DateTime.now().toISODate() as string }}>
+            data={{ due: now.toISODate() as string }}>
             <Button
               onClick={() => scrollToSection(1)}
               onMouseEnter={() => startScrollTimeout(1)}
@@ -347,8 +349,8 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
           data-auto-scroll='x'>
           <Unscheduled />
           <Timeline
-            startISO={DateTime.now().toISODate() as string}
-            endISO={DateTime.now().plus({ months: 4 }).toISODate() as string}
+            startISO={now.toISODate() as string}
+            endISO={now.plus({ months: 4 }).toISODate() as string}
             type='days'
             includePast
             due

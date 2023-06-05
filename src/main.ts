@@ -1,14 +1,7 @@
-import {
-  App,
-  Editor,
-  MarkdownFileInfo,
-  MarkdownView,
-  Notice,
-  Plugin
-} from 'obsidian'
+import { App, MarkdownFileInfo, MarkdownView, Notice, Plugin } from 'obsidian'
 import { getAPI } from 'obsidian-dataview'
+import TimeRulerView, { TIME_RULER_VIEW as TIME_RULER } from './index'
 import SettingsTab from './plugin/SettingsTab'
-import AppView, { RIVERBANK_VIEW as TIME_RULER } from './index'
 import { openTaskInRuler } from './services/obsidianApi'
 
 export type FieldFormat = 'tasks' | 'dataview' | 'full-calendar'
@@ -38,7 +31,7 @@ export default class TimeRulerPlugin extends Plugin {
     await this.loadSettings()
     this.addSettingTab(new SettingsTab(this))
 
-    this.registerView(TIME_RULER, leaf => new AppView(leaf, this))
+    this.registerView(TIME_RULER, leaf => new TimeRulerView(leaf, this))
 
     this.addCommand({
       icon: 'ruler',
@@ -50,44 +43,44 @@ export default class TimeRulerPlugin extends Plugin {
     // just for development
     this.activateView()
 
-    const jumpToTask = async (context: MarkdownView | MarkdownFileInfo) => {
-      const path = context.file?.path
-      if (!path) return
-      const cursor = context.editor?.getCursor()
-      if (!cursor) return
-      const line = context.editor?.getLine(cursor.line)
-      if (!line || !/ *- \[ \] /.test(line)) {
-        new Notice('cursor is not on task')
-        return
-      }
-      const alreadyOpenRiverbanks = app.workspace.getLeavesOfType(TIME_RULER)
-      if (alreadyOpenRiverbanks.length === 0) await this.activateView(true)
-      openTaskInRuler(cursor.line, path)
-    }
-
-    this.registerEvent(
-      app.workspace.on('editor-menu', (menu, _, context) => {
-        const cursor = context.editor?.getCursor()
-        if (!cursor) return
-        const line = context.editor?.getLine(cursor.line)
-        if (!line || !/ *- \[ \] /.test(line)) return
-        menu.addItem(item =>
-          item
-            .setIcon('ruler')
-            .setTitle('Reveal in Time Ruler')
-            .onClick(() => jumpToTask(context))
-        )
-      })
-    )
+    this.registerEvent(this.app.workspace.on('editor-menu', this.openMenu))
 
     this.addCommand({
       id: 'obsidian-time-ruler_find-task',
       name: 'Reveal in Time Ruler',
       checkCallback: checking => {
-        app.workspace.getActiveFile()
+        this.app.workspace.getActiveFile()
       },
-      editorCallback: (_, context) => jumpToTask(context)
+      editorCallback: (_, context) => this.jumpToTask(context)
     })
+  }
+
+  async jumpToTask(context: MarkdownView | MarkdownFileInfo) {
+    const path = context.file?.path
+    if (!path) return
+    const cursor = context.editor?.getCursor()
+    if (!cursor) return
+    const line = context.editor?.getLine(cursor.line)
+    if (!line || !/ *- \[ \] /.test(line)) {
+      new Notice('cursor is not on task')
+      return
+    }
+    const alreadyOpenTimeRulers = this.app.workspace.getLeavesOfType(TIME_RULER)
+    if (alreadyOpenTimeRulers.length === 0) await this.activateView(true)
+    openTaskInRuler(cursor.line, path)
+  }
+
+  openMenu(menu, _, context) {
+    const cursor = context.editor?.getCursor()
+    if (!cursor) return
+    const line = context.editor?.getLine(cursor.line)
+    if (!line || !/ *- \[ \] /.test(line)) return
+    menu.addItem(item =>
+      item
+        .setIcon('ruler')
+        .setTitle('Reveal in Time Ruler')
+        .onClick(() => this.jumpToTask(context))
+    )
   }
 
   async onunload() {
@@ -95,7 +88,7 @@ export default class TimeRulerPlugin extends Plugin {
   }
 
   findInView() {
-    const view = app.workspace.getLeavesOfType(TIME_RULER)[0]
+    const view = this.app.workspace.getLeavesOfType(TIME_RULER)[0]
     view.setEphemeralState
   }
 
@@ -107,7 +100,7 @@ export default class TimeRulerPlugin extends Plugin {
       return
     }
 
-    const alreadyOpenRiverbanks = app.workspace.getLeavesOfType(TIME_RULER)
+    const alreadyOpenRiverbanks = this.app.workspace.getLeavesOfType(TIME_RULER)
     const leaf =
       alreadyOpenRiverbanks?.[0] ?? this.app.workspace.getRightLeaf(false)
 
@@ -115,7 +108,9 @@ export default class TimeRulerPlugin extends Plugin {
       type: TIME_RULER,
       active
     })
-    app.workspace.revealLeaf(app.workspace.getLeavesOfType(TIME_RULER)[0])
+    this.app.workspace.revealLeaf(
+      this.app.workspace.getLeavesOfType(TIME_RULER)[0]
+    )
   }
 
   async loadSettings() {

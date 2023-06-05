@@ -1,3 +1,5 @@
+import $ from 'jquery'
+import _ from 'lodash'
 import {
   Notice,
   PluginSettingTab,
@@ -5,16 +7,11 @@ import {
   TextComponent,
   ValueComponent,
   request,
-  requestUrl,
   setIcon
 } from 'obsidian'
-import { GOOGLE_CLIENT_ID, SERVER } from '../app/constants'
-import TimeRulerPlugin, { FieldFormat } from '../main'
-import { render, unmountComponentAtNode } from 'react-dom'
-import $ from 'jquery'
-import _ from 'lodash'
-import { Root, createRoot } from 'react-dom/client'
 import { useEffect, useRef } from 'react'
+import { Root, createRoot } from 'react-dom/client'
+import TimeRulerPlugin, { FieldFormat } from '../main'
 
 const WEBCAL = 'webcal'
 
@@ -80,10 +77,9 @@ export default class SettingsTab extends PluginSettingTab {
   }
 
   async addCalendarName(calendar: string) {
-    await request(calendar).then(data => {
-      const name = data.match(/CALNAME:(.*)/)?.[1] ?? 'Default'
-      this.names[calendar] = name
-    })
+    const data = await request(calendar)
+    const name = data.match(/CALNAME:(.*)/)?.[1] ?? 'Default'
+    this.names[calendar] = name
   }
 
   async display() {
@@ -137,26 +133,24 @@ export default class SettingsTab extends PluginSettingTab {
       })
       .addButton(button => {
         button.setIcon('plus')
-        button.onClick(() => {
+        button.onClick(async () => {
           let newValue = newCalendarLink.getValue()
           if (newValue.startsWith(WEBCAL)) {
             newValue = 'https' + newValue.slice(WEBCAL.length)
           }
-          this.addCalendarName(newValue).then(
-            () => {
-              this.plugin.settings.calendars.push(newValue)
-              this.plugin.settings.calendars = _.uniq(
-                this.plugin.settings.calendars
-              )
-              this.plugin.saveSettings()
+          try {
+            await this.addCalendarName(newValue)
+            this.plugin.settings.calendars.push(newValue)
+            this.plugin.settings.calendars = _.uniq(
+              this.plugin.settings.calendars
+            )
+            this.plugin.saveSettings()
 
-              newCalendarLink.setValue('')
-              this.updateCalendars()
-            },
-            err => {
-              new Notice('Error in creating calendar.')
-            }
-          )
+            newCalendarLink.setValue('')
+            this.updateCalendars()
+          } catch (err) {
+            new Notice('Time Ruler: Error creating calendar - ' + err.message)
+          }
         })
       })
 

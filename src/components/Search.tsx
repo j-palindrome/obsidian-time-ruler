@@ -1,12 +1,10 @@
+import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
-import { useAppStore } from '../app/store'
-import { shallow } from 'zustand/shallow'
-import { Heading, HeadingProps } from './Block'
-import Logo from './Logo'
 import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
-import $ from 'jquery'
-import { useDraggable } from '@dnd-kit/core'
+import { shallow } from 'zustand/shallow'
+import { useAppStore } from '../app/store'
+import { Heading } from './Block'
 import Button from './Button'
 
 export default function Search() {
