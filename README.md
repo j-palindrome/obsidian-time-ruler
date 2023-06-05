@@ -12,7 +12,7 @@ Time Ruler combines the best parts of a nested tasklist and an event-based calen
 - Play a sound when you check a task!
 
 # Documentation
-Time Ruler requires the Dataview plugin to read tasks.
+Time Ruler uses the (Dataview)[obsidian://show-plugin?id=dataview] plugin to read tasks, so please install it before you use this plugin.
 
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
@@ -40,3 +40,7 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 - To start a stopwatch, click the play button without any time entered.
 - To start a timer, enter an amount in minutes and press the play button or "Enter."
 - You can add or subtract time while the timer is playing. 
+
+# Credit
+- Many thanks to the (Dataview)[obsidian://show-plugin?id=dataview], (Tasks)[obsidian://show-plugin?id=obsidian-tasks-plugin], and (Full Calendar)[obsidian://show-plugin?id=obsidian-full-calendar] plugins for setting the standards and formatting for managing tasks across the Obsidian vault.
+- The Dataview plugin's MetadataCache made Time Ruler possible, so a huge thanks for the automatic indexing and parsing of task metadata.
