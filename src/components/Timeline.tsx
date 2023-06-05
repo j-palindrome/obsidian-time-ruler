@@ -74,8 +74,6 @@ export default function Timeline({
     atTimeEvents
   )
 
-  console.log(allTimeObjects)
-
   const blocks = _.groupBy(allTimeObjects, object =>
     object.type === 'event' ? object.start : due ? object.due : object.scheduled
   )

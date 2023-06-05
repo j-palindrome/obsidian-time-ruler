@@ -12,7 +12,7 @@ import {
   TasksEmojiToKey as TasksEmojiToKey,
   keyToTasksEmoji,
   priorityKeyToNumber,
-  priorityNumberToKey,
+  priorityNumberToKey
 } from '../types/enums'
 import { isDateISO } from './util'
 import { sounds } from '../assets/assets'
@@ -23,7 +23,6 @@ const TASKS_EMOJI_SEARCH = new RegExp(
   `[${_.values(keyToTasksEmoji).join('')}] ?(${ISO_MATCH})?`,
   'gi'
 )
-console.log(TASKS_EMOJI_SEARCH)
 
 let dv: DataviewApi
 
@@ -58,7 +57,7 @@ export default class ObsidianAPI extends Component {
       JSON.parse(configFile)?.['userIgnoreFilters']
     if (!excludePaths) return
     this.excludePaths = new RegExp(
-      excludePaths.map((x) => `^${_.escapeRegExp(x)}`).join('|')
+      excludePaths.map(x => `^${_.escapeRegExp(x)}`).join('|')
     )
   }
 
@@ -80,7 +79,7 @@ export default class ObsidianAPI extends Component {
       .replace(/\W?#[\w-\/]+/g, '')
       .replace(TASKS_EMOJI_SEARCH, '')
 
-    const extraFields = _.mapValues(_.omit(item, RESERVED_FIELDS), (x) =>
+    const extraFields = _.mapValues(_.omit(item, RESERVED_FIELDS), x =>
       x.toString()
     )
 
@@ -112,7 +111,6 @@ export default class ObsidianAPI extends Component {
         if (!isNaN(hour) && !isNaN(minute)) {
           endTime = endTime.set({ hour, minute })
           const diff = endTime.diff(startTime).shiftTo('hour', 'minute')
-          console.log(diff)
 
           if (diff.hours >= 0 && diff.minutes >= 0)
             return { hour: diff.hours, minute: diff.minutes }
@@ -163,7 +161,7 @@ export default class ObsidianAPI extends Component {
         : (scheduled.toISO({
             includeOffset: false,
             suppressMilliseconds: true,
-            suppressSeconds: true,
+            suppressSeconds: true
           }) as string)
     }
 
@@ -189,7 +187,7 @@ export default class ObsidianAPI extends Component {
           keyToTasksEmoji.high,
           keyToTasksEmoji.medium,
           keyToTasksEmoji.low,
-          keyToTasksEmoji.lowest,
+          keyToTasksEmoji.lowest
         ]) {
           if (item.text.includes(emoji))
             return priorityKeyToNumber[TasksEmojiToKey[emoji]]
@@ -211,7 +209,7 @@ export default class ObsidianAPI extends Component {
     return {
       id: parseId(item),
       children:
-        item.children.flatMap((child) =>
+        item.children.flatMap(child =>
           child.completion ? [] : parseId(child as STask)
         ) ?? [],
       type: 'task',
@@ -228,16 +226,14 @@ export default class ObsidianAPI extends Component {
       priority,
       completion,
       start,
-      created,
+      created
     }
   }
 
   loadTasks() {
     const now = DateTime.now()
     const newTasks = (dv.pages()['file']['tasks'] as DataArray<STask>)
-      .filter((task) => {
-        if (task.start) console.log(task.start)
-
+      .filter(task => {
         return (
           !task.completion &&
           !task.completed &&
@@ -254,8 +250,8 @@ export default class ObsidianAPI extends Component {
     const newTaskString = JSON.stringify(newTasks)
     if (newTaskString === this.previousLoadTasks) return
     this.previousLoadTasks = newTaskString
-    const tasks = newTasks.flatMap((item) => this.textToTask(item))
-    const tasksDict = _.fromPairs(tasks.map((task) => [task.id, task]))
+    const tasks = newTasks.flatMap(item => this.textToTask(item))
+    const tasksDict = _.fromPairs(tasks.map(task => [task.id, task]))
 
     for (let task of _.values(tasksDict)) {
       if (!task.children) continue
@@ -378,14 +374,14 @@ export default class ObsidianAPI extends Component {
   ) {
     let position = {
       start: { col: 0, line: 0, offset: 0 },
-      end: { col: 0, line: 0, offset: 0 },
+      end: { col: 0, line: 0, offset: 0 }
     }
 
     if (heading) {
       const file = app.vault.getAbstractFileByPath(path) as TFile
       const text = await app.vault.read(file)
       const lines = text.split('\n')
-      const headingLine = lines.findIndex((line) =>
+      const headingLine = lines.findIndex(line =>
         new RegExp(`#+ ${_.escapeRegExp(heading)}$`).test(line)
       )
       if (headingLine) {
@@ -405,7 +401,7 @@ export default class ObsidianAPI extends Component {
       path,
       heading,
       position,
-      ...dropData,
+      ...dropData
     }
 
     await this.saveTask(defaultTask, true)
@@ -417,7 +413,7 @@ export default class ObsidianAPI extends Component {
 
     const taskToText = this.taskToText.bind(this)
     if (abstractFilePath) {
-      await new Promise((resolve) =>
+      await new Promise(resolve =>
         app.vault
           .read(abstractFilePath as TFile)
           .then(async function (fileText) {
@@ -447,14 +443,14 @@ export function openTaskInRuler(line: number, path: string) {
     return
   }
   setters.set({
-    findingTask: id,
+    findingTask: id
   })
 
   const foundTask = $(`[data-id="${id}"]`)
   foundTask[0]?.scrollIntoView({
     behavior: 'smooth',
     inline: 'start',
-    block: 'center',
+    block: 'center'
   })
   foundTask.addClass('!bg-accent')
   setTimeout(() => foundTask.removeClass('!bg-accent'), 1000)
@@ -475,11 +471,11 @@ export function openTask(task: TaskProps) {
     cmEditor.setSelection(
       {
         line: task.position.end.line,
-        ch: task.position.end.col,
+        ch: task.position.end.col
       },
       {
         line: task.position.end.line,
-        ch: task.position.end.col,
+        ch: task.position.end.col
       }
     )
 

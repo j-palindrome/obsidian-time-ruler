@@ -11,7 +11,7 @@ export default function Block({
   tasks,
   type,
   id,
-  due,
+  due
 }: {
   tasks: TaskProps[]
   type: BlockType
@@ -23,14 +23,14 @@ export default function Block({
     : _.groupBy(tasks, 'parent')
 
   const taskIds = _.map(tasks, 'id')
-  const nestedTasks = useAppStore((state) =>
+  const nestedTasks = useAppStore(state =>
     _.entries(tasksByParent).flatMap(([parentID, children]) => {
       if (parentID === 'undefined') return children
       else {
         const parentAlreadyIncludedInList = taskIds.includes(parentID)
         if (parentAlreadyIncludedInList) return []
         const parentTask = _.cloneDeep(state.tasks[parentID])
-        parentTask.children = children.map((x) => x.id)
+        parentTask.children = children.map(x => x.id)
         parentTask.type = 'parent'
         return parentTask
       }
@@ -40,14 +40,12 @@ export default function Block({
   const sortedTasks = _.sortBy(nestedTasks, 'position.start.line')
   const groupedTasks = _.groupBy(sortedTasks, 'area')
   const sortedGroups = _.sortBy(_.entries(groupedTasks), 0)
-  console.log(sortedGroups)
 
   return (
     <div
       id={id}
       data-role='block'
-      className={`w-full ${type === 'event' ? 'pb-2 pl-2' : ''}`}
-    >
+      className={`w-full ${type === 'event' ? 'pb-2 pl-2' : ''}`}>
       {sortedGroups.map(([name, tasks]) => (
         <Group
           key={tasks[0].id}
@@ -68,15 +66,13 @@ export type GroupProps = {
 }
 export function Group({ name, tasks, type, level, due }: GroupProps) {
   const groupedHeadings =
-    level === 'group'
-      ? _.groupBy(tasks, (task) => task.heading ?? UNGROUPED)
-      : []
+    level === 'group' ? _.groupBy(tasks, task => task.heading ?? UNGROUPED) : []
   const sortedHeadings =
     level === 'group'
       ? _.sortBy(_.entries(groupedHeadings), [
           ([name, _tasks]) => (name === UNGROUPED ? 1 : 0),
           '1.0.path',
-          '1.0.position.start.line',
+          '1.0.position.start.line'
         ])
       : []
 
@@ -85,7 +81,7 @@ export function Group({ name, tasks, type, level, due }: GroupProps) {
     tasks,
     type,
     level,
-    name,
+    name
   }
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
@@ -97,9 +93,9 @@ export function Group({ name, tasks, type, level, due }: GroupProps) {
         level +
         '::' +
         (dragData.dragType === 'group'
-          ? dragData.tasks.map((x) => x.id).join(':')
+          ? dragData.tasks.map(x => x.id).join(':')
           : ''),
-      data: dragData,
+      data: dragData
     })
 
   return (
@@ -109,7 +105,7 @@ export function Group({ name, tasks, type, level, due }: GroupProps) {
           dragProps={{
             ...attributes,
             ...listeners,
-            ref: setActivatorNodeRef,
+            ref: setActivatorNodeRef
           }}
           path={
             tasks[0].path + (level === 'heading' ? '#' + tasks[0].heading : '')
@@ -139,7 +135,7 @@ export type HeadingProps = { path: string }
 export function Heading({
   path,
   noPadding,
-  dragProps,
+  dragProps
 }: {
   path: string
   noPadding?: boolean
@@ -163,8 +159,7 @@ export function Heading({
     <div
       className={`selectable mt-2 flex w-full space-x-4 rounded-lg pr-2 font-menu text-sm child:truncate ${
         noPadding ? 'pl-2' : 'pl-7'
-      }`}
-    >
+      }`}>
       <div
         className={`w-fit flex-none cursor-pointer hover:underline ${
           level === 'heading' ? 'text-muted' : 'font-bold text-accent'
@@ -173,15 +168,13 @@ export function Heading({
         onClick={() => {
           app.workspace.openLinkText(path, '')
           return false
-        }}
-      >
+        }}>
         {name}
       </div>
       <div
         className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'
         title={path}
-        {...dragProps}
-      ></div>
+        {...dragProps}></div>
     </div>
   )
 }

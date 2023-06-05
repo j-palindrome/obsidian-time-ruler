@@ -3,9 +3,8 @@
   "name": "Time Ruler",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "A time ruler allowing drag-and-drop scheduling of tasks.",
+  "description": "A drag-and-drop time ruler combining the best of a task list and a calendar view. Reads data from Dataview, Tasks, and Full Calendar plugin formats.",
   "author": "Joshua Reinier",
   "authorUrl": "https://joshuareinier.com",
-  "fundingUrl": "https://joshuareinier.com",
   "isDesktopOnly": false
 }
