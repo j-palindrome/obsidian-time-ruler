@@ -15,7 +15,7 @@ const plugins = [
   postcss(),
   esbuildCopyStaticFiles({
     src: `dist`,
-    dest: `/Users/jreinier/Library/Mobile Documents/iCloud~md~obsidian/Documents/TEST/.obsidian/plugins/obsidian-time-ruler`,
+    dest: `/Users/jreinier/Library/Mobile Documents/iCloud~md~obsidian/Documents/Joshua/.obsidian/plugins/obsidian-time-ruler`,
     dereference: true,
     errorOnExist: false,
     preserveTimestamps: true

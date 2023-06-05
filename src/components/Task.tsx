@@ -114,7 +114,7 @@ export default function Task({
             </div>
           ))}
           {task.priority !== TaskPriorities.DEFAULT && (
-            <div className='rounded-full p-1 font-menu text-sm font-bold text-accent'>
+            <div className='whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
               {
                 {
                   [TaskPriorities.HIGHEST]: '!!!',
@@ -127,13 +127,13 @@ export default function Task({
             </div>
           )}
           {task.length && (
-            <div className='text-xs text-accent'>
+            <div className='whitespace-nowrap text-xs text-accent'>
               {task.length.hour ? `${task.length.hour}h` : ''}
               {task.length.minute ? `${task.length.minute}m` : ''}
             </div>
           )}
           {task.due && (
-            <div className='text-xs text-accent'>
+            <div className='whitespace-nowrap text-xs text-accent'>
               {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
             </div>
           )}
