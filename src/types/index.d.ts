@@ -21,6 +21,7 @@ declare global {
     id: string
     type: 'task' | 'child' | 'parent' | 'deadline' | 'link'
     title: string
+    notes?: string
     tags: string[]
     area: string
     children: string[]

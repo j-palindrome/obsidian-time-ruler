@@ -74,10 +74,13 @@ export default class ObsidianAPI extends Component {
   }
 
   textToTask(item: any): TaskProps {
-    let title = item.text
+    let title = (item.text.match(/(.*?)(\n|$)/)?.[1] ?? '')
       .replace(/[\[\(].+?:: .+?[\]\)] ?/g, '')
       .replace(/\W?#[\w-\/]+/g, '')
       .replace(TASKS_EMOJI_SEARCH, '')
+    const notes = item.text.includes('\n')
+      ? item.text.match(/\n((.|\n)*$)/)?.[1]
+      : undefined
 
     const extraFields = _.mapValues(_.omit(item, RESERVED_FIELDS), x =>
       x.toString()
@@ -218,6 +221,7 @@ export default class ObsidianAPI extends Component {
       length,
       tags: item.tags,
       title,
+      notes,
       extraFields: _.keys(extraFields).length > 0 ? extraFields : undefined,
       position: item.position,
       heading: item.section.subpath,

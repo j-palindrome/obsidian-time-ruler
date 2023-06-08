@@ -8,7 +8,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "tsc -noEmit -skipLibCheck && MODE=production node esbuild.config.mjs"
+    "build": "npm run check && MODE=production node esbuild.config.mjs",
+    "check": "tsc -noEmit -skipLibCheck"
   },
   "devDependencies": {
     "@types/ical": "^0.8.0",

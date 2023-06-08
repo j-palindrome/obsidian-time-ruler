@@ -15,10 +15,8 @@ export const useAutoScroll = (dragging: boolean) => {
     const WAIT_TIME = 500
     const MARGIN = 20
 
-    const performScroll = (
-      el: Element,
-      scrollInfo: Partial<{ [key in 'left' | 'top']: number }>
-    ) => {
+    type ScrollInfo = { type: 'left' | 'top' | 'section'; value: number }
+    const performScroll = (el: Element, scrollInfo: ScrollInfo) => {
       if (!dragRef.current) return
 
       $(el).css('scroll-snap-type', 'none')
@@ -31,22 +29,43 @@ export const useAutoScroll = (dragging: boolean) => {
         scrollAction.current = false
       }, SCROLL_TIME)
 
-      el.scrollBy({
-        ...scrollInfo,
-        behavior: 'smooth'
-      })
+      switch (scrollInfo.type) {
+        case 'top':
+          el.scrollBy({
+            top: scrollInfo.value,
+            behavior: 'smooth'
+          })
+          break
+        case 'left':
+          el.scrollBy({
+            left: scrollInfo.value,
+            behavior: 'smooth'
+          })
+          break
+        case 'section':
+          console.log('scrolling to', $(el).children()[scrollInfo.value])
+
+          $(el).children()[scrollInfo.value]?.scrollIntoView({
+            inline: 'start',
+            behavior: 'smooth'
+          })
+          break
+      }
     }
 
-    const prepareScroll = (
-      el: Element,
-      scrollInfo: Partial<{ [key in 'left' | 'top']: number }>
-    ) => {
+    const prepareScroll = (el: Element, scrollInfo: ScrollInfo) => {
       if (!dragRef.current) return
 
       scrollAction.current = window.setTimeout(
         () => performScroll(el, scrollInfo),
         WAIT_TIME
       )
+    }
+
+    const cancelScroll = () => {
+      if (typeof scrollAction.current === 'number')
+        window.clearTimeout(scrollAction.current)
+      scrollAction.current = false
     }
 
     let continueAutoScroll = false
@@ -62,12 +81,12 @@ export const useAutoScroll = (dragging: boolean) => {
       const rect = el.getBoundingClientRect()
       if (rect.top > position.current.y - MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { top: (rect.height - MARGIN) * -1 })
+          prepareScroll(el, { type: 'top', value: (rect.height - MARGIN) * -1 })
         continueAutoScroll = true
         break
       } else if (rect.bottom < position.current.y + MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { top: rect.height - MARGIN })
+          prepareScroll(el, { type: 'top', value: rect.height - MARGIN })
         continueAutoScroll = true
         break
       }
@@ -80,41 +99,67 @@ export const useAutoScroll = (dragging: boolean) => {
       const rect = el.getBoundingClientRect()
       if (rect.left > position.current.x - MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { left: (rect.width - MARGIN) * -1 })
+          prepareScroll(el, { type: 'left', value: (rect.width - MARGIN) * -1 })
         continueAutoScroll = true
         break
       } else if (rect.right < position.current.x + MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { left: rect.width - MARGIN })
+          prepareScroll(el, { type: 'left', value: rect.width - MARGIN })
         continueAutoScroll = true
         break
       }
     }
 
+    const sectionButtonTarget = targets.find(el =>
+      el.getAttribute('data-section-scroll')
+    )
+    if (sectionButtonTarget) {
+      if (!scrollAction.current)
+        prepareScroll($('#time-ruler-times')[0] as HTMLDivElement, {
+          type: 'section',
+          value: parseInt(
+            sectionButtonTarget.getAttribute('data-section-scroll') as string
+          )
+        })
+      continueAutoScroll = true
+    }
+
     if (!continueAutoScroll && scrollAction.current) {
-      if (typeof scrollAction.current === 'number')
-        window.clearTimeout(scrollAction.current)
-      scrollAction.current = false
+      cancelScroll()
     }
 
     if (dragRef.current) requestAnimationFrame(autoScroll)
   }
 
-  const updateMousePosition = (ev: MouseEvent) => {
+  const updateMousePosition = (ev: MouseEvent | TouchEvent) => {
     if (!dragRef.current) return
-    position.current.x = ev.clientX
-    position.current.y = ev.clientY
+    if (ev instanceof TouchEvent) {
+      position.current.x = ev.touches[0].clientX
+      position.current.y = ev.touches[0].clientY
+    } else if (ev instanceof MouseEvent) {
+      position.current.x = ev.clientX
+      position.current.y = ev.clientY
+    }
   }
 
   useEffect(() => {
+    console.log('dragging', dragging)
+
     if (dragging) {
       timeRulerBoundingRect.current =
         $('#time-ruler')[0].getBoundingClientRect()
-      window.addEventListener('mousemove', updateMousePosition)
+      window.addEventListener(
+        app['isMobile'] ? 'touchmove' : 'mousemove',
+        updateMousePosition
+      )
+
       autoScroll()
     } else {
       scrollAction.current = false
-      window.removeEventListener('mousemove', updateMousePosition)
+      window.removeEventListener(
+        app['isMobile'] ? 'touchmove' : 'mousemove',
+        updateMousePosition
+      )
     }
   }, [dragging])
 }

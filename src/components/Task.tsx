@@ -133,13 +133,16 @@ export default function Task({
         </div>
       </div>
       {_.keys(task.extraFields).length > 0 && (
-        <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-6 text-xs'>
+        <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-7 text-xs'>
           {_.sortBy(_.entries(task.extraFields), 0).map(([key, value]) => (
             <div className='flex overflow-hidden rounded child:px-1' key={key}>
               {key}: {value}
             </div>
           ))}
         </div>
+      )}
+      {task.notes && (
+        <div className='pl-7 pr-2 text-xs text-faint'>{task.notes}</div>
       )}
       {type !== 'link' && (
         <div className='pl-6'>

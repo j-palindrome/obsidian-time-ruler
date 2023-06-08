@@ -34,7 +34,7 @@ export default function Search() {
   useEffect(hideShowingOnDrag, [activeDrag, showing])
 
   const filteredHeadings = headings.filter(heading =>
-    new RegExp(search, 'i').test(heading)
+    new RegExp(_.escapeRegExp(search), 'i').test(heading)
   )
 
   const checkShowing = (ev: MouseEvent) => {

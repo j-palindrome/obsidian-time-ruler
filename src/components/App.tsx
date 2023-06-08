@@ -92,63 +92,40 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
   const [activeDrag, activeDragRef] = useAppStoreRef(state => state.dragData)
 
   const buttons = () => {
-    const scrollTimeout = useRef<number | null>(null)
-    const clearScrollTimeout = () => {
-      if (typeof scrollTimeout.current === 'number')
-        clearTimeout(scrollTimeout.current)
-      scrollTimeout.current = null
-    }
     const scrollToSection = (section: number) => {
-      clearScrollTimeout()
       $('#time-ruler-times').children()[section]?.scrollIntoView({
         block: 'start',
         behavior: 'smooth'
       })
     }
 
-    const startScrollTimeout = (section: number) => {
-      if (scrollTimeout.current) clearScrollTimeout()
-      if (!activeDragRef.current) return
-      scrollTimeout.current = window.setTimeout(
-        () => scrollToSection(section),
-        1000
-      )
-    }
-
-    const hasEvents = useAppStore(state => _.size(state.events) > 0)
-
     return (
       <div className='flex w-full items-center space-x-1' data-auto-scroll='x'>
         <Search />
-        {hasEvents && (
-          <Button
-            title='reload events'
-            onClick={() => {
-              getters.getCalendarAPI().loadEvents()
-            }}
-            src={'rotate-cw'}
-          />
-        )}
-        <div className='no-scrollbar flex h-full w-full space-x-2 overflow-x-auto rounded-icon pb-0.5'>
+
+        <Button
+          title='reload'
+          onClick={() => {
+            getters.getCalendarAPI().loadEvents()
+            getters.getObsidianAPI().loadTasks()
+          }}
+          src={'rotate-cw'}
+        />
+
+        <div
+          className='no-scrollbar flex h-full w-full space-x-2 overflow-x-auto rounded-icon pb-0.5'
+          data-auto-scroll='x'>
           <Droppable
             id='unscheduled::button'
             data={{ scheduled: TaskActions.DELETE }}>
-            <Button
-              onClick={() => scrollToSection(0)}
-              onMouseEnter={() => startScrollTimeout(0)}
-              onMouseLeave={clearScrollTimeout}
-              onMouseUp={clearScrollTimeout}>
+            <Button onClick={() => scrollToSection(0)} data-section-scroll={0}>
               Unscheduled
             </Button>
           </Droppable>
           <Droppable
             id='upcoming::button'
             data={{ due: now.toISODate() as string }}>
-            <Button
-              onClick={() => scrollToSection(1)}
-              onMouseEnter={() => startScrollTimeout(1)}
-              onMouseLeave={clearScrollTimeout}
-              onMouseUp={clearScrollTimeout}>
+            <Button onClick={() => scrollToSection(1)} data-section-scroll={1}>
               Upcoming
             </Button>
           </Droppable>
@@ -159,9 +136,7 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
               data={{ scheduled: times.startISO }}>
               <Button
                 onClick={() => scrollToSection(i + START_BUTTONS)}
-                onMouseEnter={() => startScrollTimeout(i + START_BUTTONS)}
-                onMouseLeave={clearScrollTimeout}
-                onMouseUp={clearScrollTimeout}>
+                data-section-scroll={i + START_BUTTONS}>
                 {DateTime.fromISO(times.startISO).toFormat('EEE MMM d')}
               </Button>
             </Droppable>

@@ -36,23 +36,22 @@ export default class TimeRulerPlugin extends Plugin {
     this.addCommand({
       icon: 'ruler',
       callback: () => this.activateView(true),
-      id: 'obsidian-time-ruler-activate-view',
+      id: 'activate-view',
       name: 'Open Time Ruler'
     })
-
-    // just for development
-    this.activateView()
 
     this.registerEvent(this.app.workspace.on('editor-menu', this.openMenu))
 
     this.addCommand({
-      id: 'obsidian-time-ruler_find-task',
+      id: 'find-task',
       name: 'Reveal in Time Ruler',
       checkCallback: checking => {
         this.app.workspace.getActiveFile()
       },
       editorCallback: (_, context) => this.jumpToTask(context)
     })
+
+    this.activateView()
   }
 
   async jumpToTask(context: MarkdownView | MarkdownFileInfo) {
@@ -83,21 +82,18 @@ export default class TimeRulerPlugin extends Plugin {
     )
   }
 
-  async onunload() {
-    this.app.workspace.detachLeavesOfType(TIME_RULER)
-  }
-
-  findInView() {
-    const view = this.app.workspace.getLeavesOfType(TIME_RULER)[0]
-    view.setEphemeralState
-  }
-
   async activateView(active = false) {
-    const dataViewPlugin = getAPI(this.app)
+    let dataViewPlugin = getAPI(this.app)
     if (!dataViewPlugin) {
-      new Notice('Please enable the DataView plugin for Time Ruler to work.')
-      this.app.workspace.detachLeavesOfType(TIME_RULER)
-      return
+      // wait for Dataview plugin to load (usually <100ms)
+      dataViewPlugin = await new Promise(resolve => {
+        setTimeout(() => resolve(getAPI(this.app)), 350)
+      })
+      if (!dataViewPlugin) {
+        new Notice('Please enable the DataView plugin for Time Ruler to work.')
+        this.app.workspace.detachLeavesOfType(TIME_RULER)
+        return
+      }
     }
 
     const alreadyOpenRiverbanks = this.app.workspace.getLeavesOfType(TIME_RULER)
