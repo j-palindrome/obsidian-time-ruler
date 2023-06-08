@@ -61,8 +61,6 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
   const [now, setNow] = useState(DateTime.now())
   useEffect(() => {
     const update = () => {
-      console.log('now', DateTime.now())
-
       setNow(DateTime.now())
     }
     const FIFTEEN_MINUTES = 1000 * 60 * 15

@@ -43,8 +43,6 @@ export const useAutoScroll = (dragging: boolean) => {
           })
           break
         case 'section':
-          console.log('scrolling to', $(el).children()[scrollInfo.value])
-
           $(el).children()[scrollInfo.value]?.scrollIntoView({
             inline: 'start',
             behavior: 'smooth'
@@ -143,8 +141,6 @@ export const useAutoScroll = (dragging: boolean) => {
   }
 
   useEffect(() => {
-    console.log('dragging', dragging)
-
     if (dragging) {
       timeRulerBoundingRect.current =
         $('#time-ruler')[0].getBoundingClientRect()
