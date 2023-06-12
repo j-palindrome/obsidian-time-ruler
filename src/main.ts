@@ -1,6 +1,6 @@
 import { App, MarkdownFileInfo, MarkdownView, Notice, Plugin } from 'obsidian'
 import { getAPI } from 'obsidian-dataview'
-import TimeRulerView, { TIME_RULER_VIEW as TIME_RULER } from './index'
+import TimeRulerView, { TIME_RULER_VIEW } from './index'
 import SettingsTab from './plugin/SettingsTab'
 import { openTaskInRuler } from './services/obsidianApi'
 
@@ -31,7 +31,7 @@ export default class TimeRulerPlugin extends Plugin {
     await this.loadSettings()
     this.addSettingTab(new SettingsTab(this))
 
-    this.registerView(TIME_RULER, leaf => new TimeRulerView(leaf, this))
+    this.registerView(TIME_RULER_VIEW, leaf => new TimeRulerView(leaf, this))
 
     this.addCommand({
       icon: 'ruler',
@@ -40,7 +40,11 @@ export default class TimeRulerPlugin extends Plugin {
       name: 'Open Time Ruler'
     })
 
-    this.registerEvent(this.app.workspace.on('editor-menu', this.openMenu))
+    this.registerEvent(
+      this.app.workspace.on('editor-menu', (menu, _, context) =>
+        this.openMenu(menu, context)
+      )
+    )
 
     this.addCommand({
       id: 'find-task',
@@ -50,8 +54,6 @@ export default class TimeRulerPlugin extends Plugin {
       },
       editorCallback: (_, context) => this.jumpToTask(context)
     })
-
-    this.activateView()
   }
 
   async jumpToTask(context: MarkdownView | MarkdownFileInfo) {
@@ -64,12 +66,13 @@ export default class TimeRulerPlugin extends Plugin {
       new Notice('cursor is not on task')
       return
     }
-    const alreadyOpenTimeRulers = this.app.workspace.getLeavesOfType(TIME_RULER)
+    const alreadyOpenTimeRulers =
+      this.app.workspace.getLeavesOfType(TIME_RULER_VIEW)
     if (alreadyOpenTimeRulers.length === 0) await this.activateView(true)
     openTaskInRuler(cursor.line, path)
   }
 
-  openMenu(menu, _, context) {
+  openMenu(menu, context) {
     const cursor = context.editor?.getCursor()
     if (!cursor) return
     const line = context.editor?.getLine(cursor.line)
@@ -91,22 +94,19 @@ export default class TimeRulerPlugin extends Plugin {
       })
       if (!dataViewPlugin) {
         new Notice('Please enable the DataView plugin for Time Ruler to work.')
-        this.app.workspace.detachLeavesOfType(TIME_RULER)
+        this.app.workspace.detachLeavesOfType(TIME_RULER_VIEW)
         return
       }
     }
 
-    const alreadyOpenRiverbanks = this.app.workspace.getLeavesOfType(TIME_RULER)
     const leaf =
-      alreadyOpenRiverbanks?.[0] ?? this.app.workspace.getRightLeaf(false)
+      this.app.workspace.getLeavesOfType(TIME_RULER_VIEW)?.[0] ??
+      this.app.workspace.getRightLeaf(false)
 
     await leaf.setViewState({
-      type: TIME_RULER,
-      active
+      type: TIME_RULER_VIEW,
+      active: true
     })
-    this.app.workspace.revealLeaf(
-      this.app.workspace.getLeavesOfType(TIME_RULER)[0]
-    )
   }
 
   async loadSettings() {

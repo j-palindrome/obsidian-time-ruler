@@ -317,7 +317,7 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
         {buttons()}
         <Timer />
         <div
-          className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary text-base child:flex child:h-full child:flex-none child:snap-start child:flex-col child:space-y-2 child:overflow-clip child:p-2 ${childWidth}`}
+          className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex child:h-full child:flex-none child:snap-start child:flex-col child:space-y-2 child:overflow-clip child:p-2 ${childWidth}`}
           id='time-ruler-times'
           data-auto-scroll='x'>
           <Unscheduled />

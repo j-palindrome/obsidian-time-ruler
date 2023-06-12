@@ -21,17 +21,11 @@ export default function Task({
   highlight,
   due
 }: TaskComponentProps & { highlight?: boolean; due?: boolean }) {
-  let task = useAppStore(state => state.tasks[id])
-
   const completeTask = () => {
     setters.patchTasks([id], {
       completion: DateTime.now().toISODate() as string
     })
   }
-
-  const subtasks = useAppStore(state => {
-    return (children ?? task.children).flatMap(child => state.tasks[child])
-  }, shallow)
 
   const dragData: DragData = {
     dragType: 'task',
@@ -45,10 +39,19 @@ export default function Task({
       data: dragData
     })
 
+  const isLink = ['parent', 'link'].includes(type)
+
+  let task = useAppStore(state => state.tasks[id])
+
+  const subtasks = useAppStore(state => {
+    if (!task) return []
+    return (children ?? task.children).flatMap(child => state.tasks[child])
+  }, shallow)
+
   const lengthDragData: DragData = {
     dragType: 'task-length',
     id,
-    start: task.scheduled ?? ''
+    start: task?.scheduled ?? ''
   }
   const {
     setNodeRef: setLengthNodeRef,
@@ -59,7 +62,7 @@ export default function Task({
     data: lengthDragData
   })
 
-  const isLink = ['parent', 'link'].includes(type)
+  if (!task) return <></>
 
   return (
     <div
