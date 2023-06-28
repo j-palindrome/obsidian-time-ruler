@@ -10,13 +10,15 @@ interface TimeRulerSettings {
   fieldFormat: FieldFormat
   muted: boolean
   inbox: string | null
+  search: string
 }
 
 const DEFAULT_SETTINGS: TimeRulerSettings = {
   calendars: [],
   muted: false,
   fieldFormat: 'dataview',
-  inbox: null
+  inbox: null,
+  search: ''
 }
 
 export default class TimeRulerPlugin extends Plugin {

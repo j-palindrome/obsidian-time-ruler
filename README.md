@@ -16,11 +16,10 @@ Time Ruler uses the [Dataview](obsidian://show-plugin?id=dataview) plugin to rea
 
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
-- **Dataview**: [scheduled:: yyyy-mm-ddThh:mm][due:: yyyy-mm-dd][length:: \#h\#m][priority:: lowest/low/medium/high/highest]
-- **Tasks**: [startTime:: hh-mm][length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺
-- **Full Calendar**: [date:: yyyy-mm-dd][startTime:: hh-mm][due:: yyyy-mm-dd][endTime:: hh-mm][priority:: lowest/low/medium/high/highest]
-
-When editing a task via drag-and-drop, tasks are converted to the user's preferred format (Dataview, Tasks, or Full Calendar). This can be changed in Settings.
+- **Dataview**: [scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: \#h\#m]  [priority:: lowest/low/medium/high/highest]
+- **Tasks**: [startTime:: hh-mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺
+- **Full Calendar**: [date:: yyyy-mm-dd]  [startTime:: hh-mm]  [endTime:: hh-mm]  [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]
+When editing a task via drag-and-drop, tasks are converted to the user's preferred format (Dataview, Tasks, or Full Calendar). This can be changed in Settings. (*Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.)
 
 ## Scheduling tasks
 - To reschedule a task, drag-and-drop the task onto the target block or time. You can drag a task to one of the day buttons or a day's heading to reschedule to that day. Click on a task to jump to it in Obsidian.
@@ -43,3 +42,11 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 # Credit
 - Many thanks to the [Dataview](obsidian://show-plugin?id=dataview), [Tasks](obsidian://show-plugin?id=obsidian-tasks-plugin), and [Full Calendar](obsidian://show-plugin?id=obsidian-full-calendar) plugins for setting the standards and formatting for managing tasks across the Obsidian vault.
 - The Dataview plugin's MetadataCache made Time Ruler possible, so a huge thanks for the automatic indexing and parsing of task metadata.
+
+# Changelog
+
+## 6/28/2022
+- Added custom Dataview filter for tasks (according to the [Custom Statuses](https://github.com/joshuatazrein/obsidian-time-ruler/issues/3) request)
+- Added buttons to add new tasks at specific times
+- Fixed [issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/2) with formatting tasks for Tasks plugin
+- Fixed [issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/4) with stripping tags from task when moved

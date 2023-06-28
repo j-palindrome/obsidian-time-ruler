@@ -240,7 +240,9 @@ export default class ObsidianAPI extends Component {
 
   loadTasks() {
     const now = DateTime.now()
-    const newTasks = (dv.pages()['file']['tasks'] as DataArray<STask>)
+    const newTasks = (
+      dv.pages(this.settings.search)['file']['tasks'] as DataArray<STask>
+    )
       .filter(task => {
         return (
           !task.completion &&
@@ -273,13 +275,13 @@ export default class ObsidianAPI extends Component {
   }
 
   async onload() {
-    let indexReady = false
+    let indexReady = { current: false }
     this.registerEvent(
       this.app.metadataCache.on(
         // @ts-ignore
         'dataview:index-ready',
         () => {
-          indexReady = true
+          indexReady.current = true
           this.loadTasks()
         }
       )
@@ -289,21 +291,25 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:metadata-change',
         () => {
-          if (!indexReady) return
+          if (!indexReady.current) return
           this.loadTasks()
         }
       )
     )
     await this.getExcludePaths()
     await this.getDailyPath()
-    this.loadTasks()
+
+    if (dv.index.initialized) {
+      indexReady.current = true
+      this.loadTasks()
+    }
   }
 
   private taskToText(task: TaskProps) {
     let draft = `- [${task.completion ? 'x' : ' '}] ${task.title.replace(
       /\s+$/,
       ''
-    )} `
+    )} ${task.tags.length > 0 ? task.tags.join(' ') + ' ' : ''}`
 
     if (task.extraFields) {
       _.sortBy(_.entries(task.extraFields), 0).forEach(([key, value]) => {
@@ -313,38 +319,38 @@ export default class ObsidianAPI extends Component {
 
     switch (this.settings.fieldFormat) {
       case 'dataview':
-        if (task.scheduled) draft += `[scheduled:: ${task.scheduled}]`
-        if (task.due) draft += `[due:: ${task.due}]`
+        if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
+        if (task.due) draft += `  [due:: ${task.due}]`
         if (task.length && task.length.hour + task.length.minute > 0) {
-          draft += `[length:: ${
+          draft += `  [length:: ${
             task.length.hour ? `${task.length.hour}h` : ''
           }${task.length.minute ? `${task.length.minute}m` : ''}]`
         }
         break
       case 'full-calendar':
         if (task.scheduled) {
-          draft += `[date:: ${task.scheduled.slice(0, 10)}]`
+          draft += `  [date:: ${task.scheduled.slice(0, 10)}]`
           if (!isDateISO(task.scheduled))
-            draft += `[startTime:: ${task.scheduled.slice(11)}]`
+            draft += `  [startTime:: ${task.scheduled.slice(11)}]`
         }
-        if (task.due) draft += `[due:: ${task.due}]`
+        if (task.due) draft += `  [due:: ${task.due}]`
         if (
           task.length &&
           task.length.hour + task.length.minute > 0 &&
           task.scheduled
         ) {
           const endTime = DateTime.fromISO(task.scheduled).plus(task.length)
-          draft += `[endTime:: ${endTime.hour}:${endTime.minute}]`
+          draft += `  [endTime:: ${endTime.hour}:${endTime.minute}]`
         }
         break
       case 'tasks':
         if (task.length && task.length.hour + task.length.minute > 0)
-          draft += `[length:: ${
+          draft += `  [length:: ${
             task.length.hour ? `${task.length.hour}h` : ''
           }${task.length.minute ? `${task.length.minute}m` : ''}]`
         if (task.scheduled) {
           if (!isDateISO(task.scheduled))
-            draft += `[startTime:: ${task.scheduled.slice(11)}]`
+            draft += `  [startTime:: ${task.scheduled.slice(11)}]`
           draft += ` ${keyToTasksEmoji.scheduled} ${task.scheduled.slice(
             0,
             10
@@ -357,16 +363,16 @@ export default class ObsidianAPI extends Component {
       case 'dataview':
       case 'full-calendar':
         if (task.start) {
-          draft += `[start:: ${task.start}]`
+          draft += `  [start:: ${task.start}]`
         }
         if (task.created) {
-          draft += `[created:: ${task.created}]`
+          draft += `  [created:: ${task.created}]`
         }
         if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
-          draft += `[priority:: ${priorityNumberToKey[task.priority]}]`
+          draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
         }
         if (task.completion) {
-          draft += `[completion:: ${task.completion}]`
+          draft += `  [completion:: ${task.completion}]`
         }
         break
       case 'tasks':

@@ -122,6 +122,16 @@ export default class SettingsTab extends PluginSettingTab {
         })
       })
 
+    new Setting(containerEl)
+      .setName('Custom Filter')
+      .setDesc('Enable a custom Dataview filter to search tasks.')
+      .addText(text => {
+        text.setValue(this.plugin.settings.search).onChange(value => {
+          this.plugin.settings.search = value
+          this.plugin.saveSettings()
+        })
+      })
+
     let newCalendarLink: TextComponent
     new Setting(containerEl)
       .setName('Calendars')
