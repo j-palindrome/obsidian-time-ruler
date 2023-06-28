@@ -1,6 +1,9 @@
-import { useDroppable } from '@dnd-kit/core'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
 import { roundMinutes } from '../services/util'
+import ObsidianAPI from 'src/services/obsidianApi'
+import { getters, setters } from 'src/app/store'
+import Button from './Button'
 
 export type TimeSpanTypes = 'minutes' | 'hours' | 'days'
 export default function Times({
@@ -67,42 +70,70 @@ function Time({ time, type, due }: TimeProps) {
     data: due ? { due: iso } : ({ scheduled: iso } as DropData)
   })
 
+  const dragData: DragData = {
+    dragType: 'time',
+    start: iso,
+    due: due ?? false
+  }
+  const {
+    setNodeRef: setDragNodeRef,
+    attributes,
+    listeners
+  } = useDraggable({
+    id: time + '::time',
+    data: dragData
+  })
+
   return (
     <div
-      className={`flex h-[16px] items-center justify-end`}
+      className={`group flex h-[16px] cursor-pointer items-center justify-end`}
       key={time.toISO()}
-      ref={setNodeRef}
-      onMouseUp={() => {}}>
-      <hr
-        className={`border-t border-faint ${
-          isOver ? '!w-full' : 'active:w-full'
-        } ${
-          type === 'days'
-            ? day === 1
-              ? date < 7
+      ref={setNodeRef}>
+      <Button
+        src='plus'
+        className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+        onClick={() => {
+          setters.set({ searchStatus: { scheduled: iso } })
+        }}
+      />
+      <div
+        className='flex h-full w-full items-center'
+        {...attributes}
+        {...listeners}
+        ref={setDragNodeRef}>
+        <div className='grow' />
+        <hr
+          className={`border-t border-faint ${
+            isOver ? '!w-full' : 'active:!w-full'
+          } ${
+            type === 'days'
+              ? day === 1
+                ? date < 7
+                  ? 'w-16'
+                  : 'w-8'
+                : day === 5
+                ? 'w-4'
+                : 'w-1'
+              : type === 'hours'
+              ? hours === 0
                 ? 'w-16'
-                : 'w-8'
-              : day === 5
-              ? 'w-4'
+                : hours % 6 === 0
+                ? 'w-8'
+                : hours % 3 === 0
+                ? 'w-4'
+                : 'w-1'
+              : minutes === 0
+              ? hours % 12 === 0
+                ? 'w-16'
+                : hours % 3 === 0
+                ? 'w-8'
+                : 'w-4'
+              : minutes % 30 === 0
+              ? 'w-2'
               : 'w-1'
-            : type === 'hours'
-            ? hours === 0
-              ? 'w-16'
-              : hours % 6 === 0
-              ? 'w-8'
-              : hours % 3 === 0
-              ? 'w-4'
-              : 'w-1'
-            : minutes === 0
-            ? hours % 12 === 0
-              ? 'w-16'
-              : hours % 3 === 0
-              ? 'w-8'
-              : 'w-4'
-            : minutes % 30 === 0
-            ? 'w-2'
-            : 'w-1'
-        }`}></hr>
+          }`}></hr>
+      </div>
+
       <div
         className={`ml-1 flex-none font-menu text-xs text-muted ${
           type === 'days' ? 'w-8' : 'w-4'

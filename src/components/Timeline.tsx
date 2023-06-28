@@ -9,6 +9,7 @@ import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
 import Times, { TimeSpanTypes } from './Times'
+import TimeSpan from './TimeSpan'
 
 export default function Timeline({
   startISO,
@@ -31,24 +32,26 @@ export default function Timeline({
           state.events,
           event =>
             !(
-              event.end <= startISO ||
-              event.start >= endISO ||
-              event.end <= now
+              event.endISO <= startISO ||
+              event.startISO >= endISO ||
+              event.endISO <= now
             )
         )
   }, shallow)
 
   const filterAllDayChildren = (tasks: TaskProps[]) => {
     const tasksMap = _.fromPairs(tasks.map(task => [task.id, task]))
-    return tasks.filter(
-      task =>
-        !(
-          task.parent &&
-          tasksMap[task.parent] &&
-          task.scheduled &&
-          isDateISO(task.scheduled)
+    return due
+      ? tasks
+      : tasks.filter(
+          task =>
+            !(
+              task.parent &&
+              tasksMap[task.parent] &&
+              task.scheduled &&
+              isDateISO(task.scheduled)
+            )
         )
-    )
   }
   const tasks = useAppStore(state => {
     return filterAllDayChildren(
@@ -64,7 +67,7 @@ export default function Timeline({
   const allDayEvents: EventProps[] = []
   const atTimeEvents: EventProps[] = []
   for (let event of events) {
-    if (isDateISO(event.start)) allDayEvents.push(event)
+    if (isDateISO(event.startISO)) allDayEvents.push(event)
     else atTimeEvents.push(event)
   }
 
@@ -73,7 +76,11 @@ export default function Timeline({
   )
 
   const blocks = _.groupBy(allTimeObjects, object =>
-    object.type === 'event' ? object.start : due ? object.due : object.scheduled
+    object.type === 'event'
+      ? object.startISO
+      : due
+      ? object.due
+      : object.scheduled
   )
   const sortedBlocks = _.sortBy(_.entries(blocks), 0)
   const allDayTasks = sortedBlocks.filter(
@@ -88,7 +95,6 @@ export default function Timeline({
       )
 
   const [expanded, setExpanded] = useState(true)
-  let maxTime = startISO
 
   const foundTaskInAllDay = useAppStore(state => {
     return state.findingTask &&
@@ -113,8 +119,6 @@ export default function Timeline({
   }
   useEffect(expandIfFound, [foundTaskInAllDay])
 
-  const hasHoursStarting = type === 'minutes' && startISO > now
-
   return (
     <div className='h-full'>
       <Droppable data={{ scheduled: startISO }} id={startISO + '::timeline'}>
@@ -131,19 +135,21 @@ export default function Timeline({
                   key={event.id}
                   id={event.id}
                   tasks={[]}
-                  start={startISO}
-                  end={event.start}
-                  displayStart={event.start}
+                  blocks={[]}
+                  startISO={startISO}
+                  endISO={event.startISO}
+                  displayStartISO={event.startISO}
                 />
               ))}
               {allDayTasks.map(([time, tasks]) => (
                 <Event
                   key={time}
                   tasks={tasks}
+                  blocks={[]}
                   due={due}
-                  start={startISO}
-                  end={time}
-                  displayStart={time}
+                  startISO={startISO}
+                  endISO={time}
+                  displayStartISO={time}
                 />
               ))}
             </div>
@@ -158,83 +164,10 @@ export default function Timeline({
       <div
         className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg'
         data-auto-scroll='y'>
-        <Times
-          type={hasHoursStarting ? 'hours' : type}
-          startISO={startISO}
-          endISO={atTimeBlocks[0]?.[0] ?? endISO}
-          chopEnd
-          due={due}
+        <TimeSpan
+          {...{ startISO, endISO, type, blocks: atTimeBlocks, due }}
+          startWithHours={startISO !== DateTime.now().toISODate()}
         />
-
-        {atTimeBlocks.map(([time, items], i) => {
-          const thisEvent = items.find(item => item.type === 'event') as
-            | EventProps
-            | undefined
-          const tasksWithLength = items.filter(
-            item => item.type !== 'event' && item.length
-          ) as (TaskProps & { length: NonNullable<TaskProps['length']> })[]
-          const totalLength = tasksWithLength.reduce(
-            ({ hour, minute }, task) => ({
-              hour: hour + task.length.hour,
-              minute: minute + task.length.minute
-            }),
-            { hour: 0, minute: 0 }
-          )
-          const hasLength =
-            thisEvent || totalLength.hour + totalLength.minute > 0
-
-          const tasks = items.filter(
-            item => item.type !== 'event'
-          ) as TaskProps[]
-
-          let endTime = ['days'].includes(type)
-            ? time
-            : thisEvent
-            ? thisEvent.end
-            : hasLength
-            ? (DateTime.fromISO(time)
-                .plus({
-                  hours: totalLength.hour,
-                  minutes: totalLength.minute
-                })
-                .toISO() as string)
-            : time
-          const displayStart = time
-          if (time < maxTime) time = maxTime
-          if (endTime < maxTime) endTime = maxTime
-          if (endTime > maxTime) maxTime = endTime
-          return (
-            <Fragment key={items.map(x => x.id).join('')}>
-              {thisEvent ? (
-                <Event
-                  {...thisEvent}
-                  tasks={tasks}
-                  type={type}
-                  due={due}
-                  displayStart={displayStart}
-                />
-              ) : (
-                <Event
-                  start={time}
-                  end={endTime}
-                  tasks={tasks}
-                  type={type}
-                  due={due}
-                  displayStart={displayStart}
-                />
-              )}
-
-              <Times
-                type={type}
-                startISO={maxTime}
-                endISO={atTimeBlocks[i + 1]?.[0] ?? endISO}
-                chopEnd
-                chopStart={!hasLength}
-                due={due}
-              />
-            </Fragment>
-          )
-        })}
       </div>
     </div>
   )

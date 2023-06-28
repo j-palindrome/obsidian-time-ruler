@@ -15,6 +15,7 @@ export type AppState = {
   dragData: DragData | null
   findingTask: string | null
   inScroll: number
+  searchStatus: boolean | Partial<TaskProps>
 }
 
 export const useAppStore = create<AppState>(() => ({
@@ -23,7 +24,8 @@ export const useAppStore = create<AppState>(() => ({
   apis: {},
   dragData: null,
   findingTask: null,
-  inScroll: 0
+  inScroll: 0,
+  searchStatus: false
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {

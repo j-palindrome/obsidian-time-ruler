@@ -1,7 +1,8 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
-import { useAppStore } from '../app/store'
+import { getters, setters, useAppStore } from '../app/store'
 import Task from './Task'
+import TaskLink from './TaskLink'
 
 const UNGROUPED = '__ungrouped'
 export type BlockType = 'child' | 'time' | 'event' | 'default'
@@ -9,12 +10,14 @@ export default function Block({
   tasks,
   type,
   id,
-  due
+  due,
+  scheduled
 }: {
   tasks: TaskProps[]
   type: BlockType
   id?: string
   due?: boolean
+  scheduled: string | null
 }) {
   const tasksByParent = ['parent', 'child'].includes(type)
     ? { undefined: tasks }
@@ -50,7 +53,7 @@ export default function Block({
         <Group
           key={tasks[0].id}
           level='group'
-          {...{ name, tasks, type, due }}
+          {...{ name, tasks, type, due, scheduled }}
         />
       ))}
     </div>
@@ -63,8 +66,16 @@ export type GroupProps = {
   type: BlockType
   level: 'group' | 'heading'
   due?: boolean
+  scheduled: string | null
 }
-export function Group({ name, tasks, type, level, due }: GroupProps) {
+export function Group({
+  name,
+  tasks,
+  type,
+  level,
+  due,
+  scheduled
+}: GroupProps) {
   const groupedHeadings =
     level === 'group' ? _.groupBy(tasks, task => task.heading ?? UNGROUPED) : []
   const sortedHeadings =
@@ -81,7 +92,8 @@ export function Group({ name, tasks, type, level, due }: GroupProps) {
     tasks,
     type,
     level,
-    name
+    name,
+    scheduled
   }
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
@@ -122,17 +134,33 @@ export function Group({ name, tasks, type, level, due }: GroupProps) {
               name={name}
               type={type}
               due={due}
+              scheduled={scheduled}
             />
           ))
-        : tasks.map((task, i) => (
-            <Task
-              key={task.id}
-              id={task.id}
-              type={task.type}
-              due={due}
-              children={task.children}
-            />
-          ))}
+        : tasks.map((task, i) => {
+            if (
+              task.type === 'parent' ||
+              (task.scheduled && (!scheduled || task.scheduled > scheduled))
+            )
+              return (
+                <TaskLink
+                  key={task.id}
+                  id={task.id}
+                  type={task.type}
+                  due={due}
+                  children={task.children}
+                />
+              )
+            return (
+              <Task
+                key={task.id}
+                id={task.id}
+                type={task.type}
+                due={due}
+                children={task.children}
+              />
+            )
+          })}
     </div>
   )
 }
@@ -155,11 +183,7 @@ export function Heading({
       ? path.slice(path.lastIndexOf('/') + 1)
       : path
   ).replace(/\.md/, '')
-
-  const parent =
-    level === 'group' && path.includes('/')
-      ? path.slice(0, path.lastIndexOf('/'))
-      : ''
+  const searchStatus = useAppStore(state => state.searchStatus)
 
   return (
     <div
@@ -172,7 +196,15 @@ export function Heading({
         }`}
         onPointerDown={() => false}
         onClick={() => {
-          app.workspace.openLinkText(path, '')
+          if (searchStatus === true) {
+            app.workspace.openLinkText(path, '')
+          } else if (searchStatus) {
+            const [filePath, heading] = path.split('#')
+            getters
+              .getObsidianAPI()
+              .createTask(filePath + '.md', heading, searchStatus)
+            setters.set({ searchStatus: false })
+          }
           return false
         }}>
         {name}

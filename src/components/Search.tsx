@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
-import { useAppStore } from '../app/store'
+import { getters, setters, useAppStore } from '../app/store'
 import { Heading } from './Block'
 import Button from './Button'
 
@@ -19,7 +19,8 @@ export default function Search() {
     shallow
   )
 
-  const [showing, setShowing] = useState(false)
+  const searchStatus = useAppStore(state => state.searchStatus)
+
   const [search, setSearch] = useState('')
   const inputFrame = useRef<HTMLInputElement>(null)
   const frame = useRef<HTMLDivElement>(null)
@@ -27,11 +28,11 @@ export default function Search() {
 
   const activeDrag = useAppStore(state => state.dragData)
   const hideShowingOnDrag = () => {
-    if (activeDrag && showing) {
-      setShowing(false)
+    if (activeDrag && searchStatus) {
+      setters.set({ searchStatus: false })
     }
   }
-  useEffect(hideShowingOnDrag, [activeDrag, showing])
+  useEffect(hideShowingOnDrag, [activeDrag, searchStatus])
 
   const filteredHeadings = headings.filter(heading =>
     new RegExp(_.escapeRegExp(search), 'i').test(heading)
@@ -42,61 +43,71 @@ export default function Search() {
     const els = document.elementsFromPoint(ev.clientX, ev.clientY)
 
     if (!els.includes(frame.current) && !els.includes(button.current)) {
-      setShowing(false)
+      setters.set({ searchStatus: false })
     }
   }
-
   useEffect(() => {
-    if (showing) {
+    window.removeEventListener('mousedown', checkShowing)
+    if (searchStatus) {
       window.addEventListener('mousedown', checkShowing)
       setTimeout(() => inputFrame.current?.focus())
-    } else {
-      window.removeEventListener('mousedown', checkShowing)
     }
     return () => window.removeEventListener('mousedown', checkShowing)
-  }, [showing])
+  }, [searchStatus])
 
   return (
-    <div className='group relative z-30 flex h-full w-fit flex-none items-center'>
+    <>
       <Button
         onClick={() => {
-          setShowing(!showing)
+          setters.set({ searchStatus: true })
           setSearch('')
         }}
         ref={button}
         src={'search'}
       />
-
-      {showing && (
-        <div
-          className='obsidian-border absolute left-[1px] top-full max-h-[50vh]  min-w-[200px] overflow-y-auto overflow-x-hidden rounded-lg bg-primary'
-          ref={frame}>
-          <div className=' p-4'>
-            <input
-              className='sticky top-4 w-full rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
-              value={search}
-              onChange={ev => setSearch(ev.target.value)}
-              onKeyDown={ev => {
-                if (ev.key === 'Enter') {
-                  ev.preventDefault()
-                  if (!filteredHeadings[0]) return
-                  app.workspace.openLinkText(filteredHeadings[0], '')
-                  setShowing(false)
-                }
-              }}
-              placeholder='filter'
-              ref={inputFrame}></input>
-            {filteredHeadings.map(heading => (
-              <DraggableHeading
-                key={heading}
-                dragData={{ dragType: 'new', path: heading }}
-                path={heading}
-              />
-            ))}
+      {searchStatus && (
+        <div className='fixed left-0 top-0 z-40 flex h-full w-full items-center justify-center p-4'>
+          {/* <div
+            className='absolute left-0 top-0 -z-10 h-full w-full'
+            onClick={() => setters.set({ searchStatus: false })}></div> */}
+          <div
+            className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-normal bg-primary'
+            ref={frame}>
+            <div className='p-4'>
+              <h2>{searchStatus === true ? 'Search' : 'Create Task'}</h2>
+              <input
+                className='sticky top-4 w-full rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
+                value={search}
+                onChange={ev => setSearch(ev.target.value)}
+                onKeyDown={ev => {
+                  if (ev.key === 'Enter') {
+                    if (searchStatus === true) {
+                      ev.preventDefault()
+                      if (!filteredHeadings[0]) return
+                      app.workspace.openLinkText(filteredHeadings[0], '')
+                    } else if (searchStatus) {
+                      const [path, heading] = filteredHeadings[0].split('#')
+                      getters
+                        .getObsidianAPI()
+                        .createTask(path + '.md', heading, searchStatus)
+                    }
+                    setters.set({ searchStatus: false })
+                  }
+                }}
+                placeholder='filter'
+                ref={inputFrame}></input>
+              {filteredHeadings.map(heading => (
+                <DraggableHeading
+                  key={heading}
+                  dragData={{ dragType: 'new', path: heading }}
+                  path={heading}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 

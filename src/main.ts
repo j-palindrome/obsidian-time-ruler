@@ -35,10 +35,12 @@ export default class TimeRulerPlugin extends Plugin {
 
     this.addCommand({
       icon: 'ruler',
-      callback: () => this.activateView(true),
+      callback: () => this.activateView(),
       id: 'activate-view',
       name: 'Open Time Ruler'
     })
+
+    this.addRibbonIcon('ruler', 'Open Time Ruler', () => this.activateView())
 
     this.registerEvent(
       this.app.workspace.on('editor-menu', (menu, _, context) =>
@@ -66,9 +68,8 @@ export default class TimeRulerPlugin extends Plugin {
       new Notice('cursor is not on task')
       return
     }
-    const alreadyOpenTimeRulers =
-      this.app.workspace.getLeavesOfType(TIME_RULER_VIEW)
-    if (alreadyOpenTimeRulers.length === 0) await this.activateView(true)
+
+    await this.activateView()
     openTaskInRuler(cursor.line, path)
   }
 
@@ -85,7 +86,7 @@ export default class TimeRulerPlugin extends Plugin {
     )
   }
 
-  async activateView(active = false) {
+  async activateView() {
     let dataViewPlugin = getAPI(this.app)
     if (!dataViewPlugin) {
       // wait for Dataview plugin to load (usually <100ms)
@@ -107,6 +108,8 @@ export default class TimeRulerPlugin extends Plugin {
       type: TIME_RULER_VIEW,
       active: true
     })
+
+    console.log('activated view', leaf)
   }
 
   async loadSettings() {

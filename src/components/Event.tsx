@@ -1,46 +1,54 @@
 import { useDraggable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
-import { useAppStore } from '../app/store'
+import { setters, useAppStore } from '../app/store'
 import { isDateISO } from '../services/util'
 import Block from './Block'
 import Droppable from './Droppable'
 import Times, { TimeSpanTypes } from './Times'
+import TimeSpan, { BlockData } from './TimeSpan'
+import Logo from './Logo'
+import Button from './Button'
 
 export type EventComponentProps = {
   id?: string
   tasks: TaskProps[]
   type?: TimeSpanTypes
-  start: string
-  end: string
-  displayStart: string
+  startISO: string
+  endISO: string
+  displayStartISO: string
+  blocks: BlockData[]
 }
 export default function Event({
   id,
   tasks,
-  type = 'minutes',
-  start,
-  end,
-  draggable = true,
+  startISO,
+  endISO,
   due,
-  displayStart
+  displayStartISO,
+  blocks,
+  type = 'minutes',
+  draggable = true
 }: EventComponentProps & { draggable?: boolean; due?: boolean }) {
   if (tasks.length === 0) draggable = false
-  const allDay =
-    (['minutes', 'hours'].includes(type) && isDateISO(start)) ||
-    ['days'].includes(type)
-  const thisEvent = useAppStore(state => id && state.events[id])
+  const thisEvent = useAppStore(state => (id ? state.events[id] : undefined))
   const dragData: DragData = {
     dragType: 'event',
     id,
     tasks,
     type,
-    start,
-    end,
-    displayStart
+    blocks,
+    startISO,
+    endISO,
+    displayStartISO
   }
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id: displayStart + '::event' + '::' + id + tasks.map(x => x.id).join(','),
+      id:
+        displayStartISO +
+        '::event' +
+        '::' +
+        id +
+        tasks.map(x => x.id).join(','),
       data: dragData
     })
 
@@ -52,76 +60,77 @@ export default function Event({
     )
   }
 
+  const data = due ? { due: displayStartISO } : { scheduled: displayStartISO }
+
   const titleBar = (
     <div
-      className={`flex h-6 w-full flex-none items-center rounded-lg pl-6 pr-2 font-menu text-xs ${
+      className={`group flex h-6 w-full flex-none items-center rounded-lg pr-2 font-menu text-xs ${
         draggable ? 'selectable cursor-grab' : ''
-      }`}
-      {...(draggable
-        ? { ref: setActivatorNodeRef, ...attributes, ...listeners }
-        : undefined)}>
-      {thisEvent && (
-        <div
-          className={`mr-2 w-fit min-w-[24px] flex-none whitespace-nowrap text-sm`}>
-          {thisEvent.title}
-        </div>
-      )}
-      <hr className='w-full border-t border-faint'></hr>
+      }`}>
+      <Button
+        src='plus'
+        className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+        onClick={() => {
+          setters.set({
+            searchStatus: due
+              ? { due: displayStartISO }
+              : { scheduled: displayStartISO }
+          })
+        }}
+      />
+      <div
+        className='flex w-full items-center'
+        {...(draggable
+          ? { ref: setActivatorNodeRef, ...attributes, ...listeners }
+          : undefined)}>
+        {thisEvent && (
+          <div
+            className={`mr-2 w-fit min-w-[24px] flex-none whitespace-nowrap text-sm`}>
+            {thisEvent.title}
+          </div>
+        )}
 
-      {!DateTime.fromISO(start).equals(DateTime.fromISO(displayStart)) && (
-        <>
-          <span className='ml-2 whitespace-nowrap text-faint'>
-            {formatStart(displayStart)}
-          </span>
-          <span className='ml-2 text-faint'>&gt;</span>
-        </>
-      )}
-      <span className='ml-2 whitespace-nowrap'>{formatStart(start)}</span>
-      {!DateTime.fromISO(start).diff(DateTime.fromISO(end)) && (
-        <>
-          <span className='ml-2 text-faint'>&gt;</span>
-          <span className='ml-2 whitespace-nowrap text-muted'>
-            {formatStart(end)}
-          </span>
-        </>
-      )}
+        <hr className='w-full border-t border-faint'></hr>
+
+        {!DateTime.fromISO(startISO).equals(
+          DateTime.fromISO(displayStartISO)
+        ) && (
+          <>
+            <span className='ml-2 whitespace-nowrap text-faint'>
+              {formatStart(displayStartISO)}
+            </span>
+            <span className='ml-2 text-faint'>&gt;</span>
+          </>
+        )}
+        <span className='ml-2 whitespace-nowrap'>{formatStart(startISO)}</span>
+        {!DateTime.fromISO(startISO).diff(DateTime.fromISO(endISO)) && (
+          <>
+            <span className='ml-2 text-faint'>&gt;</span>
+            <span className='ml-2 whitespace-nowrap text-muted'>
+              {formatStart(endISO)}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   )
 
   return (
     <div
-      className='w-full rounded-lg bg-primary-alt'
+      className={`w-full rounded-lg bg-secondary-alt`}
       ref={draggable ? setNodeRef : undefined}>
-      <Droppable
-        data={due ? { due: displayStart } : { scheduled: displayStart }}
-        id={start}>
+      <Droppable data={data} id={startISO}>
         {titleBar}
       </Droppable>
 
-      <div className='flex w-full overflow-hidden'>
-        <div className='w-full'>
-          {tasks.length > 0 && (
-            <Block
-              tasks={due ? tasks.map(x => ({ ...x, type: 'link' })) : tasks}
-              type='event'
-              due={due}
-            />
-          )}
-        </div>
+      <Block type='event' {...{ tasks, due, scheduled: displayStartISO }} />
+      <TimeSpan
+        startISO={displayStartISO}
+        endISO={endISO}
+        blocks={blocks}
+        type={type}
+      />
 
-        {!allDay && start < end && (
-          <div className='w-16 flex-none'>
-            <Times
-              type={type}
-              startISO={start}
-              endISO={end}
-              chopStart
-              chopEnd
-              due={due}
-            />
-          </div>
-        )}
-      </div>
       {thisEvent && (thisEvent.location || thisEvent.notes) && (
         <div className='flex space-x-4 py-2 pl-6 text-xs'>
           <div className='whitespace-nowrap'>{thisEvent.location}</div>

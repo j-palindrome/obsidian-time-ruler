@@ -68,8 +68,8 @@ export default class CalendarAPI extends Component {
             const props: EventProps = {
               id,
               title: event.summary ?? '',
-              start: startString,
-              end: endString,
+              startISO: startString,
+              endISO: endString,
               type: 'event',
               calendarId: `${i}`,
               calendarName: calendarName,

@@ -46,7 +46,7 @@ function Unscheduled() {
     <div>
       <div className='mb-1 rounded px-2'>Unscheduled</div>
       <div className='h-full overflow-y-auto rounded-lg bg-primary-alt'>
-        <Block tasks={unscheduled} type='time' />
+        <Block tasks={unscheduled} type='time' scheduled={null} />
       </div>
     </div>
   )
@@ -155,7 +155,19 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
     const dragData = activeDragRef.current
 
     if (dropData && dragData) {
-      if (dragData.dragType === 'new') {
+      if (dragData.dragType === 'time') {
+        if (!dropData.scheduled) return
+        const { hours, minutes } = DateTime.fromISO(dropData.scheduled)
+          .diff(DateTime.fromISO(dragData.start))
+          .shiftTo('hours', 'minutes')
+          .toObject() as { hours: number; minutes: number }
+        setters.set({
+          searchStatus: {
+            scheduled: dragData.start,
+            length: { hour: hours, minute: minutes }
+          }
+        })
+      } else if (dragData.dragType === 'new') {
         const [path, heading] = dragData.path.split('#')
         getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
       } else if (dragData.dragType === 'task-length') {

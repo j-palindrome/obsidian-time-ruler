@@ -136,7 +136,9 @@ export function Timer() {
       ) : (
         <pre className='my-0 mr-1 !h-fit'>{`${negative ? '-' : ''}${
           hours > 0 ? hours + ':' : ''
-        }${minutes}:${String(seconds).padStart(2, '0')}`}</pre>
+        }${hours > 0 ? String(minutes).padStart(2, '0') : minutes}:${String(
+          seconds
+        ).padStart(2, '0')}`}</pre>
       )}
       <Button
         className='p-0.5'

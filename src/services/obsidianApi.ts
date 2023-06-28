@@ -74,9 +74,13 @@ export default class ObsidianAPI extends Component {
   }
 
   textToTask(item: any): TaskProps {
+    const INLINE_FIELD_SEARCH = /[\[\(].+:: .+[\]\)] ?/g
+    const TAG_SEARCH = /#[\w-\/]+/g
+    const LINK_SEARCH = /\[(.*?)\]\(.*?\)/g
     let title = (item.text.match(/(.*?)(\n|$)/)?.[1] ?? '')
-      .replace(/[\[\(].+?:: .+?[\]\)] ?/g, '')
-      .replace(/\W?#[\w-\/]+/g, '')
+      .replace(INLINE_FIELD_SEARCH, '')
+      .replace(TAG_SEARCH, '')
+      .replace(LINK_SEARCH, '$1')
       .replace(TASKS_EMOJI_SEARCH, '')
     const notes = item.text.includes('\n')
       ? item.text.match(/\n((.|\n)*$)/)?.[1]
@@ -260,6 +264,7 @@ export default class ObsidianAPI extends Component {
     for (let task of _.values(tasksDict)) {
       if (!task.children) continue
       for (let child of task.children) {
+        if (!tasksDict[child]) continue
         tasksDict[child].parent = task.id
       }
     }
@@ -268,11 +273,23 @@ export default class ObsidianAPI extends Component {
   }
 
   async onload() {
+    let indexReady = false
+    this.registerEvent(
+      this.app.metadataCache.on(
+        // @ts-ignore
+        'dataview:index-ready',
+        () => {
+          indexReady = true
+          this.loadTasks()
+        }
+      )
+    )
     this.registerEvent(
       this.app.metadataCache.on(
         // @ts-ignore
         'dataview:metadata-change',
-        (_type, _file, _oldPath) => {
+        () => {
+          if (!indexReady) return
           this.loadTasks()
         }
       )
@@ -286,63 +303,70 @@ export default class ObsidianAPI extends Component {
     let draft = `- [${task.completion ? 'x' : ' '}] ${task.title.replace(
       /\s+$/,
       ''
-    )}`
+    )} `
+
+    if (task.extraFields) {
+      _.sortBy(_.entries(task.extraFields), 0).forEach(([key, value]) => {
+        draft += `[${key}:: ${value}]`
+      })
+    }
+
     switch (this.settings.fieldFormat) {
       case 'dataview':
-        if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
-        if (task.due) draft += `  [due:: ${task.due}]`
+        if (task.scheduled) draft += `[scheduled:: ${task.scheduled}]`
+        if (task.due) draft += `[due:: ${task.due}]`
         if (task.length && task.length.hour + task.length.minute > 0) {
-          draft += `  [length:: ${
+          draft += `[length:: ${
             task.length.hour ? `${task.length.hour}h` : ''
           }${task.length.minute ? `${task.length.minute}m` : ''}]`
         }
         break
       case 'full-calendar':
         if (task.scheduled) {
-          draft += `  [date:: ${task.scheduled.slice(0, 10)}]`
+          draft += `[date:: ${task.scheduled.slice(0, 10)}]`
           if (!isDateISO(task.scheduled))
-            draft += `  [startTime:: ${task.scheduled.slice(11)}]`
+            draft += `[startTime:: ${task.scheduled.slice(11)}]`
         }
-        if (task.due) draft += `  [due:: ${task.due}]`
+        if (task.due) draft += `[due:: ${task.due}]`
         if (
           task.length &&
           task.length.hour + task.length.minute > 0 &&
           task.scheduled
         ) {
           const endTime = DateTime.fromISO(task.scheduled).plus(task.length)
-          draft += `  [endTime:: ${endTime.hour}:${endTime.minute}]`
+          draft += `[endTime:: ${endTime.hour}:${endTime.minute}]`
         }
         break
       case 'tasks':
+        if (task.length && task.length.hour + task.length.minute > 0)
+          draft += `[length:: ${
+            task.length.hour ? `${task.length.hour}h` : ''
+          }${task.length.minute ? `${task.length.minute}m` : ''}]`
         if (task.scheduled) {
+          if (!isDateISO(task.scheduled))
+            draft += `[startTime:: ${task.scheduled.slice(11)}]`
           draft += ` ${keyToTasksEmoji.scheduled} ${task.scheduled.slice(
             0,
             10
           )}`
-          if (!isDateISO(task.scheduled))
-            draft += ` [startTime:: ${task.scheduled.slice(11)}]`
         }
         if (task.due) draft += ` ${keyToTasksEmoji.due} ${task.due}`
-        if (task.length && task.length.hour + task.length.minute > 0)
-          draft += `  [length:: ${
-            task.length.hour ? `${task.length.hour}h` : ''
-          }${task.length.minute ? `${task.length.minute}m` : ''}]`
         break
     }
     switch (this.settings.fieldFormat) {
       case 'dataview':
       case 'full-calendar':
         if (task.start) {
-          draft += `  [start:: ${task.start}]`
+          draft += `[start:: ${task.start}]`
         }
         if (task.created) {
-          draft += `  [created:: ${task.created}]`
+          draft += `[created:: ${task.created}]`
         }
         if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
-          draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
+          draft += `[priority:: ${priorityNumberToKey[task.priority]}]`
         }
         if (task.completion) {
-          draft += `  [completion:: ${task.completion}]`
+          draft += `[completion:: ${task.completion}]`
         }
         break
       case 'tasks':
@@ -352,12 +376,6 @@ export default class ObsidianAPI extends Component {
           draft += ` ${keyToTasksEmoji[priorityNumberToKey[task.priority]]}`
         if (task.completion)
           draft += ` ${keyToTasksEmoji.completion} ${task.completion}`
-    }
-
-    if (task.extraFields) {
-      _.sortBy(_.entries(task.extraFields), 0).forEach(([key, value]) => {
-        draft += `  [${key}:: ${value}]`
-      })
     }
 
     return draft
@@ -401,23 +419,28 @@ export default class ObsidianAPI extends Component {
       ...dropData
     }
 
+    console.log('default task:', defaultTask)
+
     await this.saveTask(defaultTask, true)
     this.openTask(defaultTask)
   }
 
-  async saveTask(task: TaskProps, newLine?: boolean) {
+  async saveTask(task: TaskProps, newTask?: boolean) {
     var abstractFile = this.app.vault.getAbstractFileByPath(task.path)
+    console.log('saving task to', abstractFile, task.path)
 
-    const taskToText = this.taskToText.bind(this)
     if (abstractFile && abstractFile instanceof TFile) {
       const fileText = await this.app.vault.read(abstractFile)
       const lines = fileText.split('\n')
 
-      lines[task.position.start.line] =
+      const newText =
         (lines[task.position.start.line].match(/^\s*/)?.[0] ?? '') +
-        taskToText(task) +
-        (newLine ? '\n' : '') +
-        lines[task.position.start.line].slice(task.position.end.col)
+        this.taskToText(task)
+      if (newTask) {
+        lines.splice(task.position.start.line, 0, newText)
+      } else {
+        lines[task.position.start.line] = newText
+      }
 
       await this.app.vault.modify(abstractFile, lines.join('\n'))
     }

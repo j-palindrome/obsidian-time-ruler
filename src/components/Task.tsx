@@ -45,7 +45,11 @@ export default function Task({
 
   const subtasks = useAppStore(state => {
     if (!task) return []
-    return (children ?? task.children).flatMap(child => state.tasks[child])
+    return (children ?? task.children).flatMap(child => {
+      const subtask = state.tasks[child]
+      if (!subtask) return []
+      return subtask
+    })
   }, shallow)
 
   const lengthDragData: DragData = {
@@ -145,7 +149,9 @@ export default function Task({
         </div>
       )}
       {task.notes && (
-        <div className='pl-7 pr-2 text-xs text-faint'>{task.notes}</div>
+        <div className='break-words pl-7 pr-2 text-xs text-faint'>
+          {task.notes}
+        </div>
       )}
       {type !== 'link' && (
         <div className='pl-6'>
@@ -160,6 +166,11 @@ export default function Task({
                     : undefined,
                 type: type === 'parent' ? subtask.type : 'child'
               }))}
+              scheduled={
+                (type === 'parent' ? subtasks[0]?.scheduled : task.scheduled) ??
+                null
+              }
+              due={due}
               type='child'></Block>
           )}
         </div>

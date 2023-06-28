@@ -16,10 +16,9 @@ Time Ruler uses the [Dataview](obsidian://show-plugin?id=dataview) plugin to rea
 
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
-- **Dataview**: [scheduled:: yyyy-mm-ddThh:mm]   [due:: yyyy-mm-dd]  [length:: \#h\#m]  [priority:: lowest/low/medium/high/highest]
-- **Tasks**: ⏳ yyyy-mm-dd [startTime:: hh-mm]  📅 yyyy-mm-dd  [length:: \#h\#m] ⏬/🔽/🔼/⏫/🔺
-- **Full Calendar**: [date:: yyyy-mm-dd]  [startTime:: hh-mm]  [due:: yyyy-mm-dd]  [endTime:: hh-mm] 
- [priority:: lowest/low/medium/high/highest]
+- **Dataview**: [scheduled:: yyyy-mm-ddThh:mm][due:: yyyy-mm-dd][length:: \#h\#m][priority:: lowest/low/medium/high/highest]
+- **Tasks**: [startTime:: hh-mm][length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺
+- **Full Calendar**: [date:: yyyy-mm-dd][startTime:: hh-mm][due:: yyyy-mm-dd][endTime:: hh-mm][priority:: lowest/low/medium/high/highest]
 
 When editing a task via drag-and-drop, tasks are converted to the user's preferred format (Dataview, Tasks, or Full Calendar). This can be changed in Settings.
 

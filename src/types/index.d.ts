@@ -6,8 +6,8 @@ import { TaskComponentProps } from '../components/Task'
 declare global {
   type EventProps = {
     id: string
-    start: string
-    end: string
+    startISO: string
+    endISO: string
     title: string
     calendarName: string
     calendarId: string
@@ -71,6 +71,7 @@ declare global {
     | ({ dragType: 'event' } & EventComponentProps)
     | { dragType: 'new'; path: string }
     | ({ dragType: 'task-length' } & { id: string; start: string })
+    | ({ dragType: 'time' } & { start: string; due: boolean })
 
   type DropData = Partial<TaskProps>
 }
