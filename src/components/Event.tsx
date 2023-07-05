@@ -41,7 +41,6 @@ export default function Event({
     endISO,
     displayStartISO
   }
-  console.log(startISO, displayStartISO)
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({

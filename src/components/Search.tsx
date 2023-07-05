@@ -10,16 +10,19 @@ import Toggle from './Toggle'
 import TaskLink from './TaskLink'
 
 export default function Search() {
-  const headings = useAppStore(
-    state =>
-      _.uniq(
-        _.flatMap(state.tasks, task => {
-          const path = task.path.replace(/\.md$/, '')
-          return [path, path + (task.heading ? '#' + task.heading : '')]
-        })
-      ).sort(),
-    shallow
-  )
+  const headings = useAppStore(state => {
+    const headings = _.uniq(
+      _.flatMap(state.tasks, task => {
+        const path = task.path.replace(/\.md$/, '')
+        return [path, path + (task.heading ? '#' + task.heading : '')]
+      }).concat(state.dailyNote ? [state.dailyNote] : [])
+    ).sort()
+    if (state.dailyNote && headings.includes(state.dailyNote)) {
+      headings.splice(headings.indexOf(state.dailyNote), 1)
+      headings.splice(0, 0, state.dailyNote)
+    }
+    return headings
+  }, shallow)
 
   const searchStatus = useAppStore(state => state.searchStatus)
 
@@ -94,15 +97,15 @@ export default function Search() {
                   onChange={ev => setSearch(ev.target.value)}
                   onKeyDown={ev => {
                     if (ev.key === 'Enter') {
+                      const firstHeading = headings.find(heading =>
+                        searchExp.test(heading)
+                      )
+                      if (!firstHeading) return
                       if (searchStatus === true) {
                         ev.preventDefault()
-                        const firstHeading = headings.find(heading =>
-                          searchExp.test(heading)
-                        )
-                        firstHeading &&
-                          app.workspace.openLinkText(headings[0], '')
+                        app.workspace.openLinkText(firstHeading, '')
                       } else if (searchStatus) {
-                        const [path, heading] = headings[0].split('#')
+                        const [path, heading] = firstHeading.split('#')
                         getters
                           .getObsidianAPI()
                           .createTask(path + '.md', heading, searchStatus)

@@ -15,6 +15,7 @@ import {
   priorityNumberToKey
 } from '../types/enums'
 import { isDateISO } from './util'
+import moment from 'moment'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
@@ -425,15 +426,25 @@ export default class ObsidianAPI extends Component {
       ...dropData
     }
 
-    console.log('default task:', defaultTask)
-
     await this.saveTask(defaultTask, true)
     this.openTask(defaultTask)
   }
 
+  async getDailyNote() {
+    try {
+      let { folder = '', format } = JSON.parse(
+        await app.vault.adapter.read(app.vault.configDir + '/daily-notes.json')
+      )
+      if (!format) format = 'YYYY-MM-DD'
+      const today = moment().format(format)
+      return folder + '/' + today
+    } catch (err) {
+      return null
+    }
+  }
+
   async saveTask(task: TaskProps, newTask?: boolean) {
     var abstractFile = this.app.vault.getAbstractFileByPath(task.path)
-    console.log('saving task to', abstractFile, task.path)
 
     if (abstractFile && abstractFile instanceof TFile) {
       const fileText = await this.app.vault.read(abstractFile)
@@ -453,8 +464,6 @@ export default class ObsidianAPI extends Component {
   }
 
   async openTask(task: TaskProps) {
-    console.log('opening', task, task.path)
-
     await this.app.workspace.openLinkText('', task.path)
 
     const mdView = this.app.workspace.getActiveViewOfType(MarkdownView)
@@ -499,6 +508,6 @@ export function openTaskInRuler(line: number, path: string) {
     block: 'center'
   })
   foundTask.addClass('!bg-accent')
-  setTimeout(() => foundTask.removeClass('!bg-accent'), 1000)
+  setTimeout(() => foundTask.removeClass('!bg-accent'), 1500)
   setTimeout(() => setters.set({ findingTask: null, searchStatus: false }))
 }

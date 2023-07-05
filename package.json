@@ -42,6 +42,7 @@
     "jquery": "^3.7.0",
     "lodash": "^4.17.21",
     "luxon": "^3.3.0",
+    "moment": "^2.29.4",
     "obsidian-dataview": "^0.5.56",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

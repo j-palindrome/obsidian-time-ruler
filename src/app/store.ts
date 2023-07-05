@@ -17,6 +17,7 @@ export type AppState = {
   inScroll: number
   searchStatus: boolean | Partial<TaskProps>
   calendarMode: boolean
+  dailyNote: string | null
 }
 
 export const useAppStore = create<AppState>(() => ({
@@ -27,7 +28,8 @@ export const useAppStore = create<AppState>(() => ({
   findingTask: null,
   inScroll: 0,
   searchStatus: false,
-  calendarMode: false
+  calendarMode: false,
+  dailyNote: null
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
@@ -60,5 +62,6 @@ export const getters = {
   getEvent: (id: string) => useAppStore.getState().events[id],
   getTask: (id: string) => useAppStore.getState().tasks[id],
   getObsidianAPI: () => useAppStore.getState().apis.obsidian as ObsidianAPI,
-  getCalendarAPI: () => useAppStore.getState().apis.calendar as CalendarAPI
+  getCalendarAPI: () => useAppStore.getState().apis.calendar as CalendarAPI,
+  get: (key: keyof AppState) => useAppStore.getState()[key]
 }

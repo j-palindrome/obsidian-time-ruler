@@ -41,15 +41,19 @@ const START_BUTTONS = 2
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
-export default function App({ apis }: { apis: AppState['apis'] }) {
-  useEffect(() => setters.set({ apis }), [apis])
+export default function App({ apis }: { apis: Required<AppState['apis']> }) {
+  const setupStore = async () => {
+    setters.set({ apis, dailyNote: await apis.obsidian.getDailyNote() })
+  }
+  useEffect(() => {
+    setupStore()
+  }, [apis])
 
   const [now, setNow] = useState(DateTime.now())
   useEffect(() => {
     const update = () => {
       setNow(DateTime.now())
     }
-    const FIFTEEN_MINUTES = 1000 * 60 * 15
     const interval = window.setInterval(update, 60000)
     return () => window.clearInterval(interval)
   }, [])

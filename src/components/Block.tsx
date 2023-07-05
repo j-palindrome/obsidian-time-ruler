@@ -184,6 +184,7 @@ export function Heading({
       : path
   ).replace(/\.md/, '')
   const searchStatus = useAppStore(state => state.searchStatus)
+  const dailyNote = useAppStore(state => state.dailyNote)
 
   return (
     <div
@@ -207,7 +208,7 @@ export function Heading({
           }
           return false
         }}>
-        {name}
+        {path === dailyNote ? 'Today' : name}
       </div>
       <div
         className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'
