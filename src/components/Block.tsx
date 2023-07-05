@@ -139,7 +139,7 @@ export function Group({
           ))
         : tasks.map((task, i) => {
             if (
-              task.type === 'parent' ||
+              ['parent', 'link'].includes(task.type) ||
               (task.scheduled && (!scheduled || task.scheduled > scheduled))
             )
               return (
@@ -196,7 +196,7 @@ export function Heading({
         }`}
         onPointerDown={() => false}
         onClick={() => {
-          if (searchStatus === true) {
+          if (!searchStatus || searchStatus === true) {
             app.workspace.openLinkText(path, '')
           } else if (searchStatus) {
             const [filePath, heading] = path.split('#')

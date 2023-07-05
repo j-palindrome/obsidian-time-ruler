@@ -453,6 +453,8 @@ export default class ObsidianAPI extends Component {
   }
 
   async openTask(task: TaskProps) {
+    console.log('opening', task, task.path)
+
     await this.app.workspace.openLinkText('', task.path)
 
     const mdView = this.app.workspace.getActiveViewOfType(MarkdownView)
@@ -498,5 +500,5 @@ export function openTaskInRuler(line: number, path: string) {
   })
   foundTask.addClass('!bg-accent')
   setTimeout(() => foundTask.removeClass('!bg-accent'), 1000)
-  setTimeout(() => setters.set({ findingTask: null }))
+  setTimeout(() => setters.set({ findingTask: null, searchStatus: false }))
 }

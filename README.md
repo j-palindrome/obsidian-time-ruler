@@ -45,8 +45,12 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 
 # Changelog
 
-## 6/28/2022
+## 7/5/2023
+- Added Calendar view (according to the [Calendar view?](https://github.com/joshuatazrein/obsidian-time-ruler/issues/1) request). Calendar View is daily instead of hourly, showing a vertical day-by-day list of your tasks and an expanded, calendar-style arrangement for switching dates. Switch between this and the hourly view to get a more or less granular view of your tasks.
+
+## 6/28/2023
 - Added custom Dataview filter for tasks (according to the [Custom Statuses](https://github.com/joshuatazrein/obsidian-time-ruler/issues/3) request)
 - Added buttons to add new tasks at specific times
 - Fixed [issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/2) with formatting tasks for Tasks plugin
 - Fixed [issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/4) with stripping tags from task when moved
+- Fixed issue where you can't drag length of tasks with children

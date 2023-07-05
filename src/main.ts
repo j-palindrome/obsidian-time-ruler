@@ -111,7 +111,7 @@ export default class TimeRulerPlugin extends Plugin {
       active: true
     })
 
-    console.log('activated view', leaf)
+    this.app.workspace.revealLeaf(leaf)
   }
 
   async loadSettings() {

@@ -14,6 +14,7 @@ export type TaskComponentProps = {
   children?: string[]
   type: TaskProps['type']
 }
+
 export default function Task({
   id,
   children,
@@ -153,9 +154,16 @@ export default function Task({
           {task.notes}
         </div>
       )}
+      {task.scheduled && !isDateISO(task.scheduled) && (
+        <div
+          className='-mt-1 h-1 w-full cursor-ns-resize border-muted hover:border-b'
+          {...lengthAttributes}
+          {...lengthListeners}
+          ref={setLengthNodeRef}></div>
+      )}
       {type !== 'link' && (
         <div className='pl-6'>
-          {subtasks.length > 0 && (
+          {subtasks.length > 0 && !due && (
             <Block
               tasks={subtasks.map(subtask => ({
                 ...subtask,
@@ -174,13 +182,6 @@ export default function Task({
               type='child'></Block>
           )}
         </div>
-      )}
-      {task.scheduled && !isDateISO(task.scheduled) && (
-        <div
-          className='absolute bottom-0 z-10 h-1 w-full cursor-ns-resize'
-          {...lengthAttributes}
-          {...lengthListeners}
-          ref={setLengthNodeRef}></div>
       )}
     </div>
   )

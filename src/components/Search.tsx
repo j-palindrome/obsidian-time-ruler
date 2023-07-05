@@ -6,6 +6,8 @@ import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import { Heading } from './Block'
 import Button from './Button'
+import Toggle from './Toggle'
+import TaskLink from './TaskLink'
 
 export default function Search() {
   const headings = useAppStore(
@@ -34,10 +36,6 @@ export default function Search() {
   }
   useEffect(hideShowingOnDrag, [activeDrag, searchStatus])
 
-  const filteredHeadings = headings.filter(heading =>
-    new RegExp(_.escapeRegExp(search), 'i').test(heading)
-  )
-
   const checkShowing = (ev: MouseEvent) => {
     invariant(frame.current && button.current)
     const els = document.elementsFromPoint(ev.clientX, ev.clientY)
@@ -55,6 +53,23 @@ export default function Search() {
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [searchStatus])
 
+  const tasksByHeading = useAppStore(
+    state =>
+      _.mapValues(
+        _.groupBy(
+          state.tasks,
+          task =>
+            task.path.replace('.md', '') +
+            (task.heading ? '#' + task.heading : '')
+        ),
+        tasks => _.sortBy(tasks, 'id')
+      ),
+    shallow
+  )
+
+  const [showingTasks, setShowingTasks] = useState(true)
+  const searchExp = new RegExp(_.escapeRegExp(search), 'i')
+
   return (
     <>
       <Button
@@ -67,41 +82,61 @@ export default function Search() {
       />
       {searchStatus && (
         <div className='fixed left-0 top-0 z-40 flex h-full w-full items-center justify-center p-4'>
-          {/* <div
-            className='absolute left-0 top-0 -z-10 h-full w-full'
-            onClick={() => setters.set({ searchStatus: false })}></div> */}
           <div
-            className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-normal bg-primary'
+            className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary'
             ref={frame}>
             <div className='p-4'>
               <h2>{searchStatus === true ? 'Search' : 'Create Task'}</h2>
-              <input
-                className='sticky top-4 w-full rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
-                value={search}
-                onChange={ev => setSearch(ev.target.value)}
-                onKeyDown={ev => {
-                  if (ev.key === 'Enter') {
-                    if (searchStatus === true) {
-                      ev.preventDefault()
-                      if (!filteredHeadings[0]) return
-                      app.workspace.openLinkText(filteredHeadings[0], '')
-                    } else if (searchStatus) {
-                      const [path, heading] = filteredHeadings[0].split('#')
-                      getters
-                        .getObsidianAPI()
-                        .createTask(path + '.md', heading, searchStatus)
+              <div className='flex w-full items-center'>
+                <input
+                  className='sticky top-4 w-full rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
+                  value={search}
+                  onChange={ev => setSearch(ev.target.value)}
+                  onKeyDown={ev => {
+                    if (ev.key === 'Enter') {
+                      if (searchStatus === true) {
+                        ev.preventDefault()
+                        const firstHeading = headings.find(heading =>
+                          searchExp.test(heading)
+                        )
+                        firstHeading &&
+                          app.workspace.openLinkText(headings[0], '')
+                      } else if (searchStatus) {
+                        const [path, heading] = headings[0].split('#')
+                        getters
+                          .getObsidianAPI()
+                          .createTask(path + '.md', heading, searchStatus)
+                      }
+                      setters.set({ searchStatus: false })
+                    } else if (ev.key === 'Escape') {
+                      setters.set({ searchStatus: false })
                     }
-                    setters.set({ searchStatus: false })
-                  }
-                }}
-                placeholder='filter'
-                ref={inputFrame}></input>
-              {filteredHeadings.map(heading => (
-                <DraggableHeading
-                  key={heading}
-                  dragData={{ dragType: 'new', path: heading }}
-                  path={heading}
+                  }}
+                  placeholder='filter'
+                  ref={inputFrame}></input>
+                <Toggle
+                  title={'tasks'}
+                  callback={state => setShowingTasks(state)}
+                  value={showingTasks}
                 />
+              </div>
+
+              {headings.map(heading => (
+                <div>
+                  {searchExp.test(heading) && (
+                    <DraggableHeading
+                      key={heading}
+                      dragData={{ dragType: 'new', path: heading }}
+                      path={heading}
+                    />
+                  )}
+                  {showingTasks &&
+                    tasksByHeading[heading]
+                      ?.filter(task => searchExp.test(task.title))
+                      .map(task => (
+                        <TaskLink id={task.id} key={task.id} type='link' />
+                      ))}
+                </div>
               ))}
             </div>
           </div>

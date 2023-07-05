@@ -27,6 +27,7 @@ export default function TimeSpan({
   startWithHours?: boolean
 }) {
   const now = DateTime.now().toISO() as string
+  const calendarMode = useAppStore(state => state.calendarMode)
 
   const formattedBlocks: {
     startISO: string
@@ -82,14 +83,16 @@ export default function TimeSpan({
 
   return (
     <div>
-      <Times
-        type={startWithHours ? 'hours' : type}
-        startISO={startISO}
-        endISO={blocks[0]?.[0] ?? endISO}
-        chopStart
-        chopEnd
-        due={due}
-      />
+      {!calendarMode && (
+        <Times
+          type={startWithHours ? 'hours' : type}
+          startISO={startISO}
+          endISO={blocks[0]?.[0] ?? endISO}
+          chopStart
+          chopEnd
+          due={due}
+        />
+      )}
 
       {formattedBlocks.map(
         (
@@ -119,14 +122,16 @@ export default function TimeSpan({
                 blocks={thisBlocks}
               />
 
-              <Times
-                type={type}
-                startISO={thisEndISO}
-                endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
-                chopEnd
-                chopStart={thisStartISO === thisEndISO}
-                due={due}
-              />
+              {!calendarMode && (
+                <Times
+                  type={type}
+                  startISO={thisEndISO}
+                  endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
+                  chopEnd
+                  chopStart={thisStartISO === thisEndISO}
+                  due={due}
+                />
+              )}
             </Fragment>
           )
         }

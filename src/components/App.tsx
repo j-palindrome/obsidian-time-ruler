@@ -36,21 +36,7 @@ import Timeline from './Timeline'
 import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
 
-function Unscheduled() {
-  const unscheduled = useAppStore(
-    state => _.filter(state.tasks, task => !task.scheduled && !task.parent),
-    shallow
-  )
-
-  return (
-    <div>
-      <div className='mb-1 rounded px-2'>Unscheduled</div>
-      <div className='h-full overflow-y-auto rounded-lg bg-primary-alt'>
-        <Block tasks={unscheduled} type='time' scheduled={null} />
-      </div>
-    </div>
-  )
-}
+const START_BUTTONS = 2
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -69,7 +55,11 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
   }, [])
 
   const today = now.startOf('day')
-  const [datesShown, setDatesShown] = useState(7)
+  const [datesShownState, setDatesShown] = useState(7)
+  const nextMonday = DateTime.now()
+    .plus({ days: datesShownState })
+    .startOf('week')
+  const datesShown = _.round(nextMonday.diff(DateTime.now()).as('days'))
 
   const times: Parameters<typeof Timeline>[0][] = [
     {
@@ -85,68 +75,7 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
     }))
   ]
 
-  const START_BUTTONS = 2
-
   const [activeDrag, activeDragRef] = useAppStoreRef(state => state.dragData)
-
-  const buttons = () => {
-    const scrollToSection = (section: number) => {
-      $('#time-ruler-times').children()[section]?.scrollIntoView({
-        block: 'start',
-        behavior: 'smooth'
-      })
-    }
-
-    return (
-      <div className='flex w-full items-center space-x-1' data-auto-scroll='x'>
-        <Search />
-
-        <Button
-          title='reload'
-          onClick={() => {
-            getters.getCalendarAPI().loadEvents()
-            getters.getObsidianAPI().loadTasks()
-          }}
-          src={'rotate-cw'}
-        />
-
-        <div
-          className='no-scrollbar flex h-full w-full space-x-2 overflow-x-auto rounded-icon pb-0.5'
-          data-auto-scroll='x'>
-          <Droppable
-            id='unscheduled::button'
-            data={{ scheduled: TaskActions.DELETE }}>
-            <Button onClick={() => scrollToSection(0)} data-section-scroll={0}>
-              Unscheduled
-            </Button>
-          </Droppable>
-          <Droppable
-            id='upcoming::button'
-            data={{ due: now.toISODate() as string }}>
-            <Button onClick={() => scrollToSection(1)} data-section-scroll={1}>
-              Upcoming
-            </Button>
-          </Droppable>
-          {times.map((times, i) => (
-            <Droppable
-              key={times.startISO}
-              id={times.startISO + '::button'}
-              data={{ scheduled: times.startISO }}>
-              <Button
-                onClick={() => scrollToSection(i + START_BUTTONS)}
-                data-section-scroll={i + START_BUTTONS}>
-                {DateTime.fromISO(times.startISO).toFormat('EEE MMM d')}
-              </Button>
-            </Droppable>
-          ))}
-          <Button
-            onClick={() => setDatesShown(datesShown + 7)}
-            src={'chevron-right'}
-          />
-        </div>
-      </div>
-    )
-  }
 
   useAutoScroll(!!activeDrag)
 
@@ -306,6 +235,8 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
 
   useEffect(scrollToNow, [])
 
+  const calendarMode = useAppStore(state => state.calendarMode)
+
   return (
     <DndContext
       onDragStart={onDragStart}
@@ -326,12 +257,16 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
           background: 'transparent'
         }}>
         <DragOverlay dropAnimation={null}>{getDragElement()}</DragOverlay>
-        {buttons()}
+        <Buttons {...{ times, datesShown, setDatesShown }} />
         <Timer />
         <div
-          className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex child:h-full child:flex-none child:snap-start child:flex-col child:space-y-2 child:overflow-clip child:p-2 ${childWidth}`}
+          className={`h-full w-full rounded-lg bg-primary-alt text-base child:space-y-2 child:overflow-clip child:p-2 ${
+            calendarMode
+              ? 'overflow-y-auto child:w-full'
+              : `flex snap-x snap-mandatory !overflow-x-auto overflow-y-clip child:flex child:h-full child:flex-none child:snap-start child:flex-col ${childWidth}`
+          }`}
           id='time-ruler-times'
-          data-auto-scroll='x'>
+          data-auto-scroll={calendarMode ? 'y' : 'x'}>
           <Unscheduled />
           <Timeline
             startISO={now.toISODate() as string}
@@ -347,12 +282,142 @@ export default function App({ apis }: { apis: AppState['apis'] }) {
             />
           ))}
           <Button
-            className='force-hover h-full !w-8 w-full rounded-lg'
+            className={`force-hover rounded-lg ${calendarMode ? '' : '!w-8'}`}
             onClick={() => setDatesShown(datesShown + 7)}
             src='chevron-right'
           />
         </div>
       </div>
     </DndContext>
+  )
+}
+
+const Buttons = ({ times, datesShown, setDatesShown }) => {
+  const now = DateTime.now()
+
+  const scrollToSection = (section: number) => {
+    $('#time-ruler-times').children()[section]?.scrollIntoView({
+      block: 'start',
+      behavior: 'smooth'
+    })
+  }
+
+  const calendarMode = useAppStore(state => state.calendarMode)
+  const otherButtons = (
+    <>
+      <Droppable
+        id='unscheduled::button'
+        data={{ scheduled: TaskActions.DELETE }}>
+        <Button onClick={() => scrollToSection(0)} data-section-scroll={0}>
+          Unscheduled
+        </Button>
+      </Droppable>
+      <Droppable
+        id='upcoming::button'
+        data={{ due: now.toISODate() as string }}>
+        <Button onClick={() => scrollToSection(1)} data-section-scroll={1}>
+          Upcoming
+        </Button>
+      </Droppable>
+    </>
+  )
+
+  const nextButton = (
+    <Button
+      onClick={() => setDatesShown(datesShown + 7)}
+      src={'chevron-right'}
+    />
+  )
+
+  const dayPadding = () => {
+    return _.range(1, now.weekday).map(i => <div key={i}></div>)
+  }
+
+  return (
+    <>
+      <div
+        className={`w-full ${
+          calendarMode ? 'space-y-1' : 'flex items-center space-x-1'
+        }`}
+        data-auto-scroll={calendarMode ? '' : 'x'}>
+        <div
+          className={`flex items-center space-x-2 ${
+            calendarMode ? 'w-full overflow-x-auto' : ''
+          }`}>
+          <Search />
+
+          <Button
+            title='reload'
+            onClick={() => {
+              getters.getCalendarAPI().loadEvents()
+              getters.getObsidianAPI().loadTasks()
+            }}
+            src={'rotate-cw'}
+          />
+
+          <Button
+            title='toggle day view'
+            onClick={() => {
+              setters.set({
+                calendarMode: !calendarMode
+              })
+            }}
+            src={calendarMode ? 'calendar-days' : 'calendar'}></Button>
+
+          {calendarMode && otherButtons}
+          {calendarMode && nextButton}
+        </div>
+        <div
+          className={`no-scrollbar flex w-full rounded-icon pb-0.5 ${
+            calendarMode
+              ? 'max-h-[calc(28px*4+2px)] flex-wrap justify-around overflow-y-auto child:w-[calc(100%/7)]'
+              : 'items-center space-x-2 overflow-x-auto '
+          }`}
+          data-auto-scroll={calendarMode ? '' : 'x'}>
+          {!calendarMode && otherButtons}
+          {calendarMode && dayPadding()}
+          {times.map((times, i) => {
+            const thisDate = DateTime.fromISO(times.startISO)
+            return (
+              <Droppable
+                key={times.startISO}
+                id={times.startISO + '::button'}
+                data={{ scheduled: times.startISO }}>
+                <Button
+                  className='h-[28px]'
+                  onClick={() => scrollToSection(i + START_BUTTONS)}
+                  data-section-scroll={i + START_BUTTONS}>
+                  {thisDate.toFormat(
+                    calendarMode
+                      ? thisDate.day === 1 || i === 0
+                        ? 'MMM d'
+                        : 'd'
+                      : 'EEE MMM d'
+                  )}
+                </Button>
+              </Droppable>
+            )
+          })}
+
+          {!calendarMode && nextButton}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function Unscheduled() {
+  const unscheduled = useAppStore(
+    state => _.filter(state.tasks, task => !task.scheduled && !task.parent),
+    shallow
+  )
+
+  return (
+    <div>
+      <div className='mb-1 rounded px-2'>Unscheduled</div>
+      <div className='h-full overflow-y-auto rounded-lg bg-primary-alt'>
+        <Block tasks={unscheduled} type='time' scheduled={null} />
+      </div>
+    </div>
   )
 }

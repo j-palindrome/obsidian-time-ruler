@@ -114,7 +114,7 @@ export function Timer() {
 
   return (
     <div
-      className={`relative my-1 flex h-6 w-full flex-none items-center justify-center rounded-icon bg-primary-alt py-1 font-menu text-sm child:relative child:h-full ${
+      className={`relative my-1 flex h-6 w-full items-center justify-center rounded-icon bg-primary-alt py-1 font-menu text-sm child:relative child:h-full ${
         negative ? 'bg-red-800/50' : ''
       }`}>
       <div

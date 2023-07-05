@@ -20,7 +20,7 @@ export default function TaskLink({
     return (children ?? task.children).flatMap(child => {
       const subtask = state.tasks[child]
       if (!subtask) return []
-      return subtask
+      return { ...subtask, type: type === 'link' ? 'link' : subtask.type }
     })
   }, shallow)
 
@@ -48,7 +48,7 @@ export default function TaskLink({
                 subtask.heading && task.heading
                   ? subtask.heading.replace(task.heading, '')
                   : undefined,
-              type: type === 'parent' ? subtask.type : 'child'
+              type: subtask.type
             }))}
             scheduled={
               (type === 'parent' ? subtasks[0]?.scheduled : task.scheduled) ??

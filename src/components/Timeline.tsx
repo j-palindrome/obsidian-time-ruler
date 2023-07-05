@@ -94,7 +94,9 @@ export default function Timeline({
         type === 'days' ? 'MMMM' : 'EEE, MMM d'
       )
 
+  const calendarMode = useAppStore(state => state.calendarMode)
   const [expanded, setExpanded] = useState(true)
+  const isExpanded = calendarMode || expanded
 
   const foundTaskInAllDay = useAppStore(state => {
     return state.findingTask &&
@@ -104,7 +106,7 @@ export default function Timeline({
   })
 
   const expandIfFound = () => {
-    if (foundTaskInAllDay && !expanded) {
+    if (foundTaskInAllDay && !isExpanded) {
       setExpanded(true)
       const foundTask = allDayTasks
         .map(([_name, tasks]) => tasks)
@@ -119,17 +121,37 @@ export default function Timeline({
   }
   useEffect(expandIfFound, [foundTaskInAllDay])
 
+  const timeSpan = (
+    <TimeSpan
+      {...{ startISO, endISO, type, blocks: atTimeBlocks, due }}
+      startWithHours={startISO !== DateTime.now().toISODate()}
+    />
+  )
+
   return (
-    <div className='h-full'>
-      <Droppable data={{ scheduled: startISO }} id={startISO + '::timeline'}>
-        <div className='flex-none rounded-lg px-1'>{title || ''}</div>
+    <div className={`${calendarMode ? '' : 'h-full'}`}>
+      <Droppable
+        data={{ scheduled: startISO }}
+        id={startISO + '::timeline' + (due ? '::due' : '')}>
+        <div className='group flex w-full items-center'>
+          <Button
+            src='plus'
+            className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+            onClick={() => {
+              setters.set({ searchStatus: { scheduled: startISO } })
+            }}
+          />
+          <div className='w-full rounded-lg px-1'>{title || ''}</div>
+        </div>
       </Droppable>
       {allDayTasks.length > 0 && (
         <>
-          {expanded && (
+          {isExpanded && (
             <div
-              className='relative mt-2 max-h-[66%] w-full flex-none space-y-2 overflow-y-auto overflow-x-hidden rounded-lg'
-              data-auto-scroll='y'>
+              className={`relative mt-2 w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
+                calendarMode ? 'h-full' : 'max-h-[66%] flex-none'
+              }`}
+              data-auto-scroll={calendarMode ? undefined : 'y'}>
               {allDayEvents.map(event => (
                 <Event
                   key={event.id}
@@ -152,23 +174,26 @@ export default function Timeline({
                   displayStartISO={time}
                 />
               ))}
+              {calendarMode && timeSpan}
             </div>
           )}
-          <Button
-            className='selectable flex h-4 w-full items-center justify-center p-0'
-            onClick={() => setExpanded(!expanded)}
-            src={expanded ? 'chevron-up' : 'chevron-down'}
-          />
+
+          {!calendarMode && (
+            <Button
+              className='selectable flex h-4 w-full items-center justify-center p-0'
+              onClick={() => setExpanded(!isExpanded)}
+              src={isExpanded ? 'chevron-up' : 'chevron-down'}
+            />
+          )}
         </>
       )}
-      <div
-        className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg'
-        data-auto-scroll='y'>
-        <TimeSpan
-          {...{ startISO, endISO, type, blocks: atTimeBlocks, due }}
-          startWithHours={startISO !== DateTime.now().toISODate()}
-        />
-      </div>
+      {!calendarMode && (
+        <div
+          className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg'
+          data-auto-scroll='y'>
+          {timeSpan}
+        </div>
+      )}
     </div>
   )
 }
