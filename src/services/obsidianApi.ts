@@ -31,13 +31,17 @@ export default class ObsidianAPI extends Component {
   dailyNotePath: RegExp
   settings: TimeRulerPlugin['settings']
   app: App
+  saveSettings: () => void
 
-  constructor(settings: ObsidianAPI['settings'], app: App) {
+  constructor(
+    settings: ObsidianAPI['settings'],
+    saveSettings: ObsidianAPI['saveSettings']
+  ) {
     super()
-    this.app = app
     dv = getAPI() as DataviewApi
     this.load()
     this.settings = settings
+    this.saveSettings = saveSettings
   }
 
   playComplete() {
@@ -50,8 +54,8 @@ export default class ObsidianAPI extends Component {
    * There isn't a way to get native Obsidian settings so we read them from disk. This will ignore tasks from any folders that the user has specified globally.
    */
   private async getExcludePaths() {
-    const configFile = await this.app.vault.adapter.read(
-      `${this.app.vault.configDir}/app.json`
+    const configFile = await app.vault.adapter.read(
+      `${app.vault.configDir}/app.json`
     )
     if (!configFile) return
     const excludePaths: string[] | undefined =
@@ -64,8 +68,8 @@ export default class ObsidianAPI extends Component {
 
   private async getDailyPath() {
     try {
-      const configFile = await this.app.vault.adapter.read(
-        `${this.app.vault.configDir}/daily-notes.json`
+      const configFile = await app.vault.adapter.read(
+        `${app.vault.configDir}/daily-notes.json`
       )
       if (!configFile) return
       const dailyNotes: string | undefined = JSON.parse(configFile)?.['folder']
@@ -77,8 +81,10 @@ export default class ObsidianAPI extends Component {
   textToTask(item: any): TaskProps {
     const INLINE_FIELD_SEARCH = /[\[\(].+:: .+[\]\)] ?/g
     const TAG_SEARCH = /#[\w-\/]+/g
+    const MD_LINK_SEARCH = /\[\[(.*?)\]\]/g
     const LINK_SEARCH = /\[(.*?)\]\(.*?\)/g
     let title = (item.text.match(/(.*?)(\n|$)/)?.[1] ?? '')
+      .replace(MD_LINK_SEARCH, '$1')
       .replace(INLINE_FIELD_SEARCH, '')
       .replace(TAG_SEARCH, '')
       .replace(LINK_SEARCH, '$1')
@@ -99,9 +105,6 @@ export default class ObsidianAPI extends Component {
     const parseId = (task: STask) => {
       return task.section.path.replace(/\.md$/, '') + '::' + task.line
     }
-
-    const parseArea = (item: STask): string =>
-      `${item.section.path.replace(/\.md$/, '').replace(/\//g, ': ')}`
 
     const parseLength = (
       scheduled: string | undefined
@@ -132,7 +135,8 @@ export default class ObsidianAPI extends Component {
       let isDate: boolean = false
       if (!scheduled) {
         let date = item.date as string | undefined
-        if (!date) {
+        const testDailyNoteTask = !date && !item.parent
+        if (testDailyNoteTask) {
           date = item.section.path
             .replace(/\.md$/, '')
             .match(new RegExp(`${ISO_MATCH}$`))?.[0]
@@ -212,7 +216,6 @@ export default class ObsidianAPI extends Component {
     const created = parseDateKey('created')
     const priority = parsePriority()
     const length = parseLength(scheduled)
-    const area = parseArea(item)
 
     return {
       id: parseId(item),
@@ -231,7 +234,6 @@ export default class ObsidianAPI extends Component {
       position: item.position,
       heading: item.section.subpath,
       path: item.path,
-      area,
       priority,
       completion,
       start,
@@ -272,13 +274,37 @@ export default class ObsidianAPI extends Component {
       }
     }
 
-    setters.set({ tasks: tasksDict })
+    const filePaths = _.uniq(tasks.map(task => task.path))
+      .filter(path => !this.settings.fileOrder.includes(path))
+      .sort()
+
+    for (let file of filePaths) {
+      const afterFile = this.settings.fileOrder.findIndex(
+        otherFile => otherFile > file
+      )
+      if (afterFile === -1) this.settings.fileOrder.push(file)
+      else this.settings.fileOrder.splice(afterFile, 0, file)
+    }
+    this.saveSettings()
+
+    setters.set({ tasks: tasksDict, fileOrder: this.settings.fileOrder })
+  }
+
+  updateFileOrder(file: string, before: string) {
+    const beforeIndex = this.settings.fileOrder.indexOf(before)
+    if (beforeIndex === -1) throw new Error('file not in headings list')
+    const newFileOrder = [...this.settings.fileOrder]
+    _.pull(newFileOrder, file)
+    newFileOrder.splice(beforeIndex, 0, file)
+    this.settings.fileOrder = newFileOrder
+    this.saveSettings()
+    setters.set({ fileOrder: newFileOrder })
   }
 
   async onload() {
     let indexReady = { current: false }
     this.registerEvent(
-      this.app.metadataCache.on(
+      app.metadataCache.on(
         // @ts-ignore
         'dataview:index-ready',
         () => {
@@ -288,7 +314,7 @@ export default class ObsidianAPI extends Component {
       )
     )
     this.registerEvent(
-      this.app.metadataCache.on(
+      app.metadataCache.on(
         // @ts-ignore
         'dataview:metadata-change',
         () => {
@@ -391,7 +417,7 @@ export default class ObsidianAPI extends Component {
   async createTask(
     path: string,
     heading: string | undefined,
-    dropData: DropData
+    dropData: Partial<TaskProps>
   ) {
     let position = {
       start: { col: 0, line: 0, offset: 0 },
@@ -399,9 +425,9 @@ export default class ObsidianAPI extends Component {
     }
 
     if (heading) {
-      const file = this.app.vault.getAbstractFileByPath(path)
+      const file = app.vault.getAbstractFileByPath(path)
       if (!(file instanceof TFile)) return
-      const text = await this.app.vault.read(file)
+      const text = await app.vault.read(file)
       const lines = text.split('\n')
       const headingLine = lines.findIndex(line =>
         new RegExp(`#+ ${_.escapeRegExp(heading)}$`).test(line)
@@ -417,7 +443,6 @@ export default class ObsidianAPI extends Component {
       title: '',
       tags: [],
       priority: TaskPriorities.DEFAULT,
-      area: '',
       id: '',
       type: 'task',
       path,
@@ -444,10 +469,10 @@ export default class ObsidianAPI extends Component {
   }
 
   async saveTask(task: TaskProps, newTask?: boolean) {
-    var abstractFile = this.app.vault.getAbstractFileByPath(task.path)
+    var abstractFile = app.vault.getAbstractFileByPath(task.path)
 
     if (abstractFile && abstractFile instanceof TFile) {
-      const fileText = await this.app.vault.read(abstractFile)
+      const fileText = await app.vault.read(abstractFile)
       const lines = fileText.split('\n')
 
       const newText =
@@ -459,14 +484,14 @@ export default class ObsidianAPI extends Component {
         lines[task.position.start.line] = newText
       }
 
-      await this.app.vault.modify(abstractFile, lines.join('\n'))
+      await app.vault.modify(abstractFile, lines.join('\n'))
     }
   }
 
   async openTask(task: TaskProps) {
-    await this.app.workspace.openLinkText('', task.path)
+    await app.workspace.openLinkText('', task.path)
 
-    const mdView = this.app.workspace.getActiveViewOfType(MarkdownView)
+    const mdView = app.workspace.getActiveViewOfType(MarkdownView)
     if (!mdView) return
 
     var cmEditor = mdView.editor
@@ -487,7 +512,7 @@ export default class ObsidianAPI extends Component {
     /**
      * There's a glitch with Obsidian where it doesn't show this when opening a link from Time Ruler.
      */
-    if (this.app['isMobile']) this.app['mobileNavbar'].show()
+    if (app['isMobile']) app['mobileNavbar'].show()
   }
 }
 

@@ -45,6 +45,9 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 
 # Changelog
 
+## 7/10/2023
+- Added ability to reorder headings with drag-and-drop
+
 ## 7/5/2023
 - Added Calendar view (according to the [Calendar view?](https://github.com/joshuatazrein/obsidian-time-ruler/issues/1) request). Calendar View is daily instead of hourly, showing a vertical day-by-day list of your tasks and an expanded, calendar-style arrangement for switching dates. Switch between this and the hourly view to get a more or less granular view of your tasks.
 - Added daily note at the top of the search box

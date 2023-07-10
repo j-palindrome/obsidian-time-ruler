@@ -7,16 +7,22 @@ import { getters, setters, useAppStore } from '../app/store'
 import { Heading } from './Block'
 import Button from './Button'
 import Toggle from './Toggle'
-import TaskLink from './TaskLink'
+import Task from './Task'
 
 export default function Search() {
   const headings = useAppStore(state => {
-    const headings = _.uniq(
-      _.flatMap(state.tasks, task => {
-        const path = task.path.replace(/\.md$/, '')
-        return [path, path + (task.heading ? '#' + task.heading : '')]
-      }).concat(state.dailyNote ? [state.dailyNote] : [])
-    ).sort()
+    const headings = _.sortBy(
+      _.uniq(
+        _.flatMap(state.tasks, task => {
+          const path = task.path.replace(/\.md$/, '')
+          return [path, path + (task.heading ? '#' + task.heading : '')]
+        }).concat(state.dailyNote ? [state.dailyNote] : [])
+      ),
+      heading =>
+        `${state.fileOrder.indexOf(heading.replace(/#.*/, ''))}${
+          heading.match(/#.*/)?.[0] ?? ''
+        }`
+    )
     if (state.dailyNote && headings.includes(state.dailyNote)) {
       headings.splice(headings.indexOf(state.dailyNote), 1)
       headings.splice(0, 0, state.dailyNote)
@@ -25,7 +31,6 @@ export default function Search() {
   }, shallow)
 
   const searchStatus = useAppStore(state => state.searchStatus)
-
   const [search, setSearch] = useState('')
   const inputFrame = useRef<HTMLInputElement>(null)
   const frame = useRef<HTMLDivElement>(null)
@@ -52,6 +57,7 @@ export default function Search() {
     if (searchStatus) {
       window.addEventListener('mousedown', checkShowing)
       setTimeout(() => inputFrame.current?.focus())
+      setSearch('')
     }
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [searchStatus])
@@ -125,10 +131,9 @@ export default function Search() {
               </div>
 
               {headings.map(heading => (
-                <div>
+                <div key={heading}>
                   {searchExp.test(heading) && (
                     <DraggableHeading
-                      key={heading}
                       dragData={{ dragType: 'new', path: heading }}
                       path={heading}
                     />
@@ -137,7 +142,7 @@ export default function Search() {
                     tasksByHeading[heading]
                       ?.filter(task => searchExp.test(task.title))
                       .map(task => (
-                        <TaskLink id={task.id} key={task.id} type='link' />
+                        <Task id={task.id} key={task.id} type='link' />
                       ))}
                 </div>
               ))}

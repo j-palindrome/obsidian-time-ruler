@@ -1,23 +1,24 @@
-import { useDraggable } from '@dnd-kit/core'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { getters, setters, useAppStore } from '../app/store'
 import Task from './Task'
-import TaskLink from './TaskLink'
+import Droppable from './Droppable'
+import { shallow } from 'zustand/shallow'
 
 const UNGROUPED = '__ungrouped'
 export type BlockType = 'child' | 'time' | 'event' | 'default'
 export default function Block({
+  hidePaths = [],
   tasks,
   type,
   id,
-  due,
-  scheduled
+  due
 }: {
+  hidePaths?: string[]
   tasks: TaskProps[]
   type: BlockType
   id?: string
   due?: boolean
-  scheduled: string | null
 }) {
   const tasksByParent = ['parent', 'child'].includes(type)
     ? { undefined: tasks }
@@ -41,8 +42,14 @@ export default function Block({
   )
 
   const sortedTasks = _.sortBy(nestedTasks, 'position.start.line')
-  const groupedTasks = _.groupBy(sortedTasks, 'area')
-  const sortedGroups = _.sortBy(_.entries(groupedTasks), 0)
+  const groupedTasks = _.groupBy(sortedTasks, 'path')
+  const sortedGroups = useAppStore(
+    state =>
+      _.sortBy(_.entries(groupedTasks), ([group, tasks]) =>
+        state.fileOrder.indexOf(group)
+      ),
+    shallow
+  )
 
   return (
     <div
@@ -53,7 +60,7 @@ export default function Block({
         <Group
           key={tasks[0].id}
           level='group'
-          {...{ name, tasks, type, due, scheduled }}
+          {...{ name, tasks, type, due, hidePaths }}
         />
       ))}
     </div>
@@ -61,20 +68,21 @@ export default function Block({
 }
 
 export type GroupProps = {
+  hidePaths: string[]
   name: string
   tasks: TaskProps[]
   type: BlockType
   level: 'group' | 'heading'
   due?: boolean
-  scheduled: string | null
 }
+
 export function Group({
   name,
   tasks,
   type,
   level,
   due,
-  scheduled
+  hidePaths: hidePaths
 }: GroupProps) {
   const groupedHeadings =
     level === 'group' ? _.groupBy(tasks, task => task.heading ?? UNGROUPED) : []
@@ -93,8 +101,9 @@ export function Group({
     type,
     level,
     name,
-    scheduled
+    hidePaths
   }
+
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
       id:
@@ -104,25 +113,36 @@ export function Group({
         '::' +
         level +
         '::' +
-        (dragData.dragType === 'group'
-          ? dragData.tasks.map(x => x.id).join(':')
-          : ''),
+        dragData.tasks.map(x => x.id).join(':'),
       data: dragData
     })
 
   return (
     <div ref={setNodeRef} className={`w-full`}>
-      {name && name !== UNGROUPED && (
-        <Heading
-          dragProps={{
-            ...attributes,
-            ...listeners,
-            ref: setActivatorNodeRef
-          }}
-          path={
-            tasks[0].path + (level === 'heading' ? '#' + tasks[0].heading : '')
-          }
-        />
+      {name && name !== UNGROUPED && !hidePaths.includes(name) && (
+        <>
+          <Droppable
+            data={{
+              type: 'heading',
+              heading: name
+            }}
+            id={`${name}::${dragData.type}::${level}::${dragData.tasks
+              .map(x => x.id)
+              .join(':')}::reorder`}>
+            <div className='h-2 w-full rounded-lg'></div>
+          </Droppable>
+          <Heading
+            dragProps={{
+              ...attributes,
+              ...listeners,
+              ref: setActivatorNodeRef
+            }}
+            path={
+              tasks[0].path +
+              (level === 'heading' ? '#' + tasks[0].heading : '')
+            }
+          />
+        </>
       )}
 
       {level === 'group'
@@ -130,37 +150,18 @@ export function Group({
             <Group
               level='heading'
               key={name}
-              tasks={tasks}
-              name={name}
-              type={type}
-              due={due}
-              scheduled={scheduled}
+              {...{ tasks, name, type, due, hidePaths }}
             />
           ))
-        : tasks.map((task, i) => {
-            if (
-              ['parent', 'link'].includes(task.type) ||
-              (task.scheduled && (!scheduled || task.scheduled > scheduled))
-            )
-              return (
-                <TaskLink
-                  key={task.id}
-                  id={task.id}
-                  type={task.type}
-                  due={due}
-                  children={task.children}
-                />
-              )
-            return (
-              <Task
-                key={task.id}
-                id={task.id}
-                type={task.type}
-                due={due}
-                children={task.children}
-              />
-            )
-          })}
+        : tasks.map((task, i) => (
+            <Task
+              key={task.id}
+              id={task.id}
+              type={task.type}
+              due={due}
+              children={task.children}
+            />
+          ))}
     </div>
   )
 }
@@ -188,7 +189,7 @@ export function Heading({
 
   return (
     <div
-      className={`selectable mt-2 flex w-full space-x-4 rounded-lg pr-2 font-menu text-sm child:truncate ${
+      className={`selectable flex w-full space-x-4 rounded-lg pr-2 font-menu text-sm child:truncate ${
         noPadding ? 'pl-2' : 'pl-7'
       }`}>
       <div

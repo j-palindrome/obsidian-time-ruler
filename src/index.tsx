@@ -31,7 +31,9 @@ export default class TimeRulerView extends ItemView {
   }
 
   async onOpen() {
-    this.obsidianAPI = new ObsidianAPI(this.plugin.settings, this.app)
+    this.obsidianAPI = new ObsidianAPI(this.plugin.settings, () =>
+      this.plugin.saveSettings()
+    )
     this.calendarLinkAPI = new CalendarAPI(
       this.plugin.settings.calendars,
       calendar => {

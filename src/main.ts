@@ -11,6 +11,7 @@ interface TimeRulerSettings {
   muted: boolean
   inbox: string | null
   search: string
+  fileOrder: string[]
 }
 
 const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -18,7 +19,8 @@ const DEFAULT_SETTINGS: TimeRulerSettings = {
   muted: false,
   fieldFormat: 'dataview',
   inbox: null,
-  search: ''
+  search: '',
+  fileOrder: []
 }
 
 export default class TimeRulerPlugin extends Plugin {

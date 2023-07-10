@@ -43,17 +43,12 @@ export default function TaskLink({
           <Block
             tasks={subtasks.map(subtask => ({
               ...subtask,
-              area: subtask.area.replace(task.area, ''),
               heading:
                 subtask.heading && task.heading
                   ? subtask.heading.replace(task.heading, '')
                   : undefined,
               type: subtask.type
             }))}
-            scheduled={
-              (type === 'parent' ? subtasks[0]?.scheduled : task.scheduled) ??
-              null
-            }
             due={due}
             type='child'></Block>
         )}

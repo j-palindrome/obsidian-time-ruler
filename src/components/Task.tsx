@@ -76,12 +76,17 @@ export default function Task({
       }`}
       ref={setNodeRef}
       data-id={isLink ? '' : id}>
-      <div className={`selectable flex rounded-lg py-0.5 pr-2 font-sans`}>
-        <div className='flex h-line w-7 flex-none items-center pl-1'>
+      <div
+        className={`selectable flex rounded-lg py-0.5 pr-2 ${
+          isLink ? 'font-menu text-xs' : 'font-sans'
+        }`}>
+        <div className='flex h-line w-7 flex-none items-center justify-center'>
           <Button
             onPointerDown={() => false}
             onClick={() => completeTask()}
-            className='selectable ml-0.5 h-4 w-4 flex-none rounded-checkbox border border-solid border-faint bg-transparent p-0 shadow-none hover:border-normal'
+            className={`selectable flex-none rounded-checkbox border border-solid border-faint bg-transparent p-0 shadow-none hover:border-normal ${
+              isLink ? 'h-2 w-2' : 'h-4 w-4'
+            }`}
           />
         </div>
 
@@ -91,7 +96,7 @@ export default function Task({
               task.priority
             )
               ? 'text-accent'
-              : task.priority === TaskPriorities.LOW || type === 'parent'
+              : task.priority === TaskPriorities.LOW || isLink
               ? 'text-faint'
               : ''
           }`}
@@ -133,7 +138,12 @@ export default function Task({
               {task.length.minute ? `${task.length.minute}m` : ''}
             </div>
           )}
-          {task.due && (
+          {(due || isLink) && task.scheduled && (
+            <div className='whitespace-nowrap text-xs text-normal'>
+              {DateTime.fromISO(task.scheduled).toFormat('EEEEE M/d')}
+            </div>
+          )}
+          {!due && task.due && (
             <div className='whitespace-nowrap text-xs text-accent'>
               {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
             </div>
@@ -161,28 +171,34 @@ export default function Task({
           {...lengthListeners}
           ref={setLengthNodeRef}></div>
       )}
-      {type !== 'link' && (
-        <div className='pl-6'>
-          {subtasks.length > 0 && !due && (
-            <Block
-              tasks={subtasks.map(subtask => ({
-                ...subtask,
-                area: subtask.area.replace(task.area, ''),
-                heading:
-                  subtask.heading && task.heading
-                    ? subtask.heading.replace(task.heading, '')
-                    : undefined,
-                type: type === 'parent' ? subtask.type : 'child'
-              }))}
-              scheduled={
-                (type === 'parent' ? subtasks[0]?.scheduled : task.scheduled) ??
-                null
-              }
-              due={due}
-              type='child'></Block>
-          )}
-        </div>
-      )}
+
+      <div className='pl-6'>
+        {subtasks.length > 0 && (
+          <Block
+            hidePaths={[task.path]}
+            tasks={subtasks.map(subtask => ({
+              ...subtask,
+              heading:
+                subtask.heading && task.heading
+                  ? subtask.heading.replace(task.heading, '')
+                  : undefined,
+              type:
+                type === 'parent'
+                  ? subtask.type
+                  : type === 'link' ||
+                    (!task.due && subtask.due) ||
+                    (task.due && subtask.due && subtask.due > task.due) ||
+                    (!task.scheduled && subtask.scheduled) ||
+                    (task.scheduled &&
+                      subtask.scheduled &&
+                      subtask.scheduled > task.scheduled)
+                  ? 'link'
+                  : 'child'
+            }))}
+            due={due}
+            type='child'></Block>
+        )}
+      </div>
     </div>
   )
 }

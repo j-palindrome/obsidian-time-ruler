@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 export enum TaskActions {
-  DELETE = 'DELETE',
+  DELETE = 'DELETE'
 }
 
 export enum TaskPriorities {
@@ -10,7 +10,7 @@ export enum TaskPriorities {
   MEDIUM,
   DEFAULT,
   LOW,
-  LOWEST,
+  LOWEST
 }
 
 export const priorityKeyToNumber = {
@@ -19,7 +19,7 @@ export const priorityKeyToNumber = {
   medium: TaskPriorities.MEDIUM,
   high: TaskPriorities.HIGH,
   highest: TaskPriorities.HIGHEST,
-  default: TaskPriorities.DEFAULT,
+  default: TaskPriorities.DEFAULT
 }
 
 export const priorityNumberToKey = _.invert(priorityKeyToNumber)
@@ -35,7 +35,7 @@ export const keyToTasksEmoji = {
   medium: '🔼',
   high: '⏫',
   highest: '🔺',
-  lowest: '⏬',
+  lowest: '⏬'
 }
 
 export const TasksEmojiToKey = _.invert(keyToTasksEmoji)
@@ -59,7 +59,7 @@ const dataViewKeys = [
   'symbol',
   'tags',
   'task',
-  'text',
+  'text'
 ]
 const sTaskKeys = [
   'checked',
@@ -71,7 +71,7 @@ const sTaskKeys = [
   'start',
   'scheduled',
   'length',
-  'priority',
+  'priority'
 ]
 const fullCalendarKeys = [
   'startTime',
@@ -80,7 +80,7 @@ const fullCalendarKeys = [
   'completed', // date
   'type',
   'allDay',
-  'title',
+  'title'
 ]
 const tasksKeys = [
   'start',
@@ -88,10 +88,13 @@ const tasksKeys = [
   'scheduled',
   'priority',
   'due',
-  'created',
+  'created'
 ]
 export const RESERVED_FIELDS = dataViewKeys.concat(
   sTaskKeys,
   fullCalendarKeys,
   tasksKeys
 )
+
+export const isTaskProps = (data: DropData): data is Partial<TaskProps> =>
+  data.type !== 'heading'

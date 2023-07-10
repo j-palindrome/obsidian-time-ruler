@@ -18,6 +18,7 @@ export type AppState = {
   searchStatus: boolean | Partial<TaskProps>
   calendarMode: boolean
   dailyNote: string | null
+  fileOrder: string[]
 }
 
 export const useAppStore = create<AppState>(() => ({
@@ -29,7 +30,8 @@ export const useAppStore = create<AppState>(() => ({
   inScroll: 0,
   searchStatus: false,
   calendarMode: false,
-  dailyNote: null
+  dailyNote: null,
+  fileOrder: []
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
@@ -55,6 +57,10 @@ export const setters = {
       await obsidianAPI.saveTask(savedTask)
     }
     if (task.completion) obsidianAPI.playComplete()
+  },
+  updateFileOrder: (file: string, before: string) => {
+    const obsidianAPI = getters.getObsidianAPI()
+    obsidianAPI.updateFileOrder(file, before)
   }
 }
 

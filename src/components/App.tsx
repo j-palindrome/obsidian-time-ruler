@@ -25,7 +25,7 @@ import {
   useAppStoreRef
 } from '../app/store'
 import { useAutoScroll } from '../services/autoScroll'
-import { TaskActions } from '../types/enums'
+import { TaskActions, isTaskProps } from '../types/enums'
 import Block, { Group, Heading } from './Block'
 import Button from './Button'
 import Droppable from './Droppable'
@@ -35,6 +35,7 @@ import Task from './Task'
 import Timeline from './Timeline'
 import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
+import invariant from 'tiny-invariant'
 
 const START_BUTTONS = 2
 
@@ -62,7 +63,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const [datesShownState, setDatesShown] = useState(7)
   const nextMonday = DateTime.now()
     .plus({ days: datesShownState })
-    .startOf('week')
+    .endOf('week')
+    .plus({ days: 1 })
   const datesShown = _.round(nextMonday.diff(DateTime.now()).as('days'))
 
   const times: Parameters<typeof Timeline>[0][] = [
@@ -88,47 +90,53 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     const dragData = activeDragRef.current
 
     if (dropData && dragData) {
-      if (dragData.dragType === 'time') {
-        if (!dropData.scheduled) return
-        const { hours, minutes } = DateTime.fromISO(dropData.scheduled)
-          .diff(DateTime.fromISO(dragData.start))
-          .shiftTo('hours', 'minutes')
-          .toObject() as { hours: number; minutes: number }
-        setters.set({
-          searchStatus: {
-            scheduled: dragData.start,
-            length: { hour: hours, minute: minutes }
-          }
-        })
-      } else if (dragData.dragType === 'new') {
-        const [path, heading] = dragData.path.split('#')
-        getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
-      } else if (dragData.dragType === 'task-length') {
-        if (!dropData.scheduled) return
-        const start = DateTime.fromISO(dragData.start)
-        const end = DateTime.fromISO(dropData.scheduled)
-        const length = end.diff(start).shiftTo('hours', 'minutes')
-
-        if (length.hours + length.minutes < 0) return
-        const taskLength = {
-          hour: length.hours ?? 0,
-          minute: length.minutes ?? 0
+      if (!isTaskProps(dropData)) {
+        if (dropData.type === 'heading' && dragData.dragType === 'group') {
+          setters.updateFileOrder(dragData.name, dropData.heading)
         }
+      } else if (isTaskProps(dropData)) {
+        if (dragData.dragType === 'time') {
+          if (!dropData.scheduled) return
+          const { hours, minutes } = DateTime.fromISO(dropData.scheduled)
+            .diff(DateTime.fromISO(dragData.start))
+            .shiftTo('hours', 'minutes')
+            .toObject() as { hours: number; minutes: number }
+          setters.set({
+            searchStatus: {
+              scheduled: dragData.start,
+              length: { hour: hours, minute: minutes }
+            }
+          })
+        } else if (dragData.dragType === 'new') {
+          const [path, heading] = dragData.path.split('#')
+          getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
+        } else if (dragData.dragType === 'task-length') {
+          if (!dropData.scheduled) return
+          const start = DateTime.fromISO(dragData.start)
+          const end = DateTime.fromISO(dropData.scheduled)
+          const length = end.diff(start).shiftTo('hours', 'minutes')
 
-        setters.patchTasks([dragData.id], {
-          length: taskLength
-        })
-      } else {
-        setters.patchTasks(
-          dragData.dragType === 'group' || dragData.dragType === 'event'
-            ? dragData.tasks.flatMap(x =>
-                x.type === 'parent' ? x.children : x.id
-              )
-            : dragData.dragType === 'task'
-            ? [dragData.id]
-            : [],
-          dropData
-        )
+          if (length.hours + length.minutes < 0) return
+          const taskLength = {
+            hour: length.hours ?? 0,
+            minute: length.minutes ?? 0
+          }
+
+          setters.patchTasks([dragData.id], {
+            length: taskLength
+          })
+        } else {
+          setters.patchTasks(
+            dragData.dragType === 'group' || dragData.dragType === 'event'
+              ? dragData.tasks.flatMap(x =>
+                  x.type === 'parent' ? x.children : x.id
+                )
+              : dragData.dragType === 'task'
+              ? [dragData.id]
+              : [],
+            dropData
+          )
+        }
       }
     }
 
@@ -188,7 +196,11 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   useEffect(() => {
     const timeRuler = document.querySelector('#time-ruler') as HTMLElement
+
     function outputSize() {
+      if (app['isMobile']) {
+        return
+      }
       const width = timeRuler.clientWidth
       const newChildWidth =
         width < 500
@@ -201,6 +213,11 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       if (newChildWidth !== childWidthRef.current) setChildWidth(newChildWidth)
     }
     outputSize()
+
+    if (app['isMobile']) {
+      setChildWidth('child:w-full')
+      return
+    }
 
     const observer = new ResizeObserver(outputSize)
     observer.observe(timeRuler)
@@ -261,7 +278,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           background: 'transparent'
         }}>
         <DragOverlay dropAnimation={null}>{getDragElement()}</DragOverlay>
-        <Buttons {...{ times, datesShown, setDatesShown }} />
+        <Buttons {...{ times, datesShown, setDatesShown, datesShownState }} />
         <Timer />
         <div
           className={`h-full w-full rounded-lg bg-primary-alt text-base child:space-y-2 child:overflow-clip child:p-2 ${
@@ -296,7 +313,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   )
 }
 
-const Buttons = ({ times, datesShown, setDatesShown }) => {
+const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
   const now = DateTime.now()
 
   const scrollToSection = (section: number) => {
@@ -328,7 +345,7 @@ const Buttons = ({ times, datesShown, setDatesShown }) => {
 
   const nextButton = (
     <Button
-      onClick={() => setDatesShown(datesShown + 7)}
+      onClick={() => setDatesShown(datesShownState + 7)}
       src={'chevron-right'}
     />
   )
@@ -412,7 +429,11 @@ const Buttons = ({ times, datesShown, setDatesShown }) => {
 
 function Unscheduled() {
   const unscheduled = useAppStore(
-    state => _.filter(state.tasks, task => !task.scheduled && !task.parent),
+    state =>
+      _.filter(
+        state.tasks,
+        task => !task.scheduled && !task.parent && !task.due
+      ),
     shallow
   )
 
@@ -420,7 +441,7 @@ function Unscheduled() {
     <div>
       <div className='mb-1 rounded px-2'>Unscheduled</div>
       <div className='h-full overflow-y-auto rounded-lg bg-primary-alt'>
-        <Block tasks={unscheduled} type='time' scheduled={null} />
+        <Block tasks={unscheduled} type='time' />
       </div>
     </div>
   )

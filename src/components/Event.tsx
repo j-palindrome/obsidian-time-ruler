@@ -44,12 +44,7 @@ export default function Event({
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id:
-        displayStartISO +
-        '::event' +
-        '::' +
-        id +
-        tasks.map(x => x.id).join(','),
+      id: startISO + '::event' + '::' + id + tasks.map(x => x.id).join(','),
       data: dragData
     })
 
@@ -120,7 +115,9 @@ export default function Event({
     <div
       className={`w-full rounded-lg bg-secondary-alt`}
       ref={draggable ? setNodeRef : undefined}>
-      <Droppable data={data} id={startISO}>
+      <Droppable
+        data={data}
+        id={startISO + '::event' + '::' + id + tasks.map(x => x.id).join(',')}>
         {titleBar}
       </Droppable>
 

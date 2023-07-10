@@ -23,7 +23,6 @@ declare global {
     title: string
     notes?: string
     tags: string[]
-    area: string
     children: string[]
     position: STask['position']
     path: string
@@ -73,5 +72,5 @@ declare global {
     | ({ dragType: 'task-length' } & { id: string; start: string })
     | ({ dragType: 'time' } & { start: string; due: boolean })
 
-  type DropData = Partial<TaskProps>
+  type DropData = Partial<TaskProps> | { type: 'heading'; heading: string }
 }
