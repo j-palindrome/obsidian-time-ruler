@@ -51,6 +51,8 @@ export default function Block({
     shallow
   )
 
+  const blockId = tasks[0]?.scheduled ?? ''
+
   return (
     <div
       id={id}
@@ -60,7 +62,7 @@ export default function Block({
         <Group
           key={tasks[0].id}
           level='group'
-          {...{ name, tasks, type, due, hidePaths }}
+          {...{ name, tasks, type, due, hidePaths, id: blockId }}
         />
       ))}
     </div>
@@ -74,6 +76,7 @@ export type GroupProps = {
   type: BlockType
   level: 'group' | 'heading'
   due?: boolean
+  id: string
 }
 
 export function Group({
@@ -82,7 +85,8 @@ export function Group({
   type,
   level,
   due,
-  hidePaths: hidePaths
+  hidePaths: hidePaths,
+  id
 }: GroupProps) {
   const groupedHeadings =
     level === 'group' ? _.groupBy(tasks, task => task.heading ?? UNGROUPED) : []
@@ -101,12 +105,15 @@ export function Group({
     type,
     level,
     name,
-    hidePaths
+    hidePaths,
+    id
   }
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
       id:
+        id +
+        '::' +
         name +
         '::' +
         dragData.type +
@@ -126,7 +133,7 @@ export function Group({
               type: 'heading',
               heading: name
             }}
-            id={`${name}::${dragData.type}::${level}::${dragData.tasks
+            id={`${id}::${name}::${dragData.type}::${level}::${dragData.tasks
               .map(x => x.id)
               .join(':')}::reorder`}>
             <div className='h-2 w-full rounded-lg'></div>
@@ -150,7 +157,7 @@ export function Group({
             <Group
               level='heading'
               key={name}
-              {...{ tasks, name, type, due, hidePaths }}
+              {...{ tasks, name, type, due, hidePaths, id }}
             />
           ))
         : tasks.map((task, i) => (

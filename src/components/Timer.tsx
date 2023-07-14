@@ -132,7 +132,7 @@ export function Timer() {
             task =>
               !!(
                 task.scheduled &&
-                !isDateISO(task.scheduled) &&
+                (state.calendarMode || !isDateISO(task.scheduled)) &&
                 task.scheduled < now
               )
           ),

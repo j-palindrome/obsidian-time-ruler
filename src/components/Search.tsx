@@ -8,6 +8,7 @@ import { Heading } from './Block'
 import Button from './Button'
 import Toggle from './Toggle'
 import Task from './Task'
+import Droppable from './Droppable'
 
 export default function Search() {
   const headings = useAppStore(state => {
@@ -98,7 +99,7 @@ export default function Search() {
               <h2>{searchStatus === true ? 'Search' : 'Create Task'}</h2>
               <div className='flex w-full items-center'>
                 <input
-                  className='sticky top-4 w-full rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
+                  className='sticky top-4 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
                   value={search}
                   onChange={ev => setSearch(ev.target.value)}
                   onKeyDown={ev => {

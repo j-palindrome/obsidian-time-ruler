@@ -187,11 +187,11 @@ export default function Task({
                   ? subtask.type
                   : type === 'link' ||
                     (!task.due && subtask.due) ||
-                    (task.due && subtask.due && subtask.due > task.due) ||
+                    (task.due && subtask.due && subtask.due !== task.due) ||
                     (!task.scheduled && subtask.scheduled) ||
                     (task.scheduled &&
                       subtask.scheduled &&
-                      subtask.scheduled > task.scheduled)
+                      subtask.scheduled !== task.scheduled)
                   ? 'link'
                   : 'child'
             }))}

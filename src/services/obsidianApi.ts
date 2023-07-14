@@ -278,13 +278,13 @@ export default class ObsidianAPI extends Component {
       .filter(path => !this.settings.fileOrder.includes(path))
       .sort()
 
+    const newFileOrder = [...this.settings.fileOrder]
     for (let file of filePaths) {
-      const afterFile = this.settings.fileOrder.findIndex(
-        otherFile => otherFile > file
-      )
-      if (afterFile === -1) this.settings.fileOrder.push(file)
-      else this.settings.fileOrder.splice(afterFile, 0, file)
+      const afterFile = newFileOrder.findIndex(otherFile => otherFile > file)
+      if (afterFile === -1) newFileOrder.push(file)
+      else newFileOrder.splice(afterFile, 0, file)
     }
+    this.settings.fileOrder = newFileOrder
     this.saveSettings()
 
     setters.set({ tasks: tasksDict, fileOrder: this.settings.fileOrder })
