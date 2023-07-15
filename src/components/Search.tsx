@@ -19,10 +19,7 @@ export default function Search() {
           return [path, path + (task.heading ? '#' + task.heading : '')]
         }).concat(state.dailyNote ? [state.dailyNote] : [])
       ),
-      heading =>
-        `${state.fileOrder.indexOf(heading.replace(/#.*/, ''))}${
-          heading.match(/#.*/)?.[0] ?? ''
-        }`
+      heading => state.fileOrder.indexOf(heading.replace(/#.*/, ''))
     )
     if (state.dailyNote && headings.includes(state.dailyNote)) {
       headings.splice(headings.indexOf(state.dailyNote), 1)
@@ -143,7 +140,7 @@ export default function Search() {
                     tasksByHeading[heading]
                       ?.filter(task => searchExp.test(task.title))
                       .map(task => (
-                        <Task id={task.id} key={task.id} type='link' />
+                        <Task id={task.id} key={task.id} type='task' />
                       ))}
                 </div>
               ))}
