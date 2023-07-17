@@ -135,7 +135,7 @@ export default class ObsidianAPI extends Component {
       let isDate: boolean = false
       if (!scheduled) {
         let date = item.date as string | undefined
-        const testDailyNoteTask = !date && !item.parent
+        const testDailyNoteTask = !date && item.parent === undefined
         if (testDailyNoteTask) {
           date = item.section.path
             .replace(/\.md$/, '')
@@ -518,12 +518,15 @@ export default class ObsidianAPI extends Component {
 
 export function openTaskInRuler(line: number, path: string) {
   const id = `${path.replace(/\.md$/, '')}::${line}`
+  console.log('opening task', id)
+
   if (!getters.getTask(id)) {
     new Notice('Task not loaded in Time Ruler')
     return
   }
   setters.set({
-    findingTask: id
+    findingTask: id,
+    searchStatus: false
   })
 
   const foundTask = $(`[data-id="${id}"]`)

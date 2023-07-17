@@ -69,5 +69,5 @@ export const getters = {
   getTask: (id: string) => useAppStore.getState().tasks[id],
   getObsidianAPI: () => useAppStore.getState().apis.obsidian as ObsidianAPI,
   getCalendarAPI: () => useAppStore.getState().apis.calendar as CalendarAPI,
-  get: (key: keyof AppState) => useAppStore.getState()[key]
+  get: <T extends keyof AppState>(key: T) => useAppStore.getState()[key]
 }

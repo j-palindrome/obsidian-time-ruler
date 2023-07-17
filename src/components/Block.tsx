@@ -6,7 +6,7 @@ import Droppable from './Droppable'
 import { shallow } from 'zustand/shallow'
 
 const UNGROUPED = '__ungrouped'
-export type BlockType = 'child' | 'time' | 'event' | 'default'
+export type BlockType = 'child' | 'time' | 'event' | 'default' | 'search'
 export default function Block({
   hidePaths = [],
   tasks,
@@ -176,11 +176,9 @@ export function Group({
 export type HeadingProps = { path: string }
 export function Heading({
   path,
-  noPadding,
   dragProps
 }: {
   path: string
-  noPadding?: boolean
   dragProps?: any
 }) {
   const level = path.includes('#') ? 'heading' : 'group'
@@ -196,9 +194,7 @@ export function Heading({
 
   return (
     <div
-      className={`selectable flex w-full space-x-4 rounded-lg pr-2 font-menu text-sm child:truncate ${
-        noPadding ? 'pl-2' : 'pl-7'
-      }`}>
+      className={`selectable flex w-full space-x-4 rounded-lg pl-7 pr-2 font-menu text-sm child:truncate`}>
       <div
         className={`w-fit flex-none cursor-pointer hover:underline ${
           level === 'heading' ? 'text-muted' : 'font-bold text-accent'

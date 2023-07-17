@@ -43,6 +43,9 @@ export default function Task({
   const isLink = ['parent', 'link'].includes(type)
 
   let task = useAppStore(state => state.tasks[id])
+  if (task.title.includes('finish CV')) {
+    console.log(getters.get('tasks')[id])
+  }
 
   const subtasks = useAppStore(state => {
     if (!task) return []
@@ -75,9 +78,9 @@ export default function Task({
         type === 'parent' ? 'mt-1' : ''
       }`}
       ref={setNodeRef}
-      data-id={isLink ? '' : id}>
+      data-id={isLink || type === 'search' ? '' : id}>
       <div
-        className={`selectable flex rounded-lg py-0.5 pr-2 ${
+        className={`selectable flex items-center rounded-lg py-0.5 pr-2 ${
           isLink ? 'font-menu text-xs' : 'font-sans'
         }`}>
         <div className='flex h-line w-7 flex-none items-center justify-center'>
@@ -89,7 +92,6 @@ export default function Task({
             }`}
           />
         </div>
-
         <div
           className={`w-fit min-w-[24px] cursor-pointer break-words leading-line hover:underline ${
             [TaskPriorities.HIGH, TaskPriorities.HIGHEST].includes(
@@ -108,7 +110,7 @@ export default function Task({
           {task.title}
         </div>
         <div
-          className='no-scrollbar flex min-w-[24px] grow cursor-grab items-center justify-end space-x-1 overflow-x-auto overflow-y-auto rounded-full font-menu'
+          className='no-scrollbar flex h-full min-h-[24px] min-w-[24px] grow cursor-grab items-center justify-end space-x-1 overflow-x-auto overflow-y-auto rounded-full font-menu'
           {...attributes}
           {...listeners}
           ref={setActivatorNodeRef}>
@@ -138,17 +140,21 @@ export default function Task({
               {task.length.minute ? `${task.length.minute}m` : ''}
             </div>
           )}
-          {(due || isLink) && task.scheduled && (
-            <div className='whitespace-nowrap text-xs text-normal'>
-              {DateTime.fromISO(task.scheduled).toFormat('EEEEE M/d')}
-            </div>
-          )}
-          {!due && task.due && (
-            <div className='whitespace-nowrap text-xs text-accent'>
-              {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
-            </div>
-          )}
         </div>
+        {(due || isLink || type == 'search') && task.scheduled && (
+          <div
+            className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-normal'
+            onClick={() =>
+              openTaskInRuler(task.position.start.line, task.path)
+            }>
+            {DateTime.fromISO(task.scheduled).toFormat('EEEEE M/d')}
+          </div>
+        )}
+        {!due && task.due && (
+          <div className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-accent'>
+            {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
+          </div>
+        )}
       </div>
       {_.keys(task.extraFields).length > 0 && (
         <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-7 text-xs'>
@@ -183,11 +189,11 @@ export default function Task({
                   ? subtask.heading.replace(task.heading, '')
                   : undefined,
               type:
-                type === 'parent'
+                type === 'search'
+                  ? 'child'
+                  : type === 'parent'
                   ? subtask.type
                   : type === 'link' ||
-                    (!task.due && subtask.due) ||
-                    (task.due && subtask.due && subtask.due !== task.due) ||
                     (!task.scheduled && subtask.scheduled) ||
                     (task.scheduled &&
                       subtask.scheduled &&

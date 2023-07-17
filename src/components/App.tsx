@@ -37,7 +37,7 @@ import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
 import invariant from 'tiny-invariant'
 
-const START_BUTTONS = 2
+const START_BUTTONS = 0
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -288,14 +288,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           }`}
           id='time-ruler-times'
           data-auto-scroll={calendarMode ? 'y' : 'x'}>
-          <Unscheduled />
-          <Timeline
-            startISO={now.toISODate() as string}
-            endISO={now.plus({ months: 4 }).toISODate() as string}
-            type='days'
-            includePast
-            due
-          />
           {times.map((time, i) => (
             <Timeline
               key={time.startISO + '::' + time.type + '::' + time.due}
@@ -324,24 +316,6 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
   }
 
   const calendarMode = useAppStore(state => state.calendarMode)
-  const otherButtons = (
-    <>
-      <Droppable
-        id='unscheduled::button'
-        data={{ scheduled: TaskActions.DELETE }}>
-        <Button onClick={() => scrollToSection(0)} data-section-scroll={0}>
-          Unscheduled
-        </Button>
-      </Droppable>
-      <Droppable
-        id='upcoming::button'
-        data={{ due: now.toISODate() as string }}>
-        <Button onClick={() => scrollToSection(1)} data-section-scroll={1}>
-          Upcoming
-        </Button>
-      </Droppable>
-    </>
-  )
 
   const nextButton = (
     <Button
@@ -385,7 +359,6 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
             }}
             src={calendarMode ? 'calendar-days' : 'calendar'}></Button>
 
-          {calendarMode && otherButtons}
           {calendarMode && nextButton}
         </div>
         <div
@@ -395,7 +368,6 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
               : 'items-center space-x-2 overflow-x-auto '
           }`}
           data-auto-scroll={calendarMode ? '' : 'x'}>
-          {!calendarMode && otherButtons}
           {calendarMode && dayPadding()}
           {times.map((times, i) => {
             const thisDate = DateTime.fromISO(times.startISO)
@@ -424,25 +396,5 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
         </div>
       </div>
     </>
-  )
-}
-
-function Unscheduled() {
-  const unscheduled = useAppStore(
-    state =>
-      _.filter(
-        state.tasks,
-        task => !task.scheduled && !task.parent && !task.due
-      ),
-    shallow
-  )
-
-  return (
-    <div>
-      <div className='mb-1 rounded px-2'>Unscheduled</div>
-      <div className='h-full overflow-y-auto rounded-lg bg-primary-alt'>
-        <Block tasks={unscheduled} type='time' />
-      </div>
-    </div>
   )
 }

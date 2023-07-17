@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core'
-import _ from 'lodash'
+import _, { head } from 'lodash'
 import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
@@ -64,7 +64,7 @@ export default function Search() {
     state =>
       _.mapValues(
         _.groupBy(
-          state.tasks,
+          _.filter(state.tasks, task => !task.parent),
           task =>
             task.path.replace('.md', '') +
             (task.heading ? '#' + task.heading : '')
@@ -88,59 +88,81 @@ export default function Search() {
         src={'search'}
       />
       {searchStatus && (
-        <div className='fixed left-0 top-0 z-40 flex h-full w-full items-center justify-center p-4'>
+        <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-4'>
           <div
             className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary'
             ref={frame}>
-            <div className='p-4'>
-              <h2>{searchStatus === true ? 'Search' : 'Create Task'}</h2>
-              <div className='flex w-full items-center'>
-                <input
-                  className='sticky top-4 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
-                  value={search}
-                  onChange={ev => setSearch(ev.target.value)}
-                  onKeyDown={ev => {
-                    if (ev.key === 'Enter') {
-                      const firstHeading = headings.find(heading =>
-                        searchExp.test(heading)
-                      )
-                      if (!firstHeading) return
-                      if (searchStatus === true) {
-                        ev.preventDefault()
-                        app.workspace.openLinkText(firstHeading, '')
-                      } else if (searchStatus) {
-                        const [path, heading] = firstHeading.split('#')
-                        getters
-                          .getObsidianAPI()
-                          .createTask(path + '.md', heading, searchStatus)
+            <div className='relative px-4 pb-4'>
+              <div className='sticky top-0 z-10 pt-4 backdrop-blur'>
+                <h2>{searchStatus === true ? 'Search' : 'Create Task'}</h2>
+                <div className='flex w-full items-center'>
+                  <input
+                    className='sticky top-4 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
+                    value={search}
+                    onChange={ev => setSearch(ev.target.value)}
+                    onKeyDown={ev => {
+                      if (ev.key === 'Enter') {
+                        const firstHeading = headings.find(heading =>
+                          searchExp.test(heading)
+                        )
+                        if (!firstHeading) return
+                        if (searchStatus === true) {
+                          ev.preventDefault()
+                          app.workspace.openLinkText(firstHeading, '')
+                        } else if (searchStatus) {
+                          const [path, heading] = firstHeading.split('#')
+                          getters
+                            .getObsidianAPI()
+                            .createTask(path + '.md', heading, searchStatus)
+                        }
+                        setters.set({ searchStatus: false })
+                      } else if (ev.key === 'Escape') {
+                        setters.set({ searchStatus: false })
                       }
-                      setters.set({ searchStatus: false })
-                    } else if (ev.key === 'Escape') {
-                      setters.set({ searchStatus: false })
-                    }
-                  }}
-                  placeholder='filter'
-                  ref={inputFrame}></input>
-                <Toggle
-                  title={'tasks'}
-                  callback={state => setShowingTasks(state)}
-                  value={showingTasks}
-                />
+                    }}
+                    placeholder='filter'
+                    ref={inputFrame}></input>
+                </div>
+                <div className='flex flex-wrap py-2'>
+                  <Toggle
+                    title={'tasks'}
+                    callback={state => setShowingTasks(state)}
+                    value={showingTasks}
+                  />
+                </div>
               </div>
 
               {headings.map(heading => (
-                <div key={heading}>
+                <div key={heading} className='my-4'>
                   {searchExp.test(heading) && (
                     <DraggableHeading
-                      dragData={{ dragType: 'new', path: heading }}
+                      dragData={
+                        searchStatus === true
+                          ? {
+                              dragType: 'group',
+                              tasks: tasksByHeading[heading],
+                              hidePaths: [],
+                              name: heading,
+                              level: heading.includes('#')
+                                ? 'heading'
+                                : 'group',
+                              type: 'search',
+                              id: heading + '::search'
+                            }
+                          : { dragType: 'new', path: heading }
+                      }
                       path={heading}
                     />
                   )}
                   {showingTasks &&
                     tasksByHeading[heading]
-                      ?.filter(task => searchExp.test(task.title))
+                      ?.filter(task =>
+                        searchExp.test(
+                          task.path + '#' + task.heading + task.title
+                        )
+                      )
                       .map(task => (
-                        <Task id={task.id} key={task.id} type='task' />
+                        <Task id={task.id} key={task.id} type='search' />
                       ))}
                 </div>
               ))}
@@ -161,7 +183,7 @@ function DraggableHeading({
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef } =
     useDraggable({
-      id: path + '::new',
+      id: path + '::search',
       data: dragData
     })
 
@@ -170,7 +192,6 @@ function DraggableHeading({
       <Heading
         dragProps={{ ...attributes, ...listeners, ref: setActivatorNodeRef }}
         path={path}
-        noPadding
       />
     </div>
   )
