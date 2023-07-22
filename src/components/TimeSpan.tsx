@@ -18,7 +18,7 @@ export default function TimeSpan({
   type,
   due,
   startWithHours = false,
-  chopStart = false
+  chopStart = false,
 }: {
   startISO: string
   endISO: string
@@ -29,7 +29,7 @@ export default function TimeSpan({
   chopStart?: boolean
 }) {
   const now = DateTime.now().toISO() as string
-  const calendarMode = useAppStore(state => state.calendarMode)
+  const calendarMode = useAppStore((state) => state.calendarMode)
 
   const formattedBlocks: {
     startISO: string
@@ -47,7 +47,9 @@ export default function TimeSpan({
       if (item.type === 'event') events.push(item)
       else tasks.push(item)
     }
-    const tasksWithLength = tasks.filter(task => task.length) as (TaskProps & {
+    const tasksWithLength = tasks.filter(
+      (task) => task.length
+    ) as (TaskProps & {
       length: NonNullable<TaskProps['length']>
     })[]
     const totalLength =
@@ -59,7 +61,7 @@ export default function TimeSpan({
         : tasksWithLength.reduce(
             ({ hour, minute }, task) => ({
               hour: hour + task.length.hour,
-              minute: minute + task.length.minute
+              minute: minute + task.length.minute,
             }),
             { hour: 0, minute: 0 }
           )
@@ -67,7 +69,7 @@ export default function TimeSpan({
     const endTime = DateTime.fromISO(time).plus(totalLength).toISO({
       includeOffset: false,
       suppressMilliseconds: true,
-      suppressSeconds: true
+      suppressSeconds: true,
     }) as string
 
     return { events, tasks, endISO: endTime }
@@ -96,7 +98,7 @@ export default function TimeSpan({
       endISO,
       tasks,
       events,
-      blocks: includeNextBlocks
+      blocks: includeNextBlocks,
     })
   }
 
@@ -120,16 +122,17 @@ export default function TimeSpan({
             endISO: thisEndISO,
             tasks: thisTasks,
             events: thisEvents,
-            blocks: thisBlocks
+            blocks: thisBlocks,
           },
           i
         ) => {
           return (
             <Fragment
               key={thisTasks
-                .map(x => x.id)
-                .concat(thisEvents.map(x => x.id))
-                .join('')}>
+                .map((x) => x.id)
+                .concat(thisEvents.map((x) => x.id))
+                .join('')}
+            >
               <Event
                 startISO={thisStartISO}
                 endISO={thisEndISO}

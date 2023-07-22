@@ -26,7 +26,7 @@ export function Timer() {
       stopwatch.start()
       setNegative(true)
     },
-    autoStart: false
+    autoStart: false,
   })
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export function Timer() {
       stopwatch.start()
     } else {
       if (input.includes(':')) {
-        const split = input.split(':').map(x => parseInt(x))
+        const split = input.split(':').map((x) => parseInt(x))
         hours = split[0]
         minutes = split[1]
       } else {
@@ -76,7 +76,7 @@ export function Timer() {
     width = (currentTime / maxSeconds) * 100
   }
 
-  const change: React.ChangeEventHandler<HTMLInputElement> = ev => {
+  const change: React.ChangeEventHandler<HTMLInputElement> = (ev) => {
     if (/\d*(:\d*)?/.test(ev.target.value)) {
       setInput(ev.target.value)
     }
@@ -121,7 +121,7 @@ export function Timer() {
     }
   }
 
-  const currentTasks: TaskProps[][] = useAppStore(state => {
+  const currentTasks: TaskProps[][] = useAppStore((state) => {
     if (!expanded) return []
     const now = DateTime.now().plus({ minutes: 15 }).toISO() as string
     const tasks = _.sortBy(
@@ -129,10 +129,10 @@ export function Timer() {
         _.groupBy(
           _.filter(
             state.tasks,
-            task =>
+            (task) =>
               !!(
                 task.scheduled &&
-                (state.calendarMode || !isDateISO(task.scheduled)) &&
+                (state.viewMode || !isDateISO(task.scheduled)) &&
                 task.scheduled < now
               )
           ),
@@ -140,7 +140,7 @@ export function Timer() {
         )
       ),
       0
-    ).map(x => x[1])
+    ).map((x) => x[1])
     return tasks
   }, shallow)
 
@@ -150,27 +150,31 @@ export function Timer() {
         expanded
           ? 'fixed left-0 top-0 z-30 flex h-full w-full flex-col bg-primary p-4'
           : 'w-full'
-      }`}>
+      }`}
+    >
       <div
         className={`relative my-1 flex h-6 w-full items-center justify-center rounded-icon bg-primary-alt py-1 font-menu text-sm child:relative child:h-full ${
           negative ? 'bg-red-800/50' : ''
-        }`}>
+        }`}
+      >
         <div
           className={`!absolute left-0 top-0 h-full flex-none rounded-icon ${
             width === 0 ? '' : 'transition-width duration-1000 ease-linear'
           } ${negative ? 'bg-red-500/20' : 'bg-selection'}`}
           style={{
-            width: `${width}%`
-          }}></div>
+            width: `${width}%`,
+          }}
+        ></div>
 
         {!playing && currentTime <= 0 ? (
           <input
             type='number'
             value={input}
             placeholder={'mins'}
-            onKeyDown={ev => ev.key === 'Enter' && start()}
+            onKeyDown={(ev) => ev.key === 'Enter' && start()}
             onChange={change}
-            className='w-[4em] !border-none bg-transparent text-center !shadow-none'></input>
+            className='w-[4em] !border-none bg-transparent text-center !shadow-none'
+          ></input>
         ) : (
           <pre className='my-0 mr-1 !h-fit'>{`${negative ? '-' : ''}${
             hours > 0 ? hours + ':' : ''
@@ -200,7 +204,7 @@ export function Timer() {
       </div>
       {expanded && (
         <div className='h-full w-full space-y-2 overflow-y-auto py-2 text-base'>
-          {currentTasks.map(tasks => {
+          {currentTasks.map((tasks) => {
             invariant(tasks[0].scheduled)
             return (
               <Event

@@ -35,7 +35,7 @@ export const useAppStore = create<AppState>(() => ({
   fileOrder: [],
   dailyNote: null,
   dailyNoteFormat: 'YYYY-MM-DD',
-  dailyNotePath: ''
+  dailyNotePath: '',
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
@@ -65,7 +65,7 @@ export const setters = {
   updateFileOrder: (file: string, before: string) => {
     const obsidianAPI = getters.getObsidianAPI()
     obsidianAPI.updateFileOrder(file, before)
-  }
+  },
 }
 
 export const getters = {
@@ -73,5 +73,5 @@ export const getters = {
   getTask: (id: string) => useAppStore.getState().tasks[id],
   getObsidianAPI: () => useAppStore.getState().apis.obsidian as ObsidianAPI,
   getCalendarAPI: () => useAppStore.getState().apis.calendar as CalendarAPI,
-  get: <T extends keyof AppState>(key: T) => useAppStore.getState()[key]
+  get: <T extends keyof AppState>(key: T) => useAppStore.getState()[key],
 }

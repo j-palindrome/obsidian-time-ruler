@@ -19,11 +19,11 @@ export default function Task({
   id,
   children,
   type,
-  due
+  due,
 }: TaskComponentProps & { highlight?: boolean; due?: boolean }) {
   const completeTask = () => {
     setters.patchTasks([id], {
-      completion: DateTime.now().toISODate() as string
+      completion: DateTime.now().toISODate() as string,
     })
   }
 
@@ -31,21 +31,21 @@ export default function Task({
     dragType: 'task',
     type,
     id,
-    children
+    children,
   }
   const { setNodeRef, setActivatorNodeRef, attributes, listeners } =
     useDraggable({
       id: id + '::' + type + (due ? '::due' : '::scheduled'),
-      data: dragData
+      data: dragData,
     })
 
   const isLink = ['parent', 'link'].includes(type)
 
-  let task = useAppStore(state => state.tasks[id])
+  let task = useAppStore((state) => state.tasks[id])
 
-  const subtasks = useAppStore(state => {
+  const subtasks = useAppStore((state) => {
     if (!task) return []
-    return (children ?? task.children).flatMap(child => {
+    return (children ?? task.children).flatMap((child) => {
       const subtask = state.tasks[child]
       if (!subtask) return []
       return subtask
@@ -55,15 +55,15 @@ export default function Task({
   const lengthDragData: DragData = {
     dragType: 'task-length',
     id,
-    start: task?.scheduled ?? ''
+    start: task?.scheduled ?? '',
   }
   const {
     setNodeRef: setLengthNodeRef,
     attributes: lengthAttributes,
-    listeners: lengthListeners
+    listeners: lengthListeners,
   } = useDraggable({
     id: id + '::' + type + (due ? '::due' : '::scheduled') + '::length',
-    data: lengthDragData
+    data: lengthDragData,
   })
 
   if (!task) return <></>
@@ -74,11 +74,13 @@ export default function Task({
         type === 'parent' ? 'mt-1' : ''
       }`}
       ref={setNodeRef}
-      data-id={isLink || type === 'search' ? '' : id}>
+      data-id={isLink || type === 'search' ? '' : id}
+    >
       <div
         className={`selectable flex items-center rounded-lg py-0.5 pr-2 ${
           isLink ? 'font-menu text-xs' : 'font-sans'
-        }`}>
+        }`}
+      >
         <div className='flex h-line w-7 flex-none items-center justify-center'>
           <Button
             onPointerDown={() => false}
@@ -102,18 +104,21 @@ export default function Task({
           onClick={() => {
             if (isLink) openTaskInRuler(task.position.start.line, task.path)
             else getters.getObsidianAPI().openTask(task)
-          }}>
+          }}
+        >
           {task.title}
         </div>
         <div
           className='no-scrollbar flex h-full min-h-[24px] min-w-[24px] grow cursor-grab items-center justify-end space-x-1 overflow-x-auto overflow-y-auto rounded-full font-menu'
           {...attributes}
           {...listeners}
-          ref={setActivatorNodeRef}>
-          {task.tags.map(tag => (
+          ref={setActivatorNodeRef}
+        >
+          {task.tags.map((tag) => (
             <div
               className='cm-hashtag cm-hashtag-end cm-hashtag-begin !h-fit !text-xs'
-              key={tag}>
+              key={tag}
+            >
               {tag.replace('#', '')}
             </div>
           ))}
@@ -125,7 +130,7 @@ export default function Task({
                   [TaskPriorities.HIGH]: '!!',
                   [TaskPriorities.MEDIUM]: '!',
                   [TaskPriorities.LOW]: '?',
-                  [TaskPriorities.LOWEST]: '...'
+                  [TaskPriorities.LOWEST]: '...',
                 }[task.priority]
               }
             </div>
@@ -137,16 +142,15 @@ export default function Task({
             </div>
           )}
         </div>
-        {(due || isLink || type == 'search') && task.scheduled && (
+        {(isLink || type == 'search') && task.scheduled && (
           <div
             className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-normal'
-            onClick={() =>
-              openTaskInRuler(task.position.start.line, task.path)
-            }>
+            onClick={() => openTaskInRuler(task.position.start.line, task.path)}
+          >
             {DateTime.fromISO(task.scheduled).toFormat('EEEEE M/d')}
           </div>
         )}
-        {!due && task.due && (
+        {task.due && (
           <div className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-accent'>
             {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
           </div>
@@ -161,7 +165,7 @@ export default function Task({
           ))}
         </div>
       )}
-      {task.notes && (
+      {!isLink && task.notes && (
         <div className='break-words pl-7 pr-2 text-xs text-faint'>
           {task.notes}
         </div>
@@ -171,14 +175,15 @@ export default function Task({
           className='-mt-1 h-1 w-full cursor-ns-resize border-muted hover:border-b'
           {...lengthAttributes}
           {...lengthListeners}
-          ref={setLengthNodeRef}></div>
+          ref={setLengthNodeRef}
+        ></div>
       )}
 
       <div className='pl-6'>
         {subtasks.length > 0 && (
           <Block
             hidePaths={[task.path]}
-            tasks={subtasks.map(subtask => ({
+            tasks={subtasks.map((subtask) => ({
               ...subtask,
               heading:
                 subtask.heading && task.heading
@@ -195,10 +200,11 @@ export default function Task({
                       subtask.scheduled &&
                       subtask.scheduled !== task.scheduled)
                   ? 'link'
-                  : 'child'
+                  : 'child',
             }))}
             due={due}
-            type='child'></Block>
+            type='child'
+          ></Block>
         )}
       </div>
     </div>

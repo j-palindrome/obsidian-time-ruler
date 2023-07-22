@@ -9,7 +9,7 @@ import {
   TouchSensor,
   pointerWithin,
   useSensor,
-  useSensors
+  useSensors,
 } from '@dnd-kit/core'
 import $ from 'jquery'
 import _ from 'lodash'
@@ -22,7 +22,7 @@ import {
   getters,
   setters,
   useAppStore,
-  useAppStoreRef
+  useAppStoreRef,
 } from '../app/store'
 import { useAutoScroll } from '../services/autoScroll'
 import { TaskActions, isTaskProps } from '../types/enums'
@@ -37,8 +37,6 @@ import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
 import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
-
-const START_BUTTONS = 1
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -73,16 +71,16 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       startISO: today.toISODate() as string,
       endISO: today.plus({ days: 1 }).toISODate() as string,
       type: 'minutes',
-      includePast: true
+      includePast: true,
     },
-    ..._.range(1, datesShown).map(i => ({
+    ..._.range(1, datesShown).map((i) => ({
       startISO: today.plus({ days: i }).toISODate() as string,
       endISO: today.plus({ days: i + 1 }).toISODate() as string,
-      type: 'minutes' as TimeSpanTypes
-    }))
+      type: 'minutes' as TimeSpanTypes,
+    })),
   ]
 
-  const [activeDrag, activeDragRef] = useAppStoreRef(state => state.dragData)
+  const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
 
   useAutoScroll(!!activeDrag)
 
@@ -105,8 +103,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           setters.set({
             searchStatus: {
               scheduled: dragData.start,
-              length: { hour: hours, minute: minutes }
-            }
+              length: { hour: hours, minute: minutes },
+            },
           })
         } else if (dragData.dragType === 'new') {
           const [path, heading] = dragData.path.split('#')
@@ -120,16 +118,16 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           if (length.hours + length.minutes < 0) return
           const taskLength = {
             hour: length.hours ?? 0,
-            minute: length.minutes ?? 0
+            minute: length.minutes ?? 0,
           }
 
           setters.patchTasks([dragData.id], {
-            length: taskLength
+            length: taskLength,
           })
         } else {
           setters.patchTasks(
             dragData.dragType === 'group' || dragData.dragType === 'event'
-              ? dragData.tasks.flatMap(x =>
+              ? dragData.tasks.flatMap((x) =>
                   x.type === 'parent' ? x.children : x.id
                 )
               : dragData.dragType === 'task'
@@ -150,7 +148,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const measuringConfig: MeasuringConfiguration = {
     draggable: {
-      measure: el => {
+      measure: (el) => {
         const parentRect = (
           $('#time-ruler').parent()[0] as HTMLDivElement
         ).getBoundingClientRect()
@@ -158,12 +156,12 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return {
           ...rect,
           left: rect.left - parentRect.left,
-          top: rect.top - parentRect.top
+          top: rect.top - parentRect.top,
         }
-      }
+      },
     },
     dragOverlay: {
-      measure: el => {
+      measure: (el) => {
         const parentRect = (
           $('#time-ruler').parent()[0] as HTMLDivElement
         ).getBoundingClientRect()
@@ -171,10 +169,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return {
           ...rect,
           left: rect.left - parentRect.left,
-          top: rect.top - parentRect.top
+          top: rect.top - parentRect.top,
         }
-      }
-    }
+      },
+    },
   }
 
   const getDragElement = () => {
@@ -231,9 +229,9 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           useSensor(TouchSensor, {
             activationConstraint: {
               delay: 250,
-              tolerance: 5
-            }
-          })
+              tolerance: 5,
+            },
+          }),
         ]
       : [useSensor(PointerSensor), useSensor(MouseSensor)])
   )
@@ -241,9 +239,9 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const scrollToNow = () => {
     setTimeout(
       () =>
-        $('#time-ruler-times').children()[START_BUTTONS]?.scrollIntoView({
+        $('#time-ruler-times').children()[0]?.scrollIntoView({
           inline: 'start',
-          behavior: 'smooth'
+          behavior: 'smooth',
         }),
       250
     )
@@ -255,7 +253,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       ?.style?.setProperty('overflow', 'clip', 'important')
   }, [])
 
-  const calendarMode = useAppStore(state => state.calendarMode)
+  const calendarMode = useAppStore((state) => state.calendarMode)
   useEffect(scrollToNow, [calendarMode])
 
   return (
@@ -266,7 +264,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       collisionDetection={pointerWithin}
       measuring={measuringConfig}
       sensors={sensors}
-      autoScroll={false}>
+      autoScroll={false}
+    >
       <div
         id='time-ruler'
         style={{
@@ -275,26 +274,17 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          background: 'transparent'
-        }}>
+          background: 'transparent',
+        }}
+      >
         <DragOverlay dropAnimation={null}>{getDragElement()}</DragOverlay>
         <Buttons {...{ times, datesShown, setDatesShown, datesShownState }} />
         <Timer />
         <div
-          className={`h-full w-full rounded-lg bg-primary-alt text-base child:space-y-2 child:overflow-clip child:p-2 ${
-            calendarMode
-              ? 'overflow-y-auto child:w-full'
-              : `flex snap-x snap-mandatory !overflow-x-auto overflow-y-clip child:flex child:h-full child:flex-none child:snap-start child:flex-col ${childWidth}`
-          }`}
+          className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childWidth}`}
           id='time-ruler-times'
-          data-auto-scroll={calendarMode ? 'y' : 'x'}>
-          <Timeline
-            startISO={now.toISODate() as string}
-            endISO={now.plus({ months: 4 }).toISODate() as string}
-            type='days'
-            includePast
-            due
-          />
+          data-auto-scroll='x'
+        >
           {times.map((time, i) => (
             <Timeline
               key={time.startISO + '::' + time.type + '::' + time.due}
@@ -318,11 +308,11 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
   const scrollToSection = (section: number) => {
     $('#time-ruler-times').children()[section]?.scrollIntoView({
       block: 'start',
-      behavior: 'smooth'
+      behavior: 'smooth',
     })
   }
 
-  const calendarMode = useAppStore(state => state.calendarMode)
+  const calendarMode = useAppStore((state) => state.calendarMode)
 
   const nextButton = (
     <Button
@@ -332,24 +322,11 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
   )
 
   const dayPadding = () => {
-    return _.range(1, now.weekday).map(i => <div key={i}></div>)
+    return _.range(1, now.weekday).map((i) => <div key={i}></div>)
   }
 
   const buttonMaps = times.concat()
   buttonMaps.splice(1, 0, {})
-
-  const frontButtons = (
-    <Droppable
-      id={'upcoming::button'}
-      data={{ due: DateTime.now().startOf('day').toISO() as string }}>
-      <Button
-        className='h-[28px]'
-        onClick={() => scrollToSection(0)}
-        data-section-scroll={0}>
-        Upcoming
-      </Button>
-    </Droppable>
-  )
 
   return (
     <>
@@ -357,11 +334,13 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
         className={`w-full ${
           calendarMode ? 'space-y-1' : 'flex items-center space-x-1'
         }`}
-        data-auto-scroll={calendarMode ? '' : 'x'}>
+        data-auto-scroll={calendarMode ? '' : 'x'}
+      >
         <div
           className={`flex items-center space-x-2 ${
             calendarMode ? 'w-full overflow-x-auto' : ''
-          }`}>
+          }`}
+        >
           <Search />
 
           <Button
@@ -370,7 +349,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
               getters.getCalendarAPI().loadEvents()
               const obsidianAPI = getters.getObsidianAPI()
               setters.set({
-                ...(await obsidianAPI.getDailyNoteInfo())
+                ...(await obsidianAPI.getDailyNoteInfo()),
               })
               obsidianAPI.loadTasks()
             }}
@@ -381,12 +360,11 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
             title='toggle day view'
             onClick={() => {
               setters.set({
-                calendarMode: !calendarMode
+                calendarMode: !calendarMode,
               })
             }}
-            src={calendarMode ? 'calendar-days' : 'calendar'}></Button>
-
-          {calendarMode && frontButtons}
+            src={calendarMode ? 'calendar-days' : 'calendar'}
+          ></Button>
           {calendarMode && nextButton}
         </div>
         <div
@@ -395,20 +373,22 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
               ? 'max-h-[calc(28px*4+2px)] flex-wrap justify-around overflow-y-auto child:w-[calc(100%/7)]'
               : 'items-center space-x-2 overflow-x-auto '
           }`}
-          data-auto-scroll={calendarMode ? '' : 'x'}>
+          data-auto-scroll={calendarMode ? '' : 'x'}
+        >
           {calendarMode && dayPadding()}
-          {!calendarMode && frontButtons}
           {times.map((times, i) => {
             const thisDate = DateTime.fromISO(times.startISO)
             return (
               <Droppable
                 key={times.startISO}
                 id={times.startISO + '::button'}
-                data={{ scheduled: times.startISO }}>
+                data={{ scheduled: times.startISO }}
+              >
                 <Button
                   className='h-[28px]'
-                  onClick={() => scrollToSection(i + START_BUTTONS)}
-                  data-section-scroll={i + START_BUTTONS}>
+                  onClick={() => scrollToSection(i)}
+                  data-section-scroll={i}
+                >
                   {thisDate.toFormat(
                     calendarMode
                       ? thisDate.day === 1 || i === 0
