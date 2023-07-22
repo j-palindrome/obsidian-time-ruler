@@ -19,6 +19,7 @@ Task metadata can be specified in any of the following formats:
 - **Dataview**: [scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: \#h\#m]  [priority:: lowest/low/medium/high/highest]
 - **Tasks**: [startTime:: hh-mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺
 - **Full Calendar**: [date:: yyyy-mm-dd]  [startTime:: hh-mm]  [endTime:: hh-mm]  [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]
+
 When editing a task via drag-and-drop, tasks are converted to the user's preferred format (Dataview, Tasks, or Full Calendar). This can be changed in Settings. (*Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.)
 
 ## Scheduling tasks
