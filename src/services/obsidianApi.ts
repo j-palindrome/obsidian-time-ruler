@@ -253,6 +253,7 @@ export default class ObsidianAPI extends Component {
     )
       .filter(task => {
         return (
+          !/-/.test(task.status) &&
           !task.completion &&
           !task.completed &&
           !(this.excludePaths && this.excludePaths.test(task.path)) &&
