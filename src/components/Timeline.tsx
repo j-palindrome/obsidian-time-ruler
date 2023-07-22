@@ -145,6 +145,7 @@ export default function Timeline({
         >
           {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
             <Task
+              key={task.id}
               id={task.id}
               due
               type={

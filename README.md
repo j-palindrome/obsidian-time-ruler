@@ -51,6 +51,8 @@ Upon calendar refresh, the plugin makes a single GET request to any calendars yo
 
 ## 7/22/2023
 - Added support for including/excluding custom statuses
+- Removed Upcoming view, integrated due dates with rest of days. Now tasks with due dates will show up as links each day from when they are scheduled until they are due. 
+- Changed Calendar view to be side-scrolling
 
 ## 7/17/2023
 - Removed Unscheduled view, improved search to show filterable tasks

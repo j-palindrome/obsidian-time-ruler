@@ -330,15 +330,12 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
 
   return (
     <>
-      <div
-        className={`w-full ${
-          calendarMode ? 'space-y-1' : 'flex items-center space-x-1'
-        }`}
-        data-auto-scroll={calendarMode ? '' : 'x'}
-      >
+      <div className={`flex w-full items-center space-x-1`}>
         <div
-          className={`flex items-center space-x-2 ${
-            calendarMode ? 'w-full overflow-x-auto' : ''
+          className={`space-2 flex-none ${
+            calendarMode
+              ? 'grid grid-cols-2'
+              : 'flex items-center justify-center'
           }`}
         >
           <Search />
@@ -368,12 +365,12 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
           {calendarMode && nextButton}
         </div>
         <div
-          className={`no-scrollbar flex w-full rounded-icon pb-0.5 ${
+          className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start ${
             calendarMode
-              ? 'max-h-[calc(28px*4+2px)] flex-wrap justify-around overflow-y-auto child:w-[calc(100%/7)]'
-              : 'items-center space-x-2 overflow-x-auto '
+              ? 'max-h-[calc(28px*2+2px)] snap-y flex-wrap justify-around overflow-y-auto child:w-[calc(100%/7)]'
+              : 'snap-x items-center space-x-2 overflow-x-auto'
           }`}
-          data-auto-scroll={calendarMode ? '' : 'x'}
+          data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
           {calendarMode && dayPadding()}
           {times.map((times, i) => {

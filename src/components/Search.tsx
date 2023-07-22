@@ -11,15 +11,15 @@ import Task from './Task'
 import Droppable from './Droppable'
 
 export default function Search() {
-  const headings = useAppStore(state => {
+  const headings = useAppStore((state) => {
     const headings = _.sortBy(
       _.uniq(
-        _.flatMap(state.tasks, task => {
+        _.flatMap(state.tasks, (task) => {
           const path = task.path.replace(/\.md$/, '')
           return [path, path + (task.heading ? '#' + task.heading : '')]
         }).concat(state.dailyNote ? [state.dailyNote] : [])
       ),
-      heading => state.fileOrder.indexOf(heading.replace(/#.*/, ''))
+      (heading) => state.fileOrder.indexOf(heading.replace(/#.*/, ''))
     )
     if (state.dailyNote && headings.includes(state.dailyNote)) {
       headings.splice(headings.indexOf(state.dailyNote), 1)
@@ -28,13 +28,13 @@ export default function Search() {
     return headings
   }, shallow)
 
-  const searchStatus = useAppStore(state => state.searchStatus)
+  const searchStatus = useAppStore((state) => state.searchStatus)
   const [search, setSearch] = useState('')
   const inputFrame = useRef<HTMLInputElement>(null)
   const frame = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLDivElement>(null)
 
-  const activeDrag = useAppStore(state => state.dragData)
+  const activeDrag = useAppStore((state) => state.dragData)
   const hideShowingOnDrag = () => {
     if (activeDrag && searchStatus) {
       setters.set({ searchStatus: false })
@@ -61,15 +61,15 @@ export default function Search() {
   }, [searchStatus])
 
   const tasksByHeading = useAppStore(
-    state =>
+    (state) =>
       _.mapValues(
         _.groupBy(
-          _.filter(state.tasks, task => !task.parent),
-          task =>
+          _.filter(state.tasks, (task) => !task.parent),
+          (task) =>
             task.path.replace('.md', '') +
             (task.heading ? '#' + task.heading : '')
         ),
-        tasks => _.sortBy(tasks, 'id')
+        (tasks) => _.sortBy(tasks, 'id')
       ),
     shallow
   )
@@ -106,7 +106,8 @@ export default function Search() {
         <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-4'>
           <div
             className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary'
-            ref={frame}>
+            ref={frame}
+          >
             <div className='relative px-4 pb-4'>
               <div className='sticky top-0 z-10 pt-4 backdrop-blur'>
                 <div className='flex w-full items-center space-x-2'>
@@ -116,10 +117,10 @@ export default function Search() {
                   <input
                     className='sticky top-4 h-6 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
                     value={search}
-                    onChange={ev => setSearch(ev.target.value)}
-                    onKeyDown={ev => {
+                    onChange={(ev) => setSearch(ev.target.value)}
+                    onKeyDown={(ev) => {
                       if (ev.key === 'Enter') {
-                        const firstHeading = headings.find(heading =>
+                        const firstHeading = headings.find((heading) =>
                           searchExp.test(heading)
                         )
                         if (!firstHeading) return
@@ -138,12 +139,13 @@ export default function Search() {
                       }
                     }}
                     placeholder='filter'
-                    ref={inputFrame}></input>
+                    ref={inputFrame}
+                  ></input>
                 </div>
                 <div className='flex flex-wrap items-center space-x-1'>
                   <Toggle
                     title={'tasks'}
-                    callback={state => setShowingTasks(state)}
+                    callback={(state) => setShowingTasks(state)}
                     value={showingTasks}
                   />
                   <div className='grow'></div>
@@ -151,12 +153,14 @@ export default function Search() {
                     ['all', 'scheduled', 'due', 'unscheduled'].map(
                       (mode: ViewMode) => (
                         <Button
+                          key={mode}
                           onClick={() => setViewMode(mode)}
                           className={`${
                             viewMode === mode
                               ? 'border border-solid border-faint'
                               : ''
-                          }`}>
+                          }`}
+                        >
                           {mode}
                         </Button>
                       )
@@ -164,10 +168,10 @@ export default function Search() {
                 </div>
               </div>
 
-              {headings.map(heading => {
+              {headings.map((heading) => {
                 const filteredTasks = showingTasks
                   ? tasksByHeading[heading]?.filter(
-                      task =>
+                      (task) =>
                         searchExp.test(
                           task.path + '#' + task.heading + task.title
                         ) && testViewMode(task)
@@ -190,7 +194,7 @@ export default function Search() {
                                       ? 'heading'
                                       : 'group',
                                     type: 'search',
-                                    id: heading + '::search'
+                                    id: heading + '::search',
                                   }
                                 : { dragType: 'new', path: heading }
                             }
@@ -199,7 +203,7 @@ export default function Search() {
                         )}
 
                         {showingTasks &&
-                          filteredTasks.map(task => (
+                          filteredTasks.map((task) => (
                             <Task id={task.id} key={task.id} type='search' />
                           ))}
                       </div>
@@ -217,7 +221,7 @@ export default function Search() {
 
 function DraggableHeading({
   dragData,
-  path
+  path,
 }: {
   dragData: DragData
   path: string
@@ -225,7 +229,7 @@ function DraggableHeading({
   const { attributes, listeners, setNodeRef, setActivatorNodeRef } =
     useDraggable({
       id: path + '::search',
-      data: dragData
+      data: dragData,
     })
 
   return (
