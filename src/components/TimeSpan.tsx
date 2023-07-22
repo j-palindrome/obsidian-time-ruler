@@ -84,12 +84,9 @@ export default function TimeSpan({
     i += includeNextBlocks.length
 
     const lastChildBlock = includeNextBlocks.last()
-    if (lastChildBlock && endISO.includes('2023-07-17')) {
-      console.log('processing end', lastChildBlock)
-
+    if (lastChildBlock) {
       const { endISO: lastEndISO } = processLength(lastChildBlock)
       if (lastEndISO > endISO) {
-        console.log('overlapping end for', endISO, lastEndISO)
         endISO = lastEndISO
       }
     }
