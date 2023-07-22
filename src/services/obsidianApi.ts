@@ -1,9 +1,9 @@
 import $ from 'jquery'
 import _ from 'lodash'
 import { DateTime, Duration } from 'luxon'
-import { App, Component, MarkdownView, Notice, TFile } from 'obsidian'
+import { App, Component, MarkdownView, Notice, Platform, TFile } from 'obsidian'
 import { DataArray, DataviewApi, STask, getAPI } from 'obsidian-dataview'
-import { getters, setters } from '../app/store'
+import { AppState, getters, setters } from '../app/store'
 import { sounds } from '../assets/assets'
 import TimeRulerPlugin from '../main'
 import {
@@ -110,7 +110,7 @@ export default class ObsidianAPI extends Component {
       scheduled: string | undefined
     ): { hour: number; minute: number } | undefined => {
       const length: Duration | undefined = item['length']
-      if (length) {
+      if (length && !isNaN(length.hours) && !isNaN(length.minutes)) {
         return { hour: length.hours, minute: length.minutes }
       } else if (item['endTime'] && scheduled) {
         const startTime = DateTime.fromISO(scheduled)
@@ -123,7 +123,12 @@ export default class ObsidianAPI extends Component {
           endTime = endTime.set({ hour, minute })
           const diff = endTime.diff(startTime).shiftTo('hour', 'minute')
 
-          if (diff.hours >= 0 && diff.minutes >= 0)
+          if (
+            !isNaN(diff.hours) &&
+            !isNaN(diff.minutes) &&
+            diff.hours >= 0 &&
+            diff.minutes >= 0
+          )
             return { hour: diff.hours, minute: diff.minutes }
         }
       }
@@ -455,16 +460,23 @@ export default class ObsidianAPI extends Component {
     this.openTask(defaultTask)
   }
 
-  async getDailyNote() {
+  async getDailyNoteInfo(): Promise<
+    | Pick<AppState, 'dailyNote' | 'dailyNoteFormat' | 'dailyNotePath'>
+    | undefined
+  > {
     try {
       let { folder = '', format } = JSON.parse(
         await app.vault.adapter.read(app.vault.configDir + '/daily-notes.json')
       )
       if (!format) format = 'YYYY-MM-DD'
       const today = moment().format(format)
-      return folder + '/' + today
+      return {
+        dailyNote: folder + '/' + today,
+        dailyNoteFormat: format,
+        dailyNotePath: folder
+      }
     } catch (err) {
-      return null
+      return
     }
   }
 
@@ -512,13 +524,12 @@ export default class ObsidianAPI extends Component {
     /**
      * There's a glitch with Obsidian where it doesn't show this when opening a link from Time Ruler.
      */
-    if (app['isMobile']) app['mobileNavbar'].show()
+    if (Platform.isMobile) app['mobileNavbar'].show()
   }
 }
 
 export function openTaskInRuler(line: number, path: string) {
   const id = `${path.replace(/\.md$/, '')}::${line}`
-  console.log('opening task', id)
 
   if (!getters.getTask(id)) {
     new Notice('Task not loaded in Time Ruler')

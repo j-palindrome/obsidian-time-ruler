@@ -18,6 +18,8 @@ export type AppState = {
   searchStatus: boolean | Partial<TaskProps>
   calendarMode: boolean
   dailyNote: string | null
+  dailyNoteFormat: string
+  dailyNotePath: string
   fileOrder: string[]
 }
 
@@ -30,8 +32,10 @@ export const useAppStore = create<AppState>(() => ({
   inScroll: 0,
   searchStatus: false,
   calendarMode: false,
+  fileOrder: [],
   dailyNote: null,
-  fileOrder: []
+  dailyNoteFormat: 'YYYY-MM-DD',
+  dailyNotePath: ''
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {

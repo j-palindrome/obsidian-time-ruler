@@ -1,9 +1,12 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
-import _ from 'lodash'
+import _, { escapeRegExp } from 'lodash'
 import { getters, setters, useAppStore } from '../app/store'
 import Task from './Task'
 import Droppable from './Droppable'
 import { shallow } from 'zustand/shallow'
+import { useMemo } from 'react'
+import moment from 'moment'
+import { DateTime } from 'luxon'
 
 const UNGROUPED = '__ungrouped'
 export type BlockType = 'child' | 'time' | 'event' | 'default' | 'search'
@@ -190,7 +193,24 @@ export function Heading({
       : path
   ).replace(/\.md/, '')
   const searchStatus = useAppStore(state => state.searchStatus)
-  const dailyNote = useAppStore(state => state.dailyNote)
+  const { dailyNotePath, dailyNoteFormat } = useAppStore(
+    state => ({
+      dailyNote: state.dailyNote,
+      dailyNotePath: state.dailyNotePath,
+      dailyNoteFormat: state.dailyNoteFormat
+    }),
+    shallow
+  )
+
+  const dailyNoteDateTest = useMemo(() => {
+    const matchesPath = path.match(
+      new RegExp(`${escapeRegExp(dailyNotePath)}\\/(.*)(#|$)`)
+    )?.[1]
+    if (!matchesPath) return false
+    const date = moment(matchesPath, dailyNoteFormat)
+    if (!date.isValid()) return false
+    return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat('ccc, LLL d')}`
+  }, [])
 
   return (
     <div
@@ -212,7 +232,7 @@ export function Heading({
           }
           return false
         }}>
-        {path === dailyNote ? 'Today' : name}
+        {dailyNoteDateTest || name}
       </div>
       <div
         className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'

@@ -48,6 +48,9 @@ Upon calendar refresh, the plugin makes a single GET request to any calendars yo
 
 # Changelog
 
+## 7/17/2023
+- Removed Unscheduled view, improved search to show filterable tasks
+
 ## 7/10/2023
 - Added ability to reorder headings with drag-and-drop
 

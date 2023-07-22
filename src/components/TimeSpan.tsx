@@ -17,7 +17,8 @@ export default function TimeSpan({
   blocks,
   type,
   due,
-  startWithHours
+  startWithHours = false,
+  chopStart = false
 }: {
   startISO: string
   endISO: string
@@ -25,6 +26,7 @@ export default function TimeSpan({
   type: TimeSpanTypes
   due?: boolean
   startWithHours?: boolean
+  chopStart?: boolean
 }) {
   const now = DateTime.now().toISO() as string
   const calendarMode = useAppStore(state => state.calendarMode)
@@ -36,11 +38,11 @@ export default function TimeSpan({
     events: EventProps[]
     blocks: BlockData[]
   }[] = []
-  for (let i = 0; i < blocks.length; i++) {
-    const [time, items] = blocks[i]
 
+  const processLength = ([time, items]: BlockData) => {
     const events: EventProps[] = []
     const tasks: TaskProps[] = []
+
     for (let item of items) {
       if (item.type === 'event') events.push(item)
       else tasks.push(item)
@@ -68,27 +70,47 @@ export default function TimeSpan({
       suppressSeconds: true
     }) as string
 
-    const nextBlocks = blocks
+    return { events, tasks, endISO: endTime }
+  }
+
+  for (let i = 0; i < blocks.length; i++) {
+    const [startISO, _tasks] = blocks[i]
+
+    let { events, tasks, endISO } = processLength(blocks[i])
+
+    const includeNextBlocks = blocks
       .slice(i + 1)
-      .filter(([time, _items]) => time < endTime)
-    i += nextBlocks.length
+      .filter(([time, _items]) => time < endISO)
+    i += includeNextBlocks.length
+
+    const lastChildBlock = includeNextBlocks.last()
+    if (lastChildBlock && endISO.includes('2023-07-17')) {
+      console.log('processing end', lastChildBlock)
+
+      const { endISO: lastEndISO } = processLength(lastChildBlock)
+      if (lastEndISO > endISO) {
+        console.log('overlapping end for', endISO, lastEndISO)
+        endISO = lastEndISO
+      }
+    }
+
     formattedBlocks.push({
-      startISO: time,
-      endISO: endTime,
+      startISO,
+      endISO,
       tasks,
       events,
-      blocks: nextBlocks
+      blocks: includeNextBlocks
     })
   }
 
   return (
-    <div>
+    <div className='pb-1'>
       {!calendarMode && (
         <Times
           type={startWithHours ? 'hours' : type}
           startISO={startISO}
           endISO={blocks[0]?.[0] ?? endISO}
-          chopStart
+          chopStart={chopStart}
           chopEnd
           due={due}
         />
@@ -122,7 +144,9 @@ export default function TimeSpan({
                 blocks={thisBlocks}
               />
 
-              {!calendarMode && (
+              {calendarMode ? (
+                <div className='h-2'></div>
+              ) : (
                 <Times
                   type={type}
                   startISO={thisEndISO}

@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import _, { head } from 'lodash'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
@@ -77,6 +77,21 @@ export default function Search() {
   const [showingTasks, setShowingTasks] = useState(true)
   const searchExp = new RegExp(_.escapeRegExp(search), 'i')
 
+  type ViewMode = 'all' | 'scheduled' | 'due' | 'unscheduled'
+  const [viewMode, setViewMode] = useState<ViewMode>('all')
+  const testViewMode = (task: TaskProps) => {
+    switch (viewMode) {
+      case 'all':
+        return true
+      case 'unscheduled':
+        return !task.scheduled
+      case 'due':
+        return !!task.due
+      case 'scheduled':
+        return !!task.scheduled
+    }
+  }
+
   return (
     <>
       <Button
@@ -94,10 +109,12 @@ export default function Search() {
             ref={frame}>
             <div className='relative px-4 pb-4'>
               <div className='sticky top-0 z-10 pt-4 backdrop-blur'>
-                <h2>{searchStatus === true ? 'Search' : 'Create Task'}</h2>
-                <div className='flex w-full items-center'>
+                <div className='flex w-full items-center space-x-2'>
+                  <h2 className='w-fit'>
+                    {searchStatus === true ? 'Search' : 'Create Task'}
+                  </h2>
                   <input
-                    className='sticky top-4 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
+                    className='sticky top-4 h-6 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
                     value={search}
                     onChange={ev => setSearch(ev.target.value)}
                     onKeyDown={ev => {
@@ -123,49 +140,73 @@ export default function Search() {
                     placeholder='filter'
                     ref={inputFrame}></input>
                 </div>
-                <div className='flex flex-wrap py-2'>
+                <div className='flex flex-wrap items-center space-x-1'>
                   <Toggle
                     title={'tasks'}
                     callback={state => setShowingTasks(state)}
                     value={showingTasks}
                   />
+                  <div className='grow'></div>
+                  {showingTasks &&
+                    ['all', 'scheduled', 'due', 'unscheduled'].map(
+                      (mode: ViewMode) => (
+                        <Button
+                          onClick={() => setViewMode(mode)}
+                          className={`${
+                            viewMode === mode
+                              ? 'border border-solid border-faint'
+                              : ''
+                          }`}>
+                          {mode}
+                        </Button>
+                      )
+                    )}
                 </div>
               </div>
 
-              {headings.map(heading => (
-                <div key={heading} className='my-4'>
-                  {searchExp.test(heading) && (
-                    <DraggableHeading
-                      dragData={
-                        searchStatus === true
-                          ? {
-                              dragType: 'group',
-                              tasks: tasksByHeading[heading],
-                              hidePaths: [],
-                              name: heading,
-                              level: heading.includes('#')
-                                ? 'heading'
-                                : 'group',
-                              type: 'search',
-                              id: heading + '::search'
-                            }
-                          : { dragType: 'new', path: heading }
-                      }
-                      path={heading}
-                    />
-                  )}
-                  {showingTasks &&
-                    tasksByHeading[heading]
-                      ?.filter(task =>
+              {headings.map(heading => {
+                const filteredTasks = showingTasks
+                  ? tasksByHeading[heading]?.filter(
+                      task =>
                         searchExp.test(
                           task.path + '#' + task.heading + task.title
-                        )
-                      )
-                      .map(task => (
-                        <Task id={task.id} key={task.id} type='search' />
-                      ))}
-                </div>
-              ))}
+                        ) && testViewMode(task)
+                    ) ?? []
+                  : []
+                return (
+                  <Fragment key={heading}>
+                    {(viewMode === 'all' || filteredTasks.length > 0) && (
+                      <div key={heading} className='my-4'>
+                        {searchExp.test(heading) && (
+                          <DraggableHeading
+                            dragData={
+                              searchStatus === true
+                                ? {
+                                    dragType: 'group',
+                                    tasks: tasksByHeading[heading],
+                                    hidePaths: [],
+                                    name: heading,
+                                    level: heading.includes('#')
+                                      ? 'heading'
+                                      : 'group',
+                                    type: 'search',
+                                    id: heading + '::search'
+                                  }
+                                : { dragType: 'new', path: heading }
+                            }
+                            path={heading}
+                          />
+                        )}
+
+                        {showingTasks &&
+                          filteredTasks.map(task => (
+                            <Task id={task.id} key={task.id} type='search' />
+                          ))}
+                      </div>
+                    )}
+                  </Fragment>
+                )
+              })}
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import $ from 'jquery'
+import { Platform } from 'obsidian'
 import { useEffect, useRef } from 'react'
 
 export const useAutoScroll = (dragging: boolean) => {
@@ -20,12 +21,12 @@ export const useAutoScroll = (dragging: boolean) => {
       if (!dragRef.current) return
 
       $(el).css('scroll-snap-type', 'none')
-      window.setTimeout(() => {
+      el.win.setTimeout(() => {
         $(el).css('scroll-snap-type', '')
       }, SCROLL_TIME)
 
       scrollAction.current = true
-      window.setTimeout(() => {
+      el.win.setTimeout(() => {
         scrollAction.current = false
       }, SCROLL_TIME)
 
@@ -79,12 +80,15 @@ export const useAutoScroll = (dragging: boolean) => {
       const rect = el.getBoundingClientRect()
       if (rect.top > position.current.y - MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { type: 'top', value: (rect.height - MARGIN) * -1 })
+          prepareScroll(el, {
+            type: 'top',
+            value: (rect.height - MARGIN * 2) * -1
+          })
         continueAutoScroll = true
         break
       } else if (rect.bottom < position.current.y + MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { type: 'top', value: rect.height - MARGIN })
+          prepareScroll(el, { type: 'top', value: rect.height - MARGIN * 2 })
         continueAutoScroll = true
         break
       }
@@ -97,12 +101,15 @@ export const useAutoScroll = (dragging: boolean) => {
       const rect = el.getBoundingClientRect()
       if (rect.left > position.current.x - MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { type: 'left', value: (rect.width - MARGIN) * -1 })
+          prepareScroll(el, {
+            type: 'left',
+            value: (rect.width - MARGIN * 2) * -1
+          })
         continueAutoScroll = true
         break
       } else if (rect.right < position.current.x + MARGIN) {
         if (!scrollAction.current)
-          prepareScroll(el, { type: 'left', value: rect.width - MARGIN })
+          prepareScroll(el, { type: 'left', value: rect.width - MARGIN * 2 })
         continueAutoScroll = true
         break
       }
@@ -145,7 +152,7 @@ export const useAutoScroll = (dragging: boolean) => {
       timeRulerBoundingRect.current =
         $('#time-ruler')[0].getBoundingClientRect()
       window.addEventListener(
-        app['isMobile'] ? 'touchmove' : 'mousemove',
+        Platform.isMobile ? 'touchmove' : 'mousemove',
         updateMousePosition
       )
 
@@ -153,7 +160,7 @@ export const useAutoScroll = (dragging: boolean) => {
     } else {
       scrollAction.current = false
       window.removeEventListener(
-        app['isMobile'] ? 'touchmove' : 'mousemove',
+        Platform.isMobile ? 'touchmove' : 'mousemove',
         updateMousePosition
       )
     }

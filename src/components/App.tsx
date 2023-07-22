@@ -36,15 +36,16 @@ import Timeline from './Timeline'
 import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
 import invariant from 'tiny-invariant'
+import { Platform } from 'obsidian'
 
-const START_BUTTONS = 0
+const START_BUTTONS = 1
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const setupStore = async () => {
-    setters.set({ apis, dailyNote: await apis.obsidian.getDailyNote() })
+    setters.set({ apis, ...(await apis.obsidian.getDailyNoteInfo()) })
   }
   useEffect(() => {
     setupStore()
@@ -186,7 +187,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       case 'group':
         return <Group {...activeDrag} />
       case 'event':
-        return <Event {...activeDrag} draggable={false} />
+        return <Event {...activeDrag} isDragging={true} />
       case 'new':
         return <Heading {...activeDrag} />
     }
@@ -198,7 +199,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     const timeRuler = document.querySelector('#time-ruler') as HTMLElement
 
     function outputSize() {
-      if (app['isMobile']) {
+      if (Platform.isMobile) {
         return
       }
       const width = timeRuler.clientWidth
@@ -214,7 +215,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     }
     outputSize()
 
-    if (app['isMobile']) {
+    if (Platform.isMobile) {
       setChildWidth('child:w-full')
       return
     }
@@ -225,7 +226,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }, [])
 
   const sensors = useSensors(
-    ...(app['isMobile']
+    ...(Platform.isMobile
       ? [
           useSensor(TouchSensor, {
             activationConstraint: {
@@ -254,9 +255,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       ?.style?.setProperty('overflow', 'clip', 'important')
   }, [])
 
-  useEffect(scrollToNow, [])
-
   const calendarMode = useAppStore(state => state.calendarMode)
+  useEffect(scrollToNow, [calendarMode])
 
   return (
     <DndContext
@@ -288,6 +288,13 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           }`}
           id='time-ruler-times'
           data-auto-scroll={calendarMode ? 'y' : 'x'}>
+          <Timeline
+            startISO={now.toISODate() as string}
+            endISO={now.plus({ months: 4 }).toISODate() as string}
+            type='days'
+            includePast
+            due
+          />
           {times.map((time, i) => (
             <Timeline
               key={time.startISO + '::' + time.type + '::' + time.due}
@@ -328,6 +335,22 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
     return _.range(1, now.weekday).map(i => <div key={i}></div>)
   }
 
+  const buttonMaps = times.concat()
+  buttonMaps.splice(1, 0, {})
+
+  const frontButtons = (
+    <Droppable
+      id={'upcoming::button'}
+      data={{ due: DateTime.now().startOf('day').toISO() as string }}>
+      <Button
+        className='h-[28px]'
+        onClick={() => scrollToSection(0)}
+        data-section-scroll={0}>
+        Upcoming
+      </Button>
+    </Droppable>
+  )
+
   return (
     <>
       <div
@@ -343,9 +366,13 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
 
           <Button
             title='reload'
-            onClick={() => {
+            onClick={async () => {
               getters.getCalendarAPI().loadEvents()
-              getters.getObsidianAPI().loadTasks()
+              const obsidianAPI = getters.getObsidianAPI()
+              setters.set({
+                ...(await obsidianAPI.getDailyNoteInfo())
+              })
+              obsidianAPI.loadTasks()
             }}
             src={'rotate-cw'}
           />
@@ -359,6 +386,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
             }}
             src={calendarMode ? 'calendar-days' : 'calendar'}></Button>
 
+          {calendarMode && frontButtons}
           {calendarMode && nextButton}
         </div>
         <div
@@ -369,6 +397,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
           }`}
           data-auto-scroll={calendarMode ? '' : 'x'}>
           {calendarMode && dayPadding()}
+          {!calendarMode && frontButtons}
           {times.map((times, i) => {
             const thisDate = DateTime.fromISO(times.startISO)
             return (

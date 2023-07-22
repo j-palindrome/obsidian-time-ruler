@@ -142,50 +142,46 @@ export default function Timeline({
             }}
           />
           <div className='w-full rounded-lg px-1'>{title || ''}</div>
-        </div>
-      </Droppable>
-      {allDayTasks.length > 0 && (
-        <>
-          {isExpanded && (
-            <div
-              className={`relative mt-2 w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
-                calendarMode ? 'h-full' : 'max-h-[66%] flex-none'
-              }`}
-              data-auto-scroll={calendarMode ? undefined : 'y'}>
-              {allDayEvents.map(event => (
-                <Event
-                  key={event.id}
-                  id={event.id}
-                  tasks={[]}
-                  blocks={[]}
-                  startISO={startISO}
-                  endISO={event.startISO}
-                  displayStartISO={event.startISO}
-                />
-              ))}
-              {allDayTasks.map(([time, tasks]) => (
-                <Event
-                  key={time}
-                  tasks={tasks}
-                  blocks={[]}
-                  due={due}
-                  startISO={startISO}
-                  endISO={time}
-                  displayStartISO={time}
-                />
-              ))}
-              {calendarMode && timeSpan}
-            </div>
-          )}
-
-          {!calendarMode && (
+          {!calendarMode && allDayTasks.length > 0 && (
             <Button
-              className='selectable flex h-4 w-full items-center justify-center p-0'
+              className='aspect-square h-full'
               onClick={() => setExpanded(!isExpanded)}
               src={isExpanded ? 'chevron-up' : 'chevron-down'}
             />
           )}
-        </>
+        </div>
+      </Droppable>
+      {allDayTasks.length > 0 && isExpanded && (
+        <div
+          className={`relative mt-2 w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
+            calendarMode ? 'h-full' : 'max-h-[50%] flex-none'
+          }`}
+          data-auto-scroll={calendarMode ? undefined : 'y'}>
+          {allDayEvents.map(event => (
+            <Event
+              key={event.id}
+              id={event.id}
+              tasks={[]}
+              blocks={[]}
+              startISO={startISO}
+              endISO={event.startISO}
+              displayStartISO={event.startISO}
+            />
+          ))}
+          {allDayTasks.map(([time, tasks]) => (
+            <Event
+              key={time}
+              tasks={tasks}
+              blocks={[]}
+              due={due}
+              startISO={startISO}
+              endISO={time}
+              displayStartISO={time}
+            />
+          ))}
+
+          {calendarMode && timeSpan}
+        </div>
       )}
       {!calendarMode && (
         <div

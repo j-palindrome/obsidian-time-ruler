@@ -8,6 +8,7 @@ import Times, { TimeSpanTypes } from './Times'
 import TimeSpan, { BlockData } from './TimeSpan'
 import Logo from './Logo'
 import Button from './Button'
+import $ from 'jquery'
 
 export type EventComponentProps = {
   id?: string
@@ -27,8 +28,13 @@ export default function Event({
   displayStartISO,
   blocks,
   type = 'minutes',
-  draggable = true
-}: EventComponentProps & { draggable?: boolean; due?: boolean }) {
+  draggable = true,
+  isDragging = false
+}: EventComponentProps & {
+  draggable?: boolean
+  due?: boolean
+  isDragging?: boolean
+}) {
   if (tasks.length === 0) draggable = false
   const thisEvent = useAppStore(state => (id ? state.events[id] : undefined))
   const dragData: DragData = {
@@ -57,6 +63,10 @@ export default function Event({
   }
 
   const data = due ? { due: displayStartISO } : { scheduled: displayStartISO }
+
+  const eventWidth = isDragging
+    ? $('#time-ruler-times').children()[0]?.getBoundingClientRect().width - 16
+    : undefined
 
   const titleBar = (
     <div
@@ -113,7 +123,12 @@ export default function Event({
 
   return (
     <div
-      className={`w-full rounded-lg bg-secondary-alt`}
+      className={`w-full rounded-lg ${
+        isDragging ? 'bg-gray-500/5 opacity-50' : 'bg-secondary-alt'
+      }`}
+      style={{
+        minWidth: eventWidth
+      }}
       ref={draggable ? setNodeRef : undefined}>
       <Droppable
         data={data}
@@ -127,6 +142,7 @@ export default function Event({
         endISO={endISO}
         blocks={blocks}
         type={type}
+        chopStart={false}
       />
 
       {thisEvent && (thisEvent.location || thisEvent.notes) && (

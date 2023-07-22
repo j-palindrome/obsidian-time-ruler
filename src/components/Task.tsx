@@ -19,7 +19,6 @@ export default function Task({
   id,
   children,
   type,
-  highlight,
   due
 }: TaskComponentProps & { highlight?: boolean; due?: boolean }) {
   const completeTask = () => {
@@ -43,9 +42,6 @@ export default function Task({
   const isLink = ['parent', 'link'].includes(type)
 
   let task = useAppStore(state => state.tasks[id])
-  if (task.title.includes('finish CV')) {
-    console.log(getters.get('tasks')[id])
-  }
 
   const subtasks = useAppStore(state => {
     if (!task) return []
