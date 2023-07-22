@@ -12,6 +12,10 @@ interface TimeRulerSettings {
   inbox: string | null
   search: string
   fileOrder: string[]
+  customStatus: {
+    include: boolean
+    statuses: string
+  }
 }
 
 const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -20,7 +24,11 @@ const DEFAULT_SETTINGS: TimeRulerSettings = {
   fieldFormat: 'dataview',
   inbox: null,
   search: '',
-  fileOrder: []
+  fileOrder: [],
+  customStatus: {
+    include: false,
+    statuses: '-',
+  },
 }
 
 export default class TimeRulerPlugin extends Plugin {
@@ -35,13 +43,13 @@ export default class TimeRulerPlugin extends Plugin {
     await this.loadSettings()
     this.addSettingTab(new SettingsTab(this))
 
-    this.registerView(TIME_RULER_VIEW, leaf => new TimeRulerView(leaf, this))
+    this.registerView(TIME_RULER_VIEW, (leaf) => new TimeRulerView(leaf, this))
 
     this.addCommand({
       icon: 'ruler',
       callback: () => this.activateView(),
       id: 'activate-view',
-      name: 'Open Time Ruler'
+      name: 'Open Time Ruler',
     })
 
     this.addRibbonIcon('ruler', 'Open Time Ruler', () => this.activateView())
@@ -55,10 +63,10 @@ export default class TimeRulerPlugin extends Plugin {
     this.addCommand({
       id: 'find-task',
       name: 'Reveal in Time Ruler',
-      checkCallback: checking => {
+      checkCallback: (checking) => {
         this.app.workspace.getActiveFile()
       },
-      editorCallback: (_, context) => this.jumpToTask(context)
+      editorCallback: (_, context) => this.jumpToTask(context),
     })
   }
 
@@ -82,7 +90,7 @@ export default class TimeRulerPlugin extends Plugin {
     if (!cursor) return
     const line = context.editor?.getLine(cursor.line)
     if (!line || !/ *- \[ \] /.test(line)) return
-    menu.addItem(item =>
+    menu.addItem((item) =>
       item
         .setIcon('ruler')
         .setTitle('Reveal in Time Ruler')
@@ -94,7 +102,7 @@ export default class TimeRulerPlugin extends Plugin {
     let dataViewPlugin = getAPI(this.app)
     if (!dataViewPlugin) {
       // wait for Dataview plugin to load (usually <100ms)
-      dataViewPlugin = await new Promise(resolve => {
+      dataViewPlugin = await new Promise((resolve) => {
         setTimeout(() => resolve(getAPI(this.app)), 350)
       })
       if (!dataViewPlugin) {
@@ -110,7 +118,7 @@ export default class TimeRulerPlugin extends Plugin {
 
     await leaf.setViewState({
       type: TIME_RULER_VIEW,
-      active: true
+      active: true,
     })
 
     this.app.workspace.revealLeaf(leaf)

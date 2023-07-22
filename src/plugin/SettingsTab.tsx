@@ -7,7 +7,7 @@ import {
   TextComponent,
   ValueComponent,
   request,
-  setIcon
+  setIcon,
 } from 'obsidian'
 import { useEffect, useRef } from 'react'
 import { Root, createRoot } from 'react-dom/client'
@@ -18,7 +18,7 @@ const WEBCAL = 'webcal'
 function Calendars({
   plugin,
   names,
-  updateCalendars
+  updateCalendars,
 }: {
   plugin: TimeRulerPlugin
   names: Record<string, string>
@@ -33,10 +33,11 @@ function Calendars({
 
   return (
     <div ref={frameRef} style={{ paddingBottom: '8px' }}>
-      {plugin.settings.calendars.map(calendar => (
+      {plugin.settings.calendars.map((calendar) => (
         <div
           key={calendar}
-          style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
+          style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}
+        >
           <button
             style={{ marginRight: '4px' }}
             onClick={() => {
@@ -45,7 +46,8 @@ function Calendars({
               plugin.saveSettings()
               updateCalendars()
             }}
-            data-role='time-ruler-delete'></button>
+            data-role='time-ruler-delete'
+          ></button>
           <div>{names[calendar]}</div>
         </div>
       ))}
@@ -91,11 +93,11 @@ export default class SettingsTab extends PluginSettingTab {
       .setDesc(
         'Choose which style of inline fields to use (parses scheduled date or time, due, priority, completion, and start).'
       )
-    format.addDropdown(dropdown => {
+    format.addDropdown((dropdown) => {
       dropdown.addOptions({
         dataview: 'Dataview',
         'full-calendar': 'Full Calendar',
-        tasks: 'Tasks'
+        tasks: 'Tasks',
       })
       dropdown.setValue(this.plugin.settings.fieldFormat)
       dropdown.onChange((value: FieldFormat) => {
@@ -114,9 +116,9 @@ export default class SettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Muted')
       .setDesc('Turn off playing sounds on task completion.')
-      .addToggle(toggle => {
+      .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings.muted)
-        toggle.onChange(value => {
+        toggle.onChange((value) => {
           this.plugin.settings.muted = value
           this.plugin.saveSettings()
         })
@@ -125,23 +127,45 @@ export default class SettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Custom Filter')
       .setDesc('Enable a custom Dataview filter to search tasks.')
-      .addText(text => {
-        text.setValue(this.plugin.settings.search).onChange(value => {
+      .addText((text) => {
+        text.setValue(this.plugin.settings.search).onChange((value) => {
           this.plugin.settings.search = value
           this.plugin.saveSettings()
         })
       })
 
+    const customStatuses = new Setting(containerEl)
+      .setName('Custom Statuses')
+      .setDesc(
+        'Include only, or exclude certain, characters between the double brackets [ ] of a task. Write characters with no separation.'
+      )
+    customStatuses.controlEl.appendChild($(/*html*/ `<span>Exclude</span>`)[0])
+    customStatuses.addToggle((toggle) =>
+      toggle
+        .setValue(this.plugin.settings.customStatus.include)
+        .setTooltip('Exclude the current value')
+    )
+    customStatuses.controlEl.appendChild($(/*html*/ `<span>Include</span>`)[0])
+    customStatuses.addText((text) => {
+      text
+        .setValue(this.plugin.settings.customStatus.statuses)
+        .setPlaceholder('Statuses')
+        .onChange((value) => {
+          this.plugin.settings.customStatus.statuses = value
+          this.plugin.saveSettings()
+        })
+    })
+
     let newCalendarLink: TextComponent
     new Setting(containerEl)
       .setName('Calendars')
       .setDesc('View readonly calendars in Time Ruler.')
-      .addText(text => {
+      .addText((text) => {
         newCalendarLink = text
         text.inputEl.style.width = '100%'
         text.setPlaceholder('Calendar Share Link (iCal format)')
       })
-      .addButton(button => {
+      .addButton((button) => {
         button.setIcon('plus')
         button.onClick(async () => {
           let newValue = newCalendarLink.getValue()
@@ -172,7 +196,7 @@ export default class SettingsTab extends PluginSettingTab {
     )
 
     await Promise.all(
-      this.plugin.settings.calendars.map(calendar =>
+      this.plugin.settings.calendars.map((calendar) =>
         this.addCalendarName(calendar)
       )
     )

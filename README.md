@@ -49,6 +49,9 @@ Upon calendar refresh, the plugin makes a single GET request to any calendars yo
 
 # Changelog
 
+## 7/22/2023
+- Added support for including/excluding custom statuses
+
 ## 7/17/2023
 - Removed Unscheduled view, improved search to show filterable tasks
 

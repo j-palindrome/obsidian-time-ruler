@@ -1,5 +1,5 @@
 import $ from 'jquery'
-import _ from 'lodash'
+import _, { escapeRegExp } from 'lodash'
 import { DateTime, Duration } from 'luxon'
 import { App, Component, MarkdownView, Notice, Platform, TFile } from 'obsidian'
 import { DataArray, DataviewApi, STask, getAPI } from 'obsidian-dataview'
@@ -12,7 +12,7 @@ import {
   TasksEmojiToKey,
   keyToTasksEmoji,
   priorityKeyToNumber,
-  priorityNumberToKey
+  priorityNumberToKey,
 } from '../types/enums'
 import { isDateISO } from './util'
 import moment from 'moment'
@@ -62,7 +62,7 @@ export default class ObsidianAPI extends Component {
       JSON.parse(configFile)?.['userIgnoreFilters']
     if (!excludePaths) return
     this.excludePaths = new RegExp(
-      excludePaths.map(x => `^${_.escapeRegExp(x)}`).join('|')
+      excludePaths.map((x) => `^${_.escapeRegExp(x)}`).join('|')
     )
   }
 
@@ -93,7 +93,7 @@ export default class ObsidianAPI extends Component {
       ? item.text.match(/\n((.|\n)*$)/)?.[1]
       : undefined
 
-    const extraFields = _.mapValues(_.omit(item, RESERVED_FIELDS), x =>
+    const extraFields = _.mapValues(_.omit(item, RESERVED_FIELDS), (x) =>
       x.toString()
     )
 
@@ -178,7 +178,7 @@ export default class ObsidianAPI extends Component {
         : (scheduled.toISO({
             includeOffset: false,
             suppressMilliseconds: true,
-            suppressSeconds: true
+            suppressSeconds: true,
           }) as string)
     }
 
@@ -204,7 +204,7 @@ export default class ObsidianAPI extends Component {
           keyToTasksEmoji.high,
           keyToTasksEmoji.medium,
           keyToTasksEmoji.low,
-          keyToTasksEmoji.lowest
+          keyToTasksEmoji.lowest,
         ]) {
           if (item.text.includes(emoji))
             return priorityKeyToNumber[TasksEmojiToKey[emoji]]
@@ -225,7 +225,7 @@ export default class ObsidianAPI extends Component {
     return {
       id: parseId(item),
       children:
-        item.children.flatMap(child =>
+        item.children.flatMap((child) =>
           child.completion ? [] : parseId(child as STask)
         ) ?? [],
       type: 'task',
@@ -242,18 +242,21 @@ export default class ObsidianAPI extends Component {
       priority,
       completion,
       start,
-      created
+      created,
     }
   }
 
   loadTasks() {
     const now = DateTime.now()
+    const taskTest = new RegExp(
+      `[${escapeRegExp(this.settings.customStatus.statuses)}]`
+    )
     const newTasks = (
       dv.pages(this.settings.search)['file']['tasks'] as DataArray<STask>
     )
-      .filter(task => {
+      .filter((task) => {
         return (
-          !/-/.test(task.status) &&
+          taskTest.test(task.status) === this.settings.customStatus.include &&
           !task.completion &&
           !task.completed &&
           !(this.excludePaths && this.excludePaths.test(task.path)) &&
@@ -269,8 +272,8 @@ export default class ObsidianAPI extends Component {
     const newTaskString = JSON.stringify(newTasks)
     if (newTaskString === this.previousLoadTasks) return
     this.previousLoadTasks = newTaskString
-    const tasks = newTasks.flatMap(item => this.textToTask(item))
-    const tasksDict = _.fromPairs(tasks.map(task => [task.id, task]))
+    const tasks = newTasks.flatMap((item) => this.textToTask(item))
+    const tasksDict = _.fromPairs(tasks.map((task) => [task.id, task]))
 
     for (let task of _.values(tasksDict)) {
       if (!task.children) continue
@@ -280,13 +283,13 @@ export default class ObsidianAPI extends Component {
       }
     }
 
-    const filePaths = _.uniq(tasks.map(task => task.path))
-      .filter(path => !this.settings.fileOrder.includes(path))
+    const filePaths = _.uniq(tasks.map((task) => task.path))
+      .filter((path) => !this.settings.fileOrder.includes(path))
       .sort()
 
     const newFileOrder = [...this.settings.fileOrder]
     for (let file of filePaths) {
-      const afterFile = newFileOrder.findIndex(otherFile => otherFile > file)
+      const afterFile = newFileOrder.findIndex((otherFile) => otherFile > file)
       if (afterFile === -1) newFileOrder.push(file)
       else newFileOrder.splice(afterFile, 0, file)
     }
@@ -427,7 +430,7 @@ export default class ObsidianAPI extends Component {
   ) {
     let position = {
       start: { col: 0, line: 0, offset: 0 },
-      end: { col: 0, line: 0, offset: 0 }
+      end: { col: 0, line: 0, offset: 0 },
     }
 
     if (heading) {
@@ -435,7 +438,7 @@ export default class ObsidianAPI extends Component {
       if (!(file instanceof TFile)) return
       const text = await app.vault.read(file)
       const lines = text.split('\n')
-      const headingLine = lines.findIndex(line =>
+      const headingLine = lines.findIndex((line) =>
         new RegExp(`#+ ${_.escapeRegExp(heading)}$`).test(line)
       )
       if (headingLine) {
@@ -454,7 +457,7 @@ export default class ObsidianAPI extends Component {
       path,
       heading,
       position,
-      ...dropData
+      ...dropData,
     }
 
     await this.saveTask(defaultTask, true)
@@ -474,7 +477,7 @@ export default class ObsidianAPI extends Component {
       return {
         dailyNote: folder + '/' + today,
         dailyNoteFormat: format,
-        dailyNotePath: folder
+        dailyNotePath: folder,
       }
     } catch (err) {
       return
@@ -512,11 +515,11 @@ export default class ObsidianAPI extends Component {
     cmEditor.setSelection(
       {
         line: task.position.end.line,
-        ch: task.position.end.col
+        ch: task.position.end.col,
       },
       {
         line: task.position.end.line,
-        ch: task.position.end.col
+        ch: task.position.end.col,
       }
     )
 
@@ -538,14 +541,14 @@ export function openTaskInRuler(line: number, path: string) {
   }
   setters.set({
     findingTask: id,
-    searchStatus: false
+    searchStatus: false,
   })
 
   const foundTask = $(`[data-id="${id}"]`)
   foundTask[0]?.scrollIntoView({
     behavior: 'smooth',
     inline: 'start',
-    block: 'center'
+    block: 'center',
   })
   foundTask.addClass('!bg-accent')
   setTimeout(() => foundTask.removeClass('!bg-accent'), 1500)
