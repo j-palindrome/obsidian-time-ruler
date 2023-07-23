@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useState, useMemo } from 'react'
 import { shallow } from 'zustand/shallow'
 import { setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
@@ -16,57 +16,54 @@ export default function Timeline({
   startISO,
   endISO,
   type,
-  includePast,
-  due,
 }: {
   includePast?: boolean
   startISO: string
   endISO: string
   type: TimeSpanTypes
-  due?: boolean
 }) {
   const now = DateTime.now().toISO() as string
   const events = useAppStore((state) => {
-    return due
-      ? []
-      : _.filter(
-          state.events,
-          (event) =>
-            !(
-              event.endISO <= startISO ||
-              event.startISO >= endISO ||
-              event.endISO <= now
-            )
+    return _.filter(
+      state.events,
+      (event) =>
+        !(
+          event.endISO <= startISO ||
+          event.startISO >= endISO ||
+          event.endISO <= now
         )
+    )
   }, shallow)
 
   const filterAllDayChildren = (tasks: TaskProps[]) => {
     const tasksMap = _.fromPairs(tasks.map((task) => [task.id, task]))
-    return due
-      ? tasks
-      : tasks.filter(
-          (task) =>
-            !(
-              task.parent &&
-              tasksMap[task.parent] &&
-              task.scheduled &&
-              isDateISO(task.scheduled)
-            )
+    return tasks.filter(
+      (task) =>
+        !(
+          task.parent &&
+          tasksMap[task.parent] &&
+          task.scheduled &&
+          isDateISO(task.scheduled)
         )
+    )
   }
+
+  const isToday =
+    startISO.slice(0, 10) === (DateTime.now().toISODate() as string)
+
   const [tasks, dueTasks] = useAppStore((state) => {
     const tasks: TaskProps[] = []
     const dueTasks: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
       if (
-        (!task.scheduled || task.scheduled <= startISO) &&
+        (!task.scheduled || task.scheduled < startISO) &&
         task.due &&
-        task.due >= startISO
+        (task.due >= startISO || (isToday && task.due < endISO))
       ) {
         dueTasks.push(task)
       } else if (
         task.scheduled &&
-        task.scheduled >= startISO &&
+        (task.scheduled >= startISO || isToday) &&
         task.scheduled < endISO
       ) {
         tasks.push(task)
@@ -87,11 +84,7 @@ export default function Timeline({
   )
 
   const blocks = _.groupBy(allTimeObjects, (object) =>
-    object.type === 'event'
-      ? object.startISO
-      : due
-      ? object.due
-      : object.scheduled
+    object.type === 'event' ? object.startISO : object.scheduled
   )
   const sortedBlocks = _.sortBy(_.entries(blocks), 0)
   const allDayTasks = sortedBlocks.filter(
@@ -99,27 +92,48 @@ export default function Timeline({
   ) as [string, TaskProps[]][]
   const atTimeBlocks = sortedBlocks.filter(([time, _tasks]) => time > startISO)
 
-  const title = due
-    ? 'Upcoming'
-    : DateTime.fromISO(startISO || endISO).toFormat(
-        type === 'days' ? 'MMMM' : 'EEE, MMM d'
-      )
+  const title = DateTime.fromISO(startISO || endISO).toFormat(
+    type === 'days' ? 'MMMM' : 'EEE, MMM d'
+  )
 
   const calendarMode = useAppStore((state) => state.calendarMode)
 
   const timeSpan = (
     <TimeSpan
-      {...{ startISO, endISO, type, blocks: atTimeBlocks, due }}
+      {...{ startISO, endISO, type, blocks: atTimeBlocks }}
       startWithHours={startISO !== DateTime.now().toISODate()}
     />
   )
 
+  const [expanded, setExpanded] = useState(true)
+  const isExpanded = calendarMode || expanded
+
+  const foundTaskInAllDay = useAppStore((state) => {
+    return state.findingTask &&
+      _.flatMap(allDayTasks, '1').find((task) => task.id === state.findingTask)
+      ? state.findingTask
+      : null
+  })
+
+  const expandIfFound = () => {
+    if (foundTaskInAllDay && !isExpanded) {
+      setExpanded(true)
+      const foundTask = allDayTasks
+        .map(([_name, tasks]) => tasks)
+        .flat()
+        .find((task) => task.id === foundTaskInAllDay) as TaskProps
+      if (!foundTask) return
+      setters.set({ findingTask: null })
+      setTimeout(() =>
+        openTaskInRuler(foundTask.position.start.line, foundTask.path)
+      )
+    }
+  }
+  useEffect(expandIfFound, [foundTaskInAllDay])
+
   return (
     <div className='flex h-full flex-col'>
-      <Droppable
-        data={{ scheduled: startISO }}
-        id={startISO + '::timeline' + (due ? '::due' : '')}
-      >
+      <Droppable data={{ scheduled: startISO }} id={startISO + '::timeline'}>
         <div className='group flex w-full flex-none items-center'>
           <Button
             src='plus'
@@ -129,6 +143,13 @@ export default function Timeline({
             }}
           />
           <div className='w-full rounded-lg px-1'>{title || ''}</div>
+          {!calendarMode && (
+            <Button
+              className='aspect-square h-full'
+              onClick={() => setExpanded(!isExpanded)}
+              src={isExpanded ? 'chevron-up' : 'chevron-down'}
+            />
+          )}
         </div>
       </Droppable>
       <div
@@ -137,48 +158,41 @@ export default function Timeline({
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        <div
-          className={`relative mt-2 w-full overflow-y-auto overflow-x-hidden rounded-lg ${
-            calendarMode ? '' : 'max-h-[50%] flex-none'
-          }`}
-          data-auto-scroll={calendarMode ? undefined : 'y'}
-        >
-          {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
-            <Task
-              key={task.id}
-              id={task.id}
-              due
-              type={
-                (task.due as string) >= startISO &&
-                (task.due as string) <= endISO
-                  ? 'task'
-                  : 'link'
-              }
-            />
-          ))}
-          {allDayEvents.map((event) => (
-            <Event
-              key={event.id}
-              id={event.id}
-              tasks={[]}
-              blocks={[]}
-              startISO={startISO}
-              endISO={event.startISO}
-              displayStartISO={event.startISO}
-            />
-          ))}
-          {allDayTasks.map(([time, tasks]) => (
-            <Event
-              key={time}
-              tasks={tasks}
-              blocks={[]}
-              due={due}
-              startISO={startISO}
-              endISO={time}
-              displayStartISO={time}
-            />
-          ))}
-        </div>
+        {isExpanded && (
+          <div
+            className={`relative mt-2 w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
+              calendarMode ? '' : 'max-h-[50%] flex-none'
+            }`}
+            data-auto-scroll={calendarMode ? undefined : 'y'}
+          >
+            <div>
+              {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
+                <Task key={task.id} id={task.id} type='deadline' />
+              ))}
+            </div>
+            {allDayEvents.map((event) => (
+              <Event
+                key={event.id}
+                id={event.id}
+                tasks={[]}
+                blocks={[]}
+                startISO={startISO}
+                endISO={event.startISO}
+                displayStartISO={event.startISO}
+              />
+            ))}
+            {allDayTasks.map(([time, tasks]) => (
+              <Event
+                key={time}
+                tasks={tasks}
+                blocks={[]}
+                startISO={startISO}
+                endISO={time}
+                displayStartISO={time}
+              />
+            ))}
+          </div>
+        )}
 
         <div
           className={`w-full overflow-x-hidden rounded-lg ${

@@ -7,31 +7,34 @@ module.exports = {
     plugin(function ({ addVariant }) {
       addVariant('child', '& > *')
       addVariant('ancestor', '& *')
-    })
+    }),
   ],
   corePlugins: {
-    preflight: false
+    preflight: false,
   },
   important: '#time-ruler',
   theme: {
     extend: {
+      minHeight: {
+        line: 'var(--line-height-normal)',
+      },
       lineHeight: {
-        line: 'var(--line-height-normal)'
+        line: 'var(--line-height-normal)',
       },
       height: {
-        line: 'calc(var(--line-height-normal) * 1em)'
+        line: 'calc(var(--line-height-normal) * 1em)',
       },
       fontSize: {
-        base: 'var(--font-text-size)'
+        base: 'var(--font-text-size)',
       },
       fontFamily: {
         menu: 'var(--font-interface)',
         serif: 'var(--font-text)',
-        sans: 'var(--font-text)'
+        sans: 'var(--font-text)',
       },
       borderRadius: {
         icon: 'var(--clickable-icon-radius)',
-        checkbox: 'var(--checkbox-radius)'
+        checkbox: 'var(--checkbox-radius)',
       },
       colors: {
         primary: 'var(--background-primary)',
@@ -45,12 +48,12 @@ module.exports = {
         normal: 'var(--text-normal)',
         muted: 'var(--text-muted)',
         faint: 'var(--text-faint)',
-        accent: 'var(--text-accent)'
+        accent: 'var(--text-accent)',
       },
       screens: {
         mobile: { raw: '(hover: none)' },
-        mouse: { raw: '(hover: hover)' }
-      }
-    }
-  }
+        mouse: { raw: '(hover: hover)' },
+      },
+    },
+  },
 }

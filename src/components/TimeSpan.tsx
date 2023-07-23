@@ -16,7 +16,6 @@ export default function TimeSpan({
   endISO,
   blocks,
   type,
-  due,
   startWithHours = false,
   chopStart = false,
 }: {
@@ -24,7 +23,6 @@ export default function TimeSpan({
   endISO: string
   blocks: BlockData[]
   type: TimeSpanTypes
-  due?: boolean
   startWithHours?: boolean
   chopStart?: boolean
 }) {
@@ -111,7 +109,6 @@ export default function TimeSpan({
           endISO={blocks[0]?.[0] ?? endISO}
           chopStart={chopStart}
           chopEnd
-          due={due}
         />
       )}
 
@@ -139,7 +136,6 @@ export default function TimeSpan({
                 tasks={thisTasks}
                 id={thisEvents[0]?.id}
                 type={type}
-                due={due}
                 displayStartISO={thisStartISO}
                 blocks={thisBlocks}
               />
@@ -153,7 +149,6 @@ export default function TimeSpan({
                   endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
                   chopEnd
                   chopStart={thisStartISO === thisEndISO}
-                  due={due}
                 />
               )}
             </Fragment>

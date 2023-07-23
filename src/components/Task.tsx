@@ -19,8 +19,7 @@ export default function Task({
   id,
   children,
   type,
-  due,
-}: TaskComponentProps & { highlight?: boolean; due?: boolean }) {
+}: TaskComponentProps & { highlight?: boolean }) {
   const completeTask = () => {
     setters.patchTasks([id], {
       completion: DateTime.now().toISODate() as string,
@@ -35,11 +34,11 @@ export default function Task({
   }
   const { setNodeRef, setActivatorNodeRef, attributes, listeners } =
     useDraggable({
-      id: id + '::' + type + (due ? '::due' : '::scheduled'),
+      id: id + '::' + type,
       data: dragData,
     })
 
-  const isLink = ['parent', 'link'].includes(type)
+  const isLink = ['parent', 'link', 'deadline'].includes(type)
 
   let task = useAppStore((state) => state.tasks[id])
 
@@ -48,6 +47,13 @@ export default function Task({
     return (children ?? task.children).flatMap((child) => {
       const subtask = state.tasks[child]
       if (!subtask) return []
+      const sameDayDifferentTime =
+        type === 'task' &&
+        subtask.scheduled &&
+        task.scheduled &&
+        subtask.scheduled.length > 10 &&
+        subtask.scheduled.slice(0, 10) === task.scheduled.slice(0, 10)
+      if (sameDayDifferentTime) return []
       return subtask
     })
   }, shallow)
@@ -62,22 +68,38 @@ export default function Task({
     attributes: lengthAttributes,
     listeners: lengthListeners,
   } = useDraggable({
-    id: id + '::' + type + (due ? '::due' : '::scheduled') + '::length',
+    id: id + '::' + type + '::length',
     data: lengthDragData,
   })
 
   if (!task) return <></>
 
+  const thisHeading = () =>
+    (task.path.includes('#')
+      ? task.path.slice(task.path.lastIndexOf('#') + 1)
+      : task.path.includes('/')
+      ? task.path.slice(task.path.lastIndexOf('/') + 1)
+      : task.path
+    ).replace(/\.md/, '')
+
   return (
     <div
-      className={`relative rounded-lg transition-colors duration-300 ${
+      className={`relative rounded-lg py-0.5 transition-colors duration-300 ${
         type === 'parent' ? 'mt-1' : ''
       }`}
       ref={setNodeRef}
       data-id={isLink || type === 'search' ? '' : id}
     >
+      {type === 'deadline' && (
+        <div
+          className='cursor-pointer pl-7 text-xs text-accent hover:underline'
+          onClick={() => app.workspace.openLinkText(task.path, '')}
+        >
+          {thisHeading()}
+        </div>
+      )}
       <div
-        className={`selectable flex items-center rounded-lg py-0.5 pr-2 ${
+        className={`selectable flex items-center rounded-lg pr-2 ${
           isLink ? 'font-menu text-xs' : 'font-sans'
         }`}
       >
@@ -96,20 +118,19 @@ export default function Task({
               task.priority
             )
               ? 'text-accent'
+              : type === 'deadline'
+              ? ''
               : task.priority === TaskPriorities.LOW || isLink
               ? 'text-faint'
               : ''
           }`}
           onPointerDown={() => false}
-          onClick={() => {
-            if (isLink) openTaskInRuler(task.position.start.line, task.path)
-            else getters.getObsidianAPI().openTask(task)
-          }}
+          onClick={() => getters.getObsidianAPI().openTask(task)}
         >
           {task.title}
         </div>
         <div
-          className='no-scrollbar flex h-full min-h-[24px] min-w-[24px] grow cursor-grab items-center justify-end space-x-1 overflow-x-auto overflow-y-auto rounded-full font-menu'
+          className='no-scrollbar flex h-full min-h-line min-w-[24px] grow cursor-grab items-center justify-end space-x-1 overflow-x-auto overflow-y-auto rounded-full font-menu'
           {...attributes}
           {...listeners}
           ref={setActivatorNodeRef}
@@ -142,6 +163,7 @@ export default function Task({
             </div>
           )}
         </div>
+
         {(isLink || type == 'search') && task.scheduled && (
           <div
             className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-normal'
@@ -151,7 +173,10 @@ export default function Task({
           </div>
         )}
         {task.due && (
-          <div className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-accent'>
+          <div
+            className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-accent'
+            onClick={() => openTaskInRuler(task.position.start.line, task.path)}
+          >
             {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
           </div>
         )}
@@ -191,7 +216,7 @@ export default function Task({
                   : undefined,
               type:
                 type === 'search'
-                  ? 'child'
+                  ? 'task'
                   : type === 'parent'
                   ? subtask.type
                   : type === 'link' ||
@@ -200,9 +225,8 @@ export default function Task({
                       subtask.scheduled &&
                       subtask.scheduled !== task.scheduled)
                   ? 'link'
-                  : 'child',
+                  : 'task',
             }))}
-            due={due}
             type='child'
           ></Block>
         )}

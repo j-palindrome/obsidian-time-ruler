@@ -286,10 +286,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           data-auto-scroll='x'
         >
           {times.map((time, i) => (
-            <Timeline
-              key={time.startISO + '::' + time.type + '::' + time.due}
-              {...time}
-            />
+            <Timeline key={time.startISO + '::' + time.type} {...time} />
           ))}
           <Button
             className={`force-hover rounded-lg ${calendarMode ? '' : '!w-8'}`}

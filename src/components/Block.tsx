@@ -15,20 +15,18 @@ export default function Block({
   tasks,
   type,
   id,
-  due
 }: {
   hidePaths?: string[]
   tasks: TaskProps[]
   type: BlockType
   id?: string
-  due?: boolean
 }) {
   const tasksByParent = ['parent', 'child'].includes(type)
     ? { undefined: tasks }
     : _.groupBy(tasks, 'parent')
 
   const taskIds = _.map(tasks, 'id')
-  const nestedTasks = useAppStore(state =>
+  const nestedTasks = useAppStore((state) =>
     _.entries(tasksByParent).flatMap(([parentID, children]) => {
       if (parentID === 'undefined') return children
       else {
@@ -37,8 +35,8 @@ export default function Block({
         const parentTask = state.tasks[parentID]
         return {
           ...parentTask,
-          children: children.map(x => x.id),
-          type: 'parent'
+          children: children.map((x) => x.id),
+          type: 'parent',
         } as TaskProps
       }
     })
@@ -47,7 +45,7 @@ export default function Block({
   const sortedTasks = _.sortBy(nestedTasks, 'position.start.line')
   const groupedTasks = _.groupBy(sortedTasks, 'path')
   const sortedGroups = useAppStore(
-    state =>
+    (state) =>
       _.sortBy(_.entries(groupedTasks), ([group, tasks]) =>
         state.fileOrder.indexOf(group)
       ),
@@ -60,12 +58,13 @@ export default function Block({
     <div
       id={id}
       data-role='block'
-      className={`w-full ${type === 'event' ? 'pb-2 pl-2' : ''}`}>
+      className={`w-full ${type === 'event' ? 'pb-2 pl-2' : ''}`}
+    >
       {sortedGroups.map(([name, tasks]) => (
         <Group
           key={tasks[0].id}
           level='group'
-          {...{ name, tasks, type, due, hidePaths, id: blockId }}
+          {...{ name, tasks, type, hidePaths, id: blockId }}
         />
       ))}
     </div>
@@ -89,16 +88,18 @@ export function Group({
   level,
   due,
   hidePaths: hidePaths,
-  id
+  id,
 }: GroupProps) {
   const groupedHeadings =
-    level === 'group' ? _.groupBy(tasks, task => task.heading ?? UNGROUPED) : []
+    level === 'group'
+      ? _.groupBy(tasks, (task) => task.heading ?? UNGROUPED)
+      : []
   const sortedHeadings =
     level === 'group'
       ? _.sortBy(_.entries(groupedHeadings), [
           ([name, _tasks]) => (name === UNGROUPED ? 1 : 0),
           '1.0.path',
-          '1.0.position.start.line'
+          '1.0.position.start.line',
         ])
       : []
 
@@ -109,7 +110,7 @@ export function Group({
     level,
     name,
     hidePaths,
-    id
+    id,
   }
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
@@ -123,8 +124,8 @@ export function Group({
         '::' +
         level +
         '::' +
-        dragData.tasks.map(x => x.id).join(':'),
-      data: dragData
+        dragData.tasks.map((x) => x.id).join(':'),
+      data: dragData,
     })
 
   return (
@@ -134,18 +135,19 @@ export function Group({
           <Droppable
             data={{
               type: 'heading',
-              heading: name
+              heading: name,
             }}
             id={`${id}::${name}::${dragData.type}::${level}::${dragData.tasks
-              .map(x => x.id)
-              .join(':')}::reorder`}>
+              .map((x) => x.id)
+              .join(':')}::reorder`}
+          >
             <div className='h-2 w-full rounded-lg'></div>
           </Droppable>
           <Heading
             dragProps={{
               ...attributes,
               ...listeners,
-              ref: setActivatorNodeRef
+              ref: setActivatorNodeRef,
             }}
             path={
               tasks[0].path +
@@ -168,7 +170,6 @@ export function Group({
               key={task.id}
               id={task.id}
               type={task.type}
-              due={due}
               children={task.children}
             />
           ))}
@@ -179,7 +180,7 @@ export function Group({
 export type HeadingProps = { path: string }
 export function Heading({
   path,
-  dragProps
+  dragProps,
 }: {
   path: string
   dragProps?: any
@@ -192,12 +193,12 @@ export function Heading({
       ? path.slice(path.lastIndexOf('/') + 1)
       : path
   ).replace(/\.md/, '')
-  const searchStatus = useAppStore(state => state.searchStatus)
+  const searchStatus = useAppStore((state) => state.searchStatus)
   const { dailyNotePath, dailyNoteFormat } = useAppStore(
-    state => ({
+    (state) => ({
       dailyNote: state.dailyNote,
       dailyNotePath: state.dailyNotePath,
-      dailyNoteFormat: state.dailyNoteFormat
+      dailyNoteFormat: state.dailyNoteFormat,
     }),
     shallow
   )
@@ -214,7 +215,8 @@ export function Heading({
 
   return (
     <div
-      className={`selectable flex w-full space-x-4 rounded-lg pl-7 pr-2 font-menu text-sm child:truncate`}>
+      className={`selectable flex w-full space-x-4 rounded-lg pl-7 pr-2 font-menu text-sm child:truncate`}
+    >
       <div
         className={`w-fit flex-none cursor-pointer hover:underline ${
           level === 'heading' ? 'text-muted' : 'font-bold text-accent'
@@ -231,13 +233,15 @@ export function Heading({
             setters.set({ searchStatus: false })
           }
           return false
-        }}>
+        }}
+      >
         {dailyNoteDateTest || name}
       </div>
       <div
         className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'
         title={path}
-        {...dragProps}></div>
+        {...dragProps}
+      ></div>
     </div>
   )
 }

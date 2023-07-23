@@ -19,7 +19,7 @@ declare global {
 
   type TaskProps = {
     id: string
-    type: 'task' | 'child' | 'parent' | 'deadline' | 'link' | 'search'
+    type: 'task' | 'parent' | 'deadline' | 'link' | 'search'
     title: string
     notes?: string
     tags: string[]
