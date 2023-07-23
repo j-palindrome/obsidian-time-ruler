@@ -434,7 +434,7 @@ export default class ObsidianAPI extends Component {
     }
 
     if (heading) {
-      const file = app.vault.getAbstractFileByPath(path)
+      let file = app.vault.getAbstractFileByPath(path)
       if (!(file instanceof TFile)) return
       const text = await app.vault.read(file)
       const lines = text.split('\n')
@@ -486,6 +486,10 @@ export default class ObsidianAPI extends Component {
 
   async saveTask(task: TaskProps, newTask?: boolean) {
     var abstractFile = app.vault.getAbstractFileByPath(task.path)
+    if (!abstractFile || !(abstractFile instanceof TFile)) {
+      await app.vault.create(task.path, '')
+      abstractFile = app.vault.getAbstractFileByPath(task.path)
+    }
 
     if (abstractFile && abstractFile instanceof TFile) {
       const fileText = await app.vault.read(abstractFile)
@@ -505,7 +509,7 @@ export default class ObsidianAPI extends Component {
   }
 
   async openTask(task: TaskProps) {
-    await app.workspace.openLinkText('', task.path)
+    await app.workspace.openLinkText(task.path, '')
 
     const mdView = app.workspace.getActiveViewOfType(MarkdownView)
     if (!mdView) return

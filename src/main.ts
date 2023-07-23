@@ -18,7 +18,7 @@ interface TimeRulerSettings {
   }
 }
 
-const DEFAULT_SETTINGS: TimeRulerSettings = {
+export const DEFAULT_SETTINGS: TimeRulerSettings = {
   calendars: [],
   muted: false,
   fieldFormat: 'dataview',

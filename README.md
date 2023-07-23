@@ -30,6 +30,13 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 - You can also drag groups, headings, and blocks to reschedule all of the tasks contained in them.
 - The "Upcoming" view shows any upcoming due dates in a zoomed-out time ruler. Drag a task on this ruler to schedule its due date.
 
+## Views
+- To switch between day-based and time-based views, click the calendar button in the top bar. All-day will hide hour dropdowns.
+- Click daily buttons to jump to that date
+- Drag tasks onto times, blocks, days, or day buttons to reschedule them
+- Click on tasks and headings to show them in Obsidian (Time Ruler will update while you edit them)
+- You can drag the Time Ruler tab icon into the main editor to expand it, showing a four-day view. 
+
 ## Online calendars
 - To import a calendar, simply copy a shared link (iCal format) into Settings.
 - Events show as blocks which can contain tasks scheduled at the same time. You can drag an event to reschedule the tasks contained, but the event is read-only. 
@@ -39,6 +46,7 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 - To start a stopwatch, click the play button without any time entered.
 - To start a timer, enter an amount in minutes and press the play button or "Enter."
 - You can add or subtract time while the timer is playing. 
+- Click the "focus" button to expand the timer and focus on current tasks. Shows all-day tasks if Calendar view is on, and only time-based tasks if not.
 
 # Credit
 - Many thanks to the [Dataview](obsidian://show-plugin?id=dataview), [Tasks](obsidian://show-plugin?id=obsidian-tasks-plugin), and [Full Calendar](obsidian://show-plugin?id=obsidian-full-calendar) plugins for setting the standards and formatting for managing tasks across the Obsidian vault.
@@ -52,7 +60,6 @@ Upon calendar refresh, the plugin makes a single GET request to any calendars yo
 ## 7/22/2023
 - Added support for including/excluding custom statuses
 - Removed Upcoming view, integrated due dates with rest of days. Now tasks with due dates will show up as links each day from when they are scheduled until they are due. 
-- Changed Calendar view to be side-scrolling
 
 ## 7/17/2023
 - Removed Unscheduled view, improved search to show filterable tasks

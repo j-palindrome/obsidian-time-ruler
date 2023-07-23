@@ -16,7 +16,7 @@ module.exports = {
   theme: {
     extend: {
       minHeight: {
-        line: 'var(--line-height-normal)',
+        line: 'var(--font-text-size)',
       },
       lineHeight: {
         line: 'var(--line-height-normal)',
