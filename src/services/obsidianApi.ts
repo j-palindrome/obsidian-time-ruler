@@ -368,6 +368,7 @@ export default class ObsidianAPI extends Component {
           draft += `  [date:: ${task.scheduled.slice(0, 10)}]`
           if (!isDateISO(task.scheduled))
             draft += `  [startTime:: ${task.scheduled.slice(11)}]`
+          else draft += '  [allDay:: true]'
         }
         if (task.due) draft += `  [due:: ${task.due}]`
         if (
