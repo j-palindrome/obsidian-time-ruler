@@ -15,16 +15,16 @@ const plugins = [
   postcss(),
   esbuildCopyStaticFiles({
     src: `dist`,
-    dest: `/Users/jreinier/Library/Mobile Documents/iCloud~md~obsidian/Documents/Joshua/.obsidian/plugins/obsidian-time-ruler`,
+    dest: `/Users/jreinier/Library/Mobile Documents/iCloud~md~obsidian/Documents/Joshua/.obsidian/plugins/time-ruler`,
     dereference: true,
     errorOnExist: false,
-    preserveTimestamps: true
-  })
+    preserveTimestamps: true,
+  }),
 ]
 
 const context = await esbuild.context({
   banner: {
-    js: banner
+    js: banner,
   },
   entryPoints: ['./src/main.ts', './src/styles.css'],
   bundle: true,
@@ -42,7 +42,7 @@ const context = await esbuild.context({
     '@lezer/common',
     '@lezer/highlight',
     '@lezer/lr',
-    ...builtins
+    ...builtins,
   ],
   format: 'cjs',
   target: 'es2018',
@@ -54,9 +54,9 @@ const context = await esbuild.context({
   loader: {
     '.mp3': 'dataurl',
     '.svg': 'text',
-    '.png': 'dataurl'
+    '.png': 'dataurl',
   },
-  plugins
+  plugins,
 })
 
 if (MODE === 'production') {
