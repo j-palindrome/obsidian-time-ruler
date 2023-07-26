@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { openTaskInRuler } from 'src/services/obsidianApi'
+import { openTaskInRuler } from '../services/obsidianApi'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import { isDateISO } from '../services/util'
@@ -219,6 +219,8 @@ export default function Task({
                   ? 'task'
                   : type === 'parent'
                   ? subtask.type
+                  : type === 'deadline'
+                  ? 'link'
                   : type === 'link' ||
                     (!task.scheduled && subtask.scheduled) ||
                     (task.scheduled &&

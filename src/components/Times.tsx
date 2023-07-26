@@ -1,8 +1,8 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
 import { roundMinutes } from '../services/util'
-import ObsidianAPI from 'src/services/obsidianApi'
-import { getters, setters } from 'src/app/store'
+import ObsidianAPI from '../services/obsidianApi'
+import { getters, setters } from '../app/store'
 import Button from './Button'
 
 export type TimeSpanTypes = 'minutes' | 'hours' | 'days'

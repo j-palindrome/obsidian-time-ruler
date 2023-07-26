@@ -36,7 +36,7 @@ export default class TimeRulerView extends ItemView {
     )
     this.calendarLinkAPI = new CalendarAPI(
       this.plugin.settings.calendars,
-      calendar => {
+      (calendar) => {
         _.pull(this.plugin.settings.calendars, calendar)
         this.plugin.saveSettings()
       }
@@ -48,7 +48,7 @@ export default class TimeRulerView extends ItemView {
         <App
           apis={{
             obsidian: this.obsidianAPI,
-            calendar: this.calendarLinkAPI
+            calendar: this.calendarLinkAPI,
           }}
         />
       </React.StrictMode>
