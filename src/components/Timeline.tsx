@@ -167,7 +167,12 @@ export default function Timeline({
           >
             <div>
               {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
-                <Task key={task.id} id={task.id} type='deadline' />
+                <Task
+                  key={task.id}
+                  id={task.id}
+                  type='deadline'
+                  dragContainer={startISO}
+                />
               ))}
             </div>
             {allDayEvents.map((event) => (

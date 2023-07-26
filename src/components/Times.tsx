@@ -12,7 +12,8 @@ export default function Times({
   type = 'minutes',
   chopEnd,
   chopStart,
-  due
+  due,
+  dragContainer,
 }: {
   startISO: string
   endISO: string
@@ -20,6 +21,7 @@ export default function Times({
   chopEnd?: boolean
   chopStart?: boolean
   due?: boolean
+  dragContainer: string
 }) {
   const times: DateTime[] = []
   const givenStart = DateTime.fromISO(startISO)
@@ -28,7 +30,7 @@ export default function Times({
   const modifier: { [K in TimeSpanTypes]: Parameters<DateTime['plus']>[0] } = {
     minutes: { minutes: 15 },
     hours: { hours: 1 },
-    days: { days: 1 }
+    days: { days: 1 },
   }
   if (chopStart) start = start.plus(modifier[type])
   if (chopEnd) end = end.minus(modifier[type])
@@ -46,15 +48,20 @@ export default function Times({
 
   return (
     <div className={`min-h-[4px]`}>
-      {times.map(time => (
-        <Time key={time.toISO()} {...{ type, time, due }} />
+      {times.map((time) => (
+        <Time key={time.toISO()} {...{ type, time, due, dragContainer }} />
       ))}
     </div>
   )
 }
 
-export type TimeProps = { time: DateTime; type: TimeSpanTypes; due?: boolean }
-function Time({ time, type, due }: TimeProps) {
+export type TimeProps = {
+  time: DateTime
+  type: TimeSpanTypes
+  due?: boolean
+  dragContainer: string
+}
+function Time({ time, type, due, dragContainer }: TimeProps) {
   const minutes = time.minute
   const hours = time.hour
   const day = time.weekday
@@ -62,33 +69,34 @@ function Time({ time, type, due }: TimeProps) {
   const iso = time.toISO({
     includeOffset: false,
     suppressMilliseconds: true,
-    suppressSeconds: true
+    suppressSeconds: true,
   }) as string
 
   const { isOver, setNodeRef } = useDroppable({
     id: iso + (due ? '::due' : '::scheduled'),
-    data: due ? { due: iso } : ({ scheduled: iso } as DropData)
+    data: due ? { due: iso } : ({ scheduled: iso } as DropData),
   })
 
   const dragData: DragData = {
     dragType: 'time',
     start: iso,
-    due: due ?? false
+    due: due ?? false,
   }
   const {
     setNodeRef: setDragNodeRef,
     attributes,
-    listeners
+    listeners,
   } = useDraggable({
-    id: time + '::time',
-    data: dragData
+    id: `${time}::time::${dragContainer}`,
+    data: dragData,
   })
 
   return (
     <div
       className={`group flex h-[16px] cursor-pointer items-center justify-end`}
       key={time.toISO()}
-      ref={setNodeRef}>
+      ref={setNodeRef}
+    >
       <Button
         src='plus'
         className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
@@ -100,7 +108,8 @@ function Time({ time, type, due }: TimeProps) {
         className='flex h-full w-full items-center'
         {...attributes}
         {...listeners}
-        ref={setDragNodeRef}>
+        ref={setDragNodeRef}
+      >
         <div className='grow' />
         <hr
           className={`border-t border-faint ${
@@ -131,13 +140,15 @@ function Time({ time, type, due }: TimeProps) {
               : minutes % 30 === 0
               ? 'w-2'
               : 'w-1'
-          }`}></hr>
+          }`}
+        ></hr>
       </div>
 
       <div
         className={`ml-1 flex-none font-menu text-xs text-muted ${
           type === 'days' ? 'w-8' : 'w-4'
-        }`}>
+        }`}
+      >
         {type === 'days'
           ? [1, 5].includes(day)
             ? `${time.month}/${date}`

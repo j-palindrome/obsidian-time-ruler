@@ -104,6 +104,7 @@ export default function TimeSpan({
     <div className='pb-1'>
       {!calendarMode && (
         <Times
+          dragContainer={startISO}
           type={startWithHours ? 'hours' : type}
           startISO={startISO}
           endISO={blocks[0]?.[0] ?? endISO}
@@ -144,6 +145,7 @@ export default function TimeSpan({
                 <div className='h-2'></div>
               ) : (
                 <Times
+                  dragContainer={startISO}
                   type={type}
                   startISO={thisEndISO}
                   endISO={formattedBlocks[i + 1]?.startISO ?? endISO}

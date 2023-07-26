@@ -15,11 +15,13 @@ export default function Block({
   tasks,
   type,
   id,
+  dragContainer,
 }: {
   hidePaths?: string[]
   tasks: TaskProps[]
   type: BlockType
   id?: string
+  dragContainer: string
 }) {
   const tasksByParent = ['parent', 'child'].includes(type)
     ? { undefined: tasks }
@@ -64,7 +66,7 @@ export default function Block({
         <Group
           key={tasks[0].id}
           level='group'
-          {...{ name, tasks, type, hidePaths, id: blockId }}
+          {...{ name, tasks, type, hidePaths, id: blockId, dragContainer }}
         />
       ))}
     </div>
@@ -79,6 +81,7 @@ export type GroupProps = {
   level: 'group' | 'heading'
   due?: boolean
   id: string
+  dragContainer: string
 }
 
 export function Group({
@@ -89,6 +92,7 @@ export function Group({
   due,
   hidePaths: hidePaths,
   id,
+  dragContainer,
 }: GroupProps) {
   const groupedHeadings =
     level === 'group'
@@ -111,20 +115,12 @@ export function Group({
     name,
     hidePaths,
     id,
+    dragContainer,
   }
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id:
-        id +
-        '::' +
-        name +
-        '::' +
-        dragData.type +
-        '::' +
-        level +
-        '::' +
-        dragData.tasks.map((x) => x.id).join(':'),
+      id: `${id}::${dragContainer}::${type}`,
       data: dragData,
     })
 
@@ -162,11 +158,12 @@ export function Group({
             <Group
               level='heading'
               key={name}
-              {...{ tasks, name, type, due, hidePaths, id }}
+              {...{ tasks, name, type, due, hidePaths, id, dragContainer }}
             />
           ))
         : tasks.map((task, i) => (
             <Task
+              dragContainer={dragContainer}
               key={task.id}
               id={task.id}
               type={task.type}

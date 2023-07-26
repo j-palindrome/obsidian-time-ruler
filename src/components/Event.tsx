@@ -29,14 +29,14 @@ export default function Event({
   blocks,
   type = 'minutes',
   draggable = true,
-  isDragging = false
+  isDragging = false,
 }: EventComponentProps & {
   draggable?: boolean
   due?: boolean
   isDragging?: boolean
 }) {
   if (tasks.length === 0) draggable = false
-  const thisEvent = useAppStore(state => (id ? state.events[id] : undefined))
+  const thisEvent = useAppStore((state) => (id ? state.events[id] : undefined))
   const dragData: DragData = {
     dragType: 'event',
     id,
@@ -45,13 +45,13 @@ export default function Event({
     blocks,
     startISO,
     endISO,
-    displayStartISO
+    displayStartISO,
   }
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id: startISO + '::event' + '::' + id + tasks.map(x => x.id).join(','),
-      data: dragData
+      id: `${id}::${startISO}::${type}`,
+      data: dragData,
     })
 
   const today = DateTime.now().toISODate() as string
@@ -72,7 +72,8 @@ export default function Event({
     <div
       className={`group flex h-6 w-full flex-none items-center rounded-lg pr-2 font-menu text-xs ${
         draggable ? 'selectable cursor-grab' : ''
-      }`}>
+      }`}
+    >
       <Button
         src='plus'
         className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
@@ -80,7 +81,7 @@ export default function Event({
           setters.set({
             searchStatus: due
               ? { due: displayStartISO }
-              : { scheduled: displayStartISO }
+              : { scheduled: displayStartISO },
           })
         }}
       />
@@ -88,10 +89,12 @@ export default function Event({
         className='flex w-full items-center'
         {...(draggable
           ? { ref: setActivatorNodeRef, ...attributes, ...listeners }
-          : undefined)}>
+          : undefined)}
+      >
         {thisEvent && (
           <div
-            className={`mr-2 w-fit min-w-[24px] flex-none whitespace-nowrap text-sm`}>
+            className={`mr-2 w-fit min-w-[24px] flex-none whitespace-nowrap text-sm`}
+          >
             {thisEvent.title}
           </div>
         )}
@@ -127,16 +130,22 @@ export default function Event({
         isDragging ? 'bg-gray-500/5 opacity-50' : 'bg-secondary-alt'
       }`}
       style={{
-        minWidth: eventWidth
+        minWidth: eventWidth,
       }}
-      ref={draggable ? setNodeRef : undefined}>
+      ref={draggable ? setNodeRef : undefined}
+    >
       <Droppable
         data={data}
-        id={startISO + '::event' + '::' + id + tasks.map(x => x.id).join(',')}>
+        id={startISO + '::event' + '::' + id + tasks.map((x) => x.id).join(',')}
+      >
         {titleBar}
       </Droppable>
 
-      <Block type='event' {...{ tasks, due, scheduled: displayStartISO }} />
+      <Block
+        type='event'
+        {...{ tasks, due, scheduled: displayStartISO }}
+        dragContainer={startISO}
+      />
       <TimeSpan
         startISO={displayStartISO}
         endISO={endISO}

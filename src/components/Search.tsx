@@ -194,7 +194,8 @@ export default function Search() {
                                       ? 'heading'
                                       : 'group',
                                     type: 'search',
-                                    id: heading + '::search',
+                                    id: heading,
+                                    dragContainer: 'search',
                                   }
                                 : { dragType: 'new', path: heading }
                             }
@@ -204,7 +205,12 @@ export default function Search() {
 
                         {showingTasks &&
                           filteredTasks.map((task) => (
-                            <Task id={task.id} key={task.id} type='search' />
+                            <Task
+                              id={task.id}
+                              key={task.id}
+                              type='search'
+                              dragContainer={'search'}
+                            />
                           ))}
                       </div>
                     )}
@@ -228,7 +234,7 @@ function DraggableHeading({
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef } =
     useDraggable({
-      id: path + '::search',
+      id: `${path}::search`,
       data: dragData,
     })
 

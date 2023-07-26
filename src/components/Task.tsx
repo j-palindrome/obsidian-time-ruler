@@ -13,12 +13,15 @@ export type TaskComponentProps = {
   id: string
   children?: string[]
   type: TaskProps['type']
+  dragContainer: string
 }
 
 export default function Task({
   id,
   children,
   type,
+  dragContainer,
+  highlight,
 }: TaskComponentProps & { highlight?: boolean }) {
   const completeTask = () => {
     setters.patchTasks([id], {
@@ -31,10 +34,11 @@ export default function Task({
     type,
     id,
     children,
+    dragContainer,
   }
   const { setNodeRef, setActivatorNodeRef, attributes, listeners } =
     useDraggable({
-      id: id + '::' + type,
+      id: `${id}::${type}::${dragContainer}`,
       data: dragData,
     })
 
@@ -47,13 +51,11 @@ export default function Task({
     return (children ?? task.children).flatMap((child) => {
       const subtask = state.tasks[child]
       if (!subtask) return []
-      const sameDayDifferentTime =
-        type === 'task' &&
+      const differentScheduled =
+        ['deadline', 'task'].includes(type) &&
         subtask.scheduled &&
-        task.scheduled &&
-        subtask.scheduled.length > 10 &&
-        subtask.scheduled.slice(0, 10) === task.scheduled.slice(0, 10)
-      if (sameDayDifferentTime) return []
+        subtask.scheduled !== task.scheduled
+      if (differentScheduled) return []
       return subtask
     })
   }, shallow)
@@ -207,6 +209,7 @@ export default function Task({
       <div className='pl-6'>
         {subtasks.length > 0 && (
           <Block
+            dragContainer={dragContainer + id}
             hidePaths={[task.path]}
             tasks={subtasks.map((subtask) => ({
               ...subtask,
