@@ -37,7 +37,7 @@ import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
 import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
-import { createTask, getDailyNoteInfo } from '../services/obsidianApi'
+import { getDailyNoteInfo } from '../services/obsidianApi'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -109,7 +109,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           })
         } else if (dragData.dragType === 'new') {
           const [path, heading] = dragData.path.split('#')
-          createTask(path + '.md', heading, dropData)
+          getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
         } else if (dragData.dragType === 'task-length') {
           if (!dropData.scheduled) return
           const start = DateTime.fromISO(dragData.start)
@@ -195,12 +195,12 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const [childWidth, setChildWidth, childWidthRef] = useStateRef('child:w-full')
 
   useEffect(() => {
-    const timeRuler = document.querySelector('#time-ruler') as HTMLElement
-
     function outputSize() {
       if (Platform.isMobile) {
         return
       }
+      const timeRuler = document.querySelector('#time-ruler') as HTMLElement
+      if (!timeRuler) return
       const width = timeRuler.clientWidth
       const newChildWidth =
         width < 500
@@ -219,6 +219,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       return
     }
 
+    const timeRuler = document.querySelector('#time-ruler') as HTMLElement
     const observer = new ResizeObserver(outputSize)
     observer.observe(timeRuler)
     return () => observer.disconnect()

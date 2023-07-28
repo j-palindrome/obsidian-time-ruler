@@ -137,7 +137,6 @@ export default function TimeSpan({
                 tasks={thisTasks}
                 id={thisEvents[0]?.id}
                 type={type}
-                displayStartISO={thisStartISO}
                 blocks={thisBlocks}
               />
 

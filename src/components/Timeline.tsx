@@ -183,17 +183,16 @@ export default function Timeline({
                 blocks={[]}
                 startISO={startISO}
                 endISO={event.startISO}
-                displayStartISO={event.startISO}
               />
             ))}
-
-            <Event
-              tasks={allDayTasks}
-              blocks={[]}
-              startISO={startISO}
-              endISO={startISO}
-              displayStartISO={startISO}
-            />
+            {allDayTasks.length > 0 && (
+              <Event
+                tasks={allDayTasks}
+                blocks={[]}
+                startISO={startISO}
+                endISO={startISO}
+              />
+            )}
           </div>
         )}
 

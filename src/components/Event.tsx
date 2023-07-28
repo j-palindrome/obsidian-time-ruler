@@ -16,7 +16,6 @@ export type EventComponentProps = {
   type?: TimeSpanTypes
   startISO: string
   endISO: string
-  displayStartISO: string
   blocks: BlockData[]
 }
 export default function Event({
@@ -25,7 +24,6 @@ export default function Event({
   startISO,
   endISO,
   due,
-  displayStartISO,
   blocks,
   type = 'minutes',
   draggable = true,
@@ -45,7 +43,6 @@ export default function Event({
     blocks,
     startISO,
     endISO,
-    displayStartISO,
   }
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
@@ -62,7 +59,7 @@ export default function Event({
     )
   }
 
-  const data = due ? { due: displayStartISO } : { scheduled: displayStartISO }
+  const data = due ? { due: startISO } : { scheduled: startISO }
 
   const eventWidth = isDragging
     ? $('#time-ruler-times').children()[0]?.getBoundingClientRect().width - 16
@@ -79,9 +76,7 @@ export default function Event({
         className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
         onClick={() => {
           setters.set({
-            searchStatus: due
-              ? { due: displayStartISO }
-              : { scheduled: displayStartISO },
+            searchStatus: due ? { due: startISO } : { scheduled: startISO },
           })
         }}
       />
@@ -101,16 +96,6 @@ export default function Event({
 
         <hr className='w-full border-t border-faint'></hr>
 
-        {!DateTime.fromISO(startISO).equals(
-          DateTime.fromISO(displayStartISO)
-        ) && (
-          <>
-            <span className='ml-2 whitespace-nowrap text-faint'>
-              {formatStart(displayStartISO)}
-            </span>
-            <span className='ml-2 text-faint'>&gt;</span>
-          </>
-        )}
         <span className='ml-2 whitespace-nowrap'>{formatStart(startISO)}</span>
         {!DateTime.fromISO(startISO).diff(DateTime.fromISO(endISO)) && (
           <>
@@ -143,11 +128,11 @@ export default function Event({
 
       <Block
         type='event'
-        {...{ tasks, due, scheduled: displayStartISO }}
+        {...{ tasks, due, scheduled: startISO }}
         dragContainer={startISO}
       />
       <TimeSpan
-        startISO={displayStartISO}
+        startISO={startISO}
         endISO={endISO}
         blocks={blocks}
         type={type}

@@ -10,24 +10,33 @@ import {
 } from '../types/enums'
 import _ from 'lodash'
 import { isDateISO } from './util'
+import TimeRulerPlugin, { FieldFormat } from '../main'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
   `[${_.values(keyToTasksEmoji).join('')}] ?(${ISO_MATCH})?`,
   'gi'
 )
+const TASKS_REPEAT_SEARCH = new RegExp(
+  `${keyToTasksEmoji.repeat} ?([a-zA-Z0-9 ]+)`,
+  'i'
+)
 
 export function textToTask(item: any): TaskProps {
-  const INLINE_FIELD_SEARCH = /[\[\(].+:: .+[\]\)] ?/g
-  const TAG_SEARCH = /#[\w-\/]+/g
+  const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */g
+  const TAG_SEARCH = /#[\w-\/]+ */g
   const MD_LINK_SEARCH = /\[\[(.*?)\]\]/g
   const LINK_SEARCH = /\[(.*?)\]\(.*?\)/g
-  let title = (item.text.match(/(.*?)(\n|$)/)?.[1] ?? '')
-    .replace(MD_LINK_SEARCH, '$1')
+
+  const originalTitle: string = (item.text.match(/(.*?)(\n|$)/)?.[1] ?? '')
     .replace(INLINE_FIELD_SEARCH, '')
-    .replace(TAG_SEARCH, '')
-    .replace(LINK_SEARCH, '$1')
+    .replace(TASKS_REPEAT_SEARCH, '')
     .replace(TASKS_EMOJI_SEARCH, '')
+    .replace(TAG_SEARCH, '')
+  let title: string = originalTitle
+    .replace(MD_LINK_SEARCH, '$1')
+    .replace(LINK_SEARCH, '$1')
+
   const notes = item.text.includes('\n')
     ? item.text.match(/\n((.|\n)*$)/)?.[1]
     : undefined
@@ -153,11 +162,19 @@ export function textToTask(item: any): TaskProps {
     else return priorityKeyToNumber[priority] ?? TaskPriorities.DEFAULT
   }
 
+  const parseRepeat = () => {
+    if (item.text.contains(keyToTasksEmoji.repeat))
+      console.log(item.text, item.text.match(TASKS_REPEAT_SEARCH)?.[1])
+
+    return item['repeat'] ?? item.text.match(TASKS_REPEAT_SEARCH)?.[1]
+  }
+
   const scheduled = parseScheduled()
   const due = parseDateKey('due')
   const completion = parseDateKey('completion')
   const start = parseDateKey('start')
   const created = parseDateKey('created')
+  const repeat = parseRepeat()
   const priority = parsePriority()
   const length = parseLength(scheduled)
 
@@ -173,7 +190,9 @@ export function textToTask(item: any): TaskProps {
     length,
     tags: item.tags,
     title,
+    originalTitle,
     notes,
+    repeat,
     extraFields: _.keys(extraFields).length > 0 ? extraFields : undefined,
     position: item.position,
     heading: item.section.subpath,
@@ -185,8 +204,8 @@ export function textToTask(item: any): TaskProps {
   }
 }
 
-export function taskToText(task: TaskProps) {
-  let draft = `- [${task.completion ? 'x' : ' '}] ${task.title.replace(
+export function taskToText(task: TaskProps, fieldFormat: FieldFormat) {
+  let draft = `- [${task.completion ? 'x' : ' '}] ${task.originalTitle.replace(
     /\s+$/,
     ''
   )} ${task.tags.length > 0 ? task.tags.join(' ') + ' ' : ''}`
@@ -197,7 +216,9 @@ export function taskToText(task: TaskProps) {
     })
   }
 
-  switch (this.settings.fieldFormat) {
+  console.log(task)
+
+  switch (fieldFormat) {
     case 'dataview':
       if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
       if (task.due) draft += `  [due:: ${task.due}]`
@@ -205,6 +226,19 @@ export function taskToText(task: TaskProps) {
         draft += `  [length:: ${
           task.length.hour ? `${task.length.hour}h` : ''
         }${task.length.minute ? `${task.length.minute}m` : ''}]`
+      }
+      if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
+      if (task.start) {
+        draft += `  [start:: ${task.start}]`
+      }
+      if (task.created) {
+        draft += `  [created:: ${task.created}]`
+      }
+      if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
+        draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
+      }
+      if (task.completion) {
+        draft += `  [completion:: ${task.completion}]`
       }
       break
     case 'full-calendar':
@@ -223,23 +257,7 @@ export function taskToText(task: TaskProps) {
         const endTime = DateTime.fromISO(task.scheduled).plus(task.length)
         draft += `  [endTime:: ${endTime.hour}:${endTime.minute}]`
       }
-      break
-    case 'tasks':
-      if (task.length && task.length.hour + task.length.minute > 0)
-        draft += `  [length:: ${
-          task.length.hour ? `${task.length.hour}h` : ''
-        }${task.length.minute ? `${task.length.minute}m` : ''}]`
-      if (task.scheduled) {
-        if (!isDateISO(task.scheduled))
-          draft += `  [startTime:: ${task.scheduled.slice(11)}]`
-        draft += ` ${keyToTasksEmoji.scheduled} ${task.scheduled.slice(0, 10)}`
-      }
-      if (task.due) draft += ` ${keyToTasksEmoji.due} ${task.due}`
-      break
-  }
-  switch (this.settings.fieldFormat) {
-    case 'dataview':
-    case 'full-calendar':
+      if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) {
         draft += `  [start:: ${task.start}]`
       }
@@ -254,12 +272,24 @@ export function taskToText(task: TaskProps) {
       }
       break
     case 'tasks':
-      if (task.start) draft += ` ${keyToTasksEmoji.start} ${task.start}`
-      if (task.created) draft += ` ${keyToTasksEmoji.created} ${task.created}`
+      if (task.length && task.length.hour + task.length.minute > 0)
+        draft += `  [length:: ${
+          task.length.hour ? `${task.length.hour}h` : ''
+        }${task.length.minute ? `${task.length.minute}m` : ''}]`
+      if (task.scheduled && !isDateISO(task.scheduled)) {
+        draft += `  [startTime:: ${task.scheduled.slice(11)}]`
+      }
       if (task.priority && task.priority !== TaskPriorities.DEFAULT)
         draft += ` ${keyToTasksEmoji[priorityNumberToKey[task.priority]]}`
+      if (task.repeat) draft += ` ${keyToTasksEmoji.repeat} ${task.repeat}`
+      if (task.start) draft += ` ${keyToTasksEmoji.start} ${task.start}`
+      if (task.scheduled)
+        draft += ` ${keyToTasksEmoji.scheduled} ${task.scheduled.slice(0, 10)}`
+      if (task.due) draft += ` ${keyToTasksEmoji.due} ${task.due}`
+      if (task.created) draft += ` ${keyToTasksEmoji.created} ${task.created}`
       if (task.completion)
         draft += ` ${keyToTasksEmoji.completion} ${task.completion}`
+      break
   }
 
   return draft

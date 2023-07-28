@@ -7,7 +7,6 @@ import { shallow } from 'zustand/shallow'
 import { useMemo } from 'react'
 import moment from 'moment'
 import { DateTime } from 'luxon'
-import { createTask } from '../services/obsidianApi'
 
 const UNGROUPED = '__ungrouped'
 export type BlockType = 'child' | 'time' | 'event' | 'default' | 'search'
@@ -228,7 +227,9 @@ export function Heading({
             app.workspace.openLinkText(path, '')
           } else if (searchStatus) {
             const [filePath, heading] = path.split('#')
-            createTask(filePath + '.md', heading, searchStatus)
+            getters
+              .getObsidianAPI()
+              .createTask(filePath + '.md', heading, searchStatus)
             setters.set({ searchStatus: false })
           }
           return false

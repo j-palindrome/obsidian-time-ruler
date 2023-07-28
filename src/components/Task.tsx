@@ -47,12 +47,12 @@ export default function Task({
   let task = useAppStore((state) => state.tasks[id])
 
   const subtasks = useAppStore((state) => {
-    if (!task) return []
+    if (!task || type === 'deadline') return []
     return (children ?? task.children).flatMap((child) => {
       const subtask = state.tasks[child]
       if (!subtask) return []
       const differentScheduled =
-        ['deadline', 'task'].includes(type) &&
+        type === 'task' &&
         subtask.scheduled &&
         subtask.scheduled !== task.scheduled
       if (differentScheduled) return []

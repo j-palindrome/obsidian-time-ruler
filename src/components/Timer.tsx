@@ -211,7 +211,6 @@ export function Timer() {
                 key={tasks[0].scheduled}
                 tasks={tasks}
                 startISO={tasks[0].scheduled}
-                displayStartISO={tasks[0].scheduled}
                 endISO={tasks[0].scheduled}
                 blocks={[]}
               />

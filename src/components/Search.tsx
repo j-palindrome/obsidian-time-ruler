@@ -9,7 +9,6 @@ import Button from './Button'
 import Toggle from './Toggle'
 import Task from './Task'
 import Droppable from './Droppable'
-import { createTask } from '../services/obsidianApi'
 
 export default function Search() {
   const headings = useAppStore((state) => {
@@ -120,7 +119,9 @@ export default function Search() {
                       app.workspace.openLinkText(firstHeading, '')
                     } else if (searchStatus) {
                       const [path, heading] = firstHeading.split('#')
-                      createTask(path + '.md', heading, searchStatus)
+                      getters
+                        .getObsidianAPI()
+                        .createTask(path + '.md', heading, searchStatus)
                     }
                     setters.set({ searchStatus: false })
                   } else if (ev.key === 'Escape') {

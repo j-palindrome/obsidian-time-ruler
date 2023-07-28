@@ -21,6 +21,7 @@ declare global {
     id: string
     type: 'task' | 'parent' | 'deadline' | 'link' | 'search'
     title: string
+    originalTitle: string
     notes?: string
     tags: string[]
     children: string[]
@@ -38,6 +39,7 @@ declare global {
     priority: number
     due?: string
     completion?: string
+    repeat?: string
   }
 
   type GoogleEvent = {

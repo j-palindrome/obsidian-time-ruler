@@ -17,6 +17,7 @@ import {
 import { isDateISO } from './util'
 import moment from 'moment'
 import { taskToText, textToTask } from './parser'
+import { FieldFormat } from '../main'
 
 let dv: DataviewApi
 
@@ -137,6 +138,85 @@ export default class ObsidianAPI extends Component {
     setters.set({ fileOrder: newFileOrder })
   }
 
+  async createTask(
+    path: string,
+    heading: string | undefined,
+    dropData: Partial<TaskProps>
+  ) {
+    let position = {
+      start: { col: 0, line: 0, offset: 0 },
+      end: { col: 0, line: 0, offset: 0 },
+    }
+
+    let file = app.vault.getAbstractFileByPath(path)
+    if (!(file instanceof TFile)) return
+    const text = await app.vault.read(file)
+    const lines = text.split('\n')
+
+    if (heading) {
+      const headingLine = lines.findIndex((line) =>
+        new RegExp(`#+ ${_.escapeRegExp(heading)}$`).test(line)
+      )
+      if (headingLine) {
+        position.start.line = headingLine + 1
+        position.end.line = headingLine + 1
+      }
+    } else {
+      let i = 0
+      while (lines[i] !== undefined && lines[i] === '') {
+        i++
+      }
+      if (lines[i] === '---' && lines.slice(i + 1).includes('---')) {
+        const endOfMetadata = lines.indexOf('---', i + 1) + 1
+        position = {
+          start: { col: 0, line: endOfMetadata, offset: 0 },
+          end: { col: 0, line: endOfMetadata, offset: 0 },
+        }
+      }
+    }
+
+    const defaultTask: TaskProps = {
+      children: [],
+      title: '',
+      originalTitle: '',
+      tags: [],
+      priority: TaskPriorities.DEFAULT,
+      id: '',
+      type: 'task',
+      path,
+      heading,
+      position,
+      ...dropData,
+    }
+
+    await this.saveTask(defaultTask, true)
+    openTask(defaultTask)
+  }
+
+  async saveTask(task: TaskProps, newTask?: boolean) {
+    var abstractFile = app.vault.getAbstractFileByPath(task.path)
+    if (!abstractFile || !(abstractFile instanceof TFile)) {
+      await app.vault.create(task.path, '')
+      abstractFile = app.vault.getAbstractFileByPath(task.path)
+    }
+
+    if (abstractFile && abstractFile instanceof TFile) {
+      const fileText = await app.vault.read(abstractFile)
+      const lines = fileText.split('\n')
+
+      const newText =
+        (lines[task.position.start.line].match(/^\s*/)?.[0] ?? '') +
+        taskToText(task, this.settings.fieldFormat)
+      if (newTask) {
+        lines.splice(task.position.start.line, 0, newText)
+      } else {
+        lines[task.position.start.line] = newText
+      }
+
+      await app.vault.modify(abstractFile, lines.join('\n'))
+    }
+  }
+
   async onload() {
     let indexReady = { current: false }
     this.registerEvent(
@@ -186,71 +266,6 @@ export async function getDailyNoteInfo(): Promise<
   } catch (err) {
     return
   }
-}
-
-export async function saveTask(task: TaskProps, newTask?: boolean) {
-  var abstractFile = app.vault.getAbstractFileByPath(task.path)
-  if (!abstractFile || !(abstractFile instanceof TFile)) {
-    await app.vault.create(task.path, '')
-    abstractFile = app.vault.getAbstractFileByPath(task.path)
-  }
-
-  if (abstractFile && abstractFile instanceof TFile) {
-    const fileText = await app.vault.read(abstractFile)
-    const lines = fileText.split('\n')
-
-    const newText =
-      (lines[task.position.start.line].match(/^\s*/)?.[0] ?? '') +
-      taskToText(task)
-    if (newTask) {
-      lines.splice(task.position.start.line, 0, newText)
-    } else {
-      lines[task.position.start.line] = newText
-    }
-
-    await app.vault.modify(abstractFile, lines.join('\n'))
-  }
-}
-
-export async function createTask(
-  path: string,
-  heading: string | undefined,
-  dropData: Partial<TaskProps>
-) {
-  let position = {
-    start: { col: 0, line: 0, offset: 0 },
-    end: { col: 0, line: 0, offset: 0 },
-  }
-
-  if (heading) {
-    let file = app.vault.getAbstractFileByPath(path)
-    if (!(file instanceof TFile)) return
-    const text = await app.vault.read(file)
-    const lines = text.split('\n')
-    const headingLine = lines.findIndex((line) =>
-      new RegExp(`#+ ${_.escapeRegExp(heading)}$`).test(line)
-    )
-    if (headingLine) {
-      position.start.line = headingLine + 1
-      position.end.line = headingLine + 1
-    }
-  }
-
-  const defaultTask: TaskProps = {
-    children: [],
-    title: '',
-    tags: [],
-    priority: TaskPriorities.DEFAULT,
-    id: '',
-    type: 'task',
-    path,
-    heading,
-    position,
-    ...dropData,
-  }
-
-  await saveTask(defaultTask, true)
-  openTask(defaultTask)
 }
 
 export async function openTask(task: TaskProps) {

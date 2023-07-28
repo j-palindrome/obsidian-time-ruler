@@ -6,6 +6,7 @@
 ## Planned
 -  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
+- Option to [add tasks at start or end of headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/12)
 
 ## Considering
 - Providing [names for time blocks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) (perhaps by moving tasks with durations to the "name" field of a time block)
@@ -14,8 +15,9 @@
 
 ## 7/28/2023 (1.0.2)
 - **Fixed:** bug where notes and headings get mistaken for daily notes and titled "Daily: ..." (this was an issue with the Regex used to parse daily note titles), responding to [This issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428)
-- **Fixed:** Tasks no longer [strip recurrence information](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
-- **Fixed:** Tasks no longer [strip links](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
+- **Fixed:** 
+- **Fixed:** Saving tasks no longer [strips recurrence information](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
+- **Fixed:** Saving tasks no longer [strips links](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
 - **Improved:** Tasks without a scheduled time now show up as a [single block at the top of the day](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428), instead of separated into previous times.
 - **Refactored:** Split up some of `ObsidianApi` class into independent functions.
 
