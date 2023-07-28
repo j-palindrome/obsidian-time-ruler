@@ -63,7 +63,8 @@ export default class TimeRulerPlugin extends Plugin {
     this.addCommand({
       id: 'find-task',
       name: 'Reveal in Time Ruler',
-      checkCallback: (checking) => {
+      icon: 'ruler',
+      checkCallback: () => {
         this.app.workspace.getActiveFile()
       },
       editorCallback: (_, context) => this.jumpToTask(context),

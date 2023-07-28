@@ -9,6 +9,7 @@ import Button from './Button'
 import Toggle from './Toggle'
 import Task from './Task'
 import Droppable from './Droppable'
+import { createTask } from '../services/obsidianApi'
 
 export default function Search() {
   const headings = useAppStore((state) => {
@@ -92,6 +93,126 @@ export default function Search() {
     }
   }
 
+  const searchDiv = () => (
+    <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-4'>
+      <div
+        className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary'
+        ref={frame}
+      >
+        <div className='relative px-4 pb-4'>
+          <div className='sticky top-0 z-10 pt-4 backdrop-blur'>
+            <div className='flex w-full items-center space-x-2'>
+              <h2 className='w-fit'>
+                {searchStatus === true ? 'Search' : 'Create Task'}
+              </h2>
+              <input
+                className='sticky top-4 h-6 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
+                value={search}
+                onChange={(ev) => setSearch(ev.target.value)}
+                onKeyDown={(ev) => {
+                  if (ev.key === 'Enter') {
+                    const firstHeading = headings.find((heading) =>
+                      searchExp.test(heading)
+                    )
+                    if (!firstHeading) return
+                    if (searchStatus === true) {
+                      ev.preventDefault()
+                      app.workspace.openLinkText(firstHeading, '')
+                    } else if (searchStatus) {
+                      const [path, heading] = firstHeading.split('#')
+                      createTask(path + '.md', heading, searchStatus)
+                    }
+                    setters.set({ searchStatus: false })
+                  } else if (ev.key === 'Escape') {
+                    setters.set({ searchStatus: false })
+                  }
+                }}
+                placeholder='filter'
+                ref={inputFrame}
+              ></input>
+            </div>
+            <div className='space-1 flex flex-wrap'>
+              <Toggle
+                title={'tasks'}
+                callback={(state) => setShowingTasks(state)}
+                value={showingTasks}
+              />
+
+              <div className='flex grow flex-wrap items-center justify-end'>
+                {showingTasks &&
+                  ['all', 'scheduled', 'due', 'unscheduled'].map(
+                    (mode: ViewMode) => (
+                      <Button
+                        key={mode}
+                        onClick={() => setViewMode(mode)}
+                        className={`${
+                          viewMode === mode
+                            ? 'border border-solid border-faint'
+                            : ''
+                        }`}
+                      >
+                        {mode}
+                      </Button>
+                    )
+                  )}
+              </div>
+            </div>
+          </div>
+
+          {headings.map((heading) => {
+            const filteredTasks = showingTasks
+              ? tasksByHeading[heading]?.filter(
+                  (task) =>
+                    searchExp.test(
+                      task.path + '#' + task.heading + task.title
+                    ) && testViewMode(task)
+                ) ?? []
+              : []
+            return (
+              <Fragment key={heading}>
+                {(viewMode === 'all' || filteredTasks.length > 0) && (
+                  <div key={heading} className='my-4'>
+                    {searchExp.test(heading) && (
+                      <DraggableHeading
+                        dragData={
+                          searchStatus === true
+                            ? {
+                                dragType: 'group',
+                                tasks: tasksByHeading[heading],
+                                hidePaths: [],
+                                name: heading,
+                                level: heading.includes('#')
+                                  ? 'heading'
+                                  : 'group',
+                                type: 'search',
+                                id: heading,
+                                dragContainer: 'search',
+                              }
+                            : { dragType: 'new', path: heading }
+                        }
+                        path={heading}
+                      />
+                    )}
+
+                    {showingTasks &&
+                      filteredTasks.map((task) => (
+                        <Task
+                          id={task.id}
+                          key={task.id}
+                          type='search'
+                          dragContainer={'search'}
+                        />
+                      ))}
+                  </div>
+                )}
+              </Fragment>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <>
       <Button
@@ -102,125 +223,7 @@ export default function Search() {
         ref={button}
         src={'search'}
       />
-      {searchStatus && (
-        <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-4'>
-          <div
-            className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary'
-            ref={frame}
-          >
-            <div className='relative px-4 pb-4'>
-              <div className='sticky top-0 z-10 pt-4 backdrop-blur'>
-                <div className='flex w-full items-center space-x-2'>
-                  <h2 className='w-fit'>
-                    {searchStatus === true ? 'Search' : 'Create Task'}
-                  </h2>
-                  <input
-                    className='sticky top-4 h-6 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
-                    value={search}
-                    onChange={(ev) => setSearch(ev.target.value)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === 'Enter') {
-                        const firstHeading = headings.find((heading) =>
-                          searchExp.test(heading)
-                        )
-                        if (!firstHeading) return
-                        if (searchStatus === true) {
-                          ev.preventDefault()
-                          app.workspace.openLinkText(firstHeading, '')
-                        } else if (searchStatus) {
-                          const [path, heading] = firstHeading.split('#')
-                          getters
-                            .getObsidianAPI()
-                            .createTask(path + '.md', heading, searchStatus)
-                        }
-                        setters.set({ searchStatus: false })
-                      } else if (ev.key === 'Escape') {
-                        setters.set({ searchStatus: false })
-                      }
-                    }}
-                    placeholder='filter'
-                    ref={inputFrame}
-                  ></input>
-                </div>
-                <div className='flex flex-wrap items-center space-x-1'>
-                  <Toggle
-                    title={'tasks'}
-                    callback={(state) => setShowingTasks(state)}
-                    value={showingTasks}
-                  />
-                  <div className='grow'></div>
-                  {showingTasks &&
-                    ['all', 'scheduled', 'due', 'unscheduled'].map(
-                      (mode: ViewMode) => (
-                        <Button
-                          key={mode}
-                          onClick={() => setViewMode(mode)}
-                          className={`${
-                            viewMode === mode
-                              ? 'border border-solid border-faint'
-                              : ''
-                          }`}
-                        >
-                          {mode}
-                        </Button>
-                      )
-                    )}
-                </div>
-              </div>
-
-              {headings.map((heading) => {
-                const filteredTasks = showingTasks
-                  ? tasksByHeading[heading]?.filter(
-                      (task) =>
-                        searchExp.test(
-                          task.path + '#' + task.heading + task.title
-                        ) && testViewMode(task)
-                    ) ?? []
-                  : []
-                return (
-                  <Fragment key={heading}>
-                    {(viewMode === 'all' || filteredTasks.length > 0) && (
-                      <div key={heading} className='my-4'>
-                        {searchExp.test(heading) && (
-                          <DraggableHeading
-                            dragData={
-                              searchStatus === true
-                                ? {
-                                    dragType: 'group',
-                                    tasks: tasksByHeading[heading],
-                                    hidePaths: [],
-                                    name: heading,
-                                    level: heading.includes('#')
-                                      ? 'heading'
-                                      : 'group',
-                                    type: 'search',
-                                    id: heading,
-                                    dragContainer: 'search',
-                                  }
-                                : { dragType: 'new', path: heading }
-                            }
-                            path={heading}
-                          />
-                        )}
-
-                        {showingTasks &&
-                          filteredTasks.map((task) => (
-                            <Task
-                              id={task.id}
-                              key={task.id}
-                              type='search'
-                              dragContainer={'search'}
-                            />
-                          ))}
-                      </div>
-                    )}
-                  </Fragment>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {searchStatus && searchDiv()}
     </>
   )
 }

@@ -37,13 +37,14 @@ import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
 import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
+import { createTask, getDailyNoteInfo } from '../services/obsidianApi'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const setupStore = async () => {
-    setters.set({ apis, ...(await apis.obsidian.getDailyNoteInfo()) })
+    setters.set({ apis, ...(await getDailyNoteInfo()) })
   }
   useEffect(() => {
     setupStore()
@@ -108,7 +109,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           })
         } else if (dragData.dragType === 'new') {
           const [path, heading] = dragData.path.split('#')
-          getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
+          createTask(path + '.md', heading, dropData)
         } else if (dragData.dragType === 'task-length') {
           if (!dropData.scheduled) return
           const start = DateTime.fromISO(dragData.start)
@@ -343,7 +344,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
               getters.getCalendarAPI().loadEvents()
               const obsidianAPI = getters.getObsidianAPI()
               setters.set({
-                ...(await obsidianAPI.getDailyNoteInfo()),
+                ...(await getDailyNoteInfo()),
               })
               obsidianAPI.loadTasks()
             }}

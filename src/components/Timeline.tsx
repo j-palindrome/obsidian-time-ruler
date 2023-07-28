@@ -51,9 +51,10 @@ export default function Timeline({
   const isToday =
     startISO.slice(0, 10) === (DateTime.now().toISODate() as string)
 
-  const [tasks, dueTasks] = useAppStore((state) => {
+  const [tasks, dueTasks, allDayTasks] = useAppStore((state) => {
     const tasks: TaskProps[] = []
     const dueTasks: TaskProps[] = []
+    const allDayTasks: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
       if (
         (!task.scheduled || task.scheduled < startISO) &&
@@ -61,15 +62,18 @@ export default function Timeline({
         (task.due >= startISO || (isToday && task.due < endISO))
       ) {
         dueTasks.push(task)
-      } else if (
-        task.scheduled &&
-        (task.scheduled >= startISO || isToday) &&
-        task.scheduled < endISO
-      ) {
-        tasks.push(task)
+      } else if (task.scheduled && task.scheduled < endISO) {
+        if (task.scheduled > startISO) {
+          tasks.push(task)
+        } else if (
+          task.scheduled === startISO ||
+          (isToday && task.scheduled <= startISO)
+        ) {
+          allDayTasks.push(task)
+        }
       }
     })
-    return [filterAllDayChildren(tasks), dueTasks]
+    return [filterAllDayChildren(tasks), dueTasks, allDayTasks]
   }, shallow)
 
   const allDayEvents: EventProps[] = []
@@ -87,10 +91,7 @@ export default function Timeline({
     object.type === 'event' ? object.startISO : object.scheduled
   )
   const sortedBlocks = _.sortBy(_.entries(blocks), 0)
-  const allDayTasks = sortedBlocks.filter(
-    ([time, _tasks]) => time <= startISO
-  ) as [string, TaskProps[]][]
-  const atTimeBlocks = sortedBlocks.filter(([time, _tasks]) => time > startISO)
+  const timeBlocks = sortedBlocks.filter(([time, _tasks]) => time > startISO)
 
   const title = DateTime.fromISO(startISO || endISO).toFormat(
     type === 'days' ? 'MMMM' : 'EEE, MMM d'
@@ -100,7 +101,7 @@ export default function Timeline({
 
   const timeSpan = (
     <TimeSpan
-      {...{ startISO, endISO, type, blocks: atTimeBlocks }}
+      {...{ startISO, endISO, type, blocks: timeBlocks }}
       startWithHours={startISO !== DateTime.now().toISODate()}
     />
   )
@@ -110,7 +111,7 @@ export default function Timeline({
 
   const foundTaskInAllDay = useAppStore((state) => {
     return state.findingTask &&
-      _.flatMap(allDayTasks, '1').find((task) => task.id === state.findingTask)
+      allDayTasks.find((task) => task.id === state.findingTask)
       ? state.findingTask
       : null
   })
@@ -118,10 +119,9 @@ export default function Timeline({
   const expandIfFound = () => {
     if (foundTaskInAllDay && !isExpanded) {
       setExpanded(true)
-      const foundTask = allDayTasks
-        .map(([_name, tasks]) => tasks)
-        .flat()
-        .find((task) => task.id === foundTaskInAllDay) as TaskProps
+      const foundTask = allDayTasks.find(
+        (task) => task.id === foundTaskInAllDay
+      ) as TaskProps
       if (!foundTask) return
       setters.set({ findingTask: null })
       setTimeout(() =>
@@ -186,16 +186,14 @@ export default function Timeline({
                 displayStartISO={event.startISO}
               />
             ))}
-            {allDayTasks.map(([time, tasks]) => (
-              <Event
-                key={time}
-                tasks={tasks}
-                blocks={[]}
-                startISO={startISO}
-                endISO={time}
-                displayStartISO={time}
-              />
-            ))}
+
+            <Event
+              tasks={allDayTasks}
+              blocks={[]}
+              startISO={startISO}
+              endISO={startISO}
+              displayStartISO={startISO}
+            />
           </div>
         )}
 

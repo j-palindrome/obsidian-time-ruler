@@ -2,7 +2,7 @@ import { produce } from 'immer'
 import { useRef } from 'react'
 import { create } from 'zustand'
 import CalendarAPI from '../services/calendarApi'
-import ObsidianAPI from '../services/obsidianApi'
+import ObsidianAPI, { saveTask } from '../services/obsidianApi'
 import { TaskActions } from '../types/enums'
 
 export type AppState = {
@@ -58,7 +58,7 @@ export const setters = {
     for (let id of ids) {
       const savedTask = { ...getters.getTask(id), ...task }
       if (task.scheduled === TaskActions.DELETE) delete savedTask.scheduled
-      await obsidianAPI.saveTask(savedTask)
+      await saveTask(savedTask)
     }
     if (task.completion) obsidianAPI.playComplete()
   },

@@ -7,6 +7,7 @@ import { shallow } from 'zustand/shallow'
 import { useMemo } from 'react'
 import moment from 'moment'
 import { DateTime } from 'luxon'
+import { createTask } from '../services/obsidianApi'
 
 const UNGROUPED = '__ungrouped'
 export type BlockType = 'child' | 'time' | 'event' | 'default' | 'search'
@@ -48,7 +49,7 @@ export default function Block({
   const groupedTasks = _.groupBy(sortedTasks, 'path')
   const sortedGroups = useAppStore(
     (state) =>
-      _.sortBy(_.entries(groupedTasks), ([group, tasks]) =>
+      _.sortBy(_.entries(groupedTasks), ([group, _tasks]) =>
         state.fileOrder.indexOf(group)
       ),
     shallow
@@ -101,7 +102,7 @@ export function Group({
   const sortedHeadings =
     level === 'group'
       ? _.sortBy(_.entries(groupedHeadings), [
-          ([name, _tasks]) => (name === UNGROUPED ? 1 : 0),
+          ([name, _tasks]) => (name === UNGROUPED ? 0 : 1),
           '1.0.path',
           '1.0.position.start.line',
         ])
@@ -201,9 +202,12 @@ export function Heading({
   )
 
   const dailyNoteDateTest = useMemo(() => {
-    const matchesPath = path.match(
-      new RegExp(`${escapeRegExp(dailyNotePath)}\\/(.*)(#|$)`)
-    )?.[1]
+    const matchesPath =
+      dailyNotePath && dailyNoteFormat
+        ? path.match(
+            new RegExp(`${escapeRegExp(dailyNotePath)}\\/([^\\/#]+)$`)
+          )?.[1]
+        : null
     if (!matchesPath) return false
     const date = moment(matchesPath, dailyNoteFormat)
     if (!date.isValid()) return false
@@ -224,9 +228,7 @@ export function Heading({
             app.workspace.openLinkText(path, '')
           } else if (searchStatus) {
             const [filePath, heading] = path.split('#')
-            getters
-              .getObsidianAPI()
-              .createTask(filePath + '.md', heading, searchStatus)
+            createTask(filePath + '.md', heading, searchStatus)
             setters.set({ searchStatus: false })
           }
           return false

@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { openTaskInRuler } from '../services/obsidianApi'
+import { openTask, openTaskInRuler } from '../services/obsidianApi'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import { isDateISO } from '../services/util'
@@ -90,7 +90,7 @@ export default function Task({
         type === 'parent' ? 'mt-1' : ''
       }`}
       ref={setNodeRef}
-      data-id={isLink || type === 'search' ? '' : id}
+      data-id={isLink || (type === 'search' && task.scheduled) ? '' : id}
     >
       {type === 'deadline' && (
         <div
@@ -127,7 +127,7 @@ export default function Task({
               : ''
           }`}
           onPointerDown={() => false}
-          onClick={() => getters.getObsidianAPI().openTask(task)}
+          onClick={() => openTask(task)}
         >
           {task.title}
         </div>
