@@ -56,4 +56,4 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 Upon calendar refresh, the plugin makes a single GET request to any calendars you are subscribed to, which downloads their events in .ics format. 
 
 # Changelog
-For more information on past and future updates, please consult the [roadmap and changelog]().
+For more information on past and future updates, please consult the [roadmap and changelog](https://github.com/joshuatazrein/obsidian-time-ruler/blob/master/CHANGELOG.md).

@@ -21,14 +21,8 @@
 ## 7/22/2023 (1.0.1)
 - **Added:** Support for including/excluding custom statuses
 - **Improved:** Removed Upcoming view, integrated due dates with rest of days. Now tasks with due dates will show up as links each day from when they are scheduled until they are due. 
-
-## 7/17/2023
 - **Improved:** Removed Unscheduled view, improved search to show filterable tasks
-
-## 7/10/2023
 - **Added:** Ability to reorder headings with drag-and-drop
-
-## 7/5/2023
 - **Added:** Calendar view (according to the [Calendar view?](https://github.com/joshuatazrein/obsidian-time-ruler/issues/1) request). Calendar View is daily instead of hourly, showing a vertical day-by-day list of your tasks and an expanded, calendar-style arrangement for switching dates. Switch between this and the hourly view to get a more or less granular view of your tasks.
 - **Added:** Daily note shows at the top of the search box for easy access
 
