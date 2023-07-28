@@ -17,6 +17,7 @@
 - **Fixed:** Tasks no longer [strip recurrence information](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
 - **Fixed:** Tasks no longer [strip links](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
 - **Improved:** Tasks without a scheduled time now show up as a [single block at the top of the day](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428), instead of separated into previous times.
+- **Refactored:** Split up some of `ObsidianApi` class into independent functions.
 
 ## 7/22/2023 (1.0.1)
 - **Added:** Support for including/excluding custom statuses
