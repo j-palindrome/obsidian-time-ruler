@@ -64,4 +64,5 @@ Upon calendar refresh, the plugin makes a single GET request to any calendars yo
 For more information on past and future updates, please consult the [roadmap and changelog](https://github.com/joshuatazrein/obsidian-time-ruler/blob/master/CHANGELOG.md).
 
 If you appreciate this plugin, I would love your support for further development!
+
 <a href="https://www.buymeacoffee.com/joshuatreinier" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
