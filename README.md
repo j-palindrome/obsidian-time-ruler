@@ -1,5 +1,7 @@
 Time Ruler combines the best parts of a nested tasklist and an event-based calendar view. Drag-and-drop tasks to time-block and reschedule, and view tasks on top of read-only online calendars. Integrates seamlessly with the Tasks and FullCalendar plugins.
 
+![cover](assets/time-ruler-cover.png)
+
 # Features
 - **Reads and writes tasks** in a variety of formats (Dataview inline fields, Tasks plugin emojis, or Full Calendar task-events)
 - **Time-blocks** with nested tasks
@@ -16,13 +18,13 @@ Time Ruler uses the [Dataview](obsidian://show-plugin?id=dataview) plugin to rea
 
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
-- **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: \#h\#m]  [priority:: lowest/low/medium/high/highest]`
+- **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: #h#m]  [priority:: lowest/low/medium/high/highest]`
 - **Tasks**: `[startTime:: hh-mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
-- **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh-mm]  [endTime:: hh-mm]  [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`
+- **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh-mm]  [endTime:: hh-mm]  (or [allDay:: true]) [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`
 
 When editing a task via drag-and-drop, tasks are converted to the user's preferred format (Dataview, Tasks, or Full Calendar). This can be changed in Settings. 
 
-(*Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.)
+*Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.
 
 ## Scheduling tasks
 - To **reschedule** a task, drag-and-drop the task onto the target block or time. You can drag a task to one of the day buttons or a day's heading to reschedule to that day. Click on a task to jump to it in Obsidian.
