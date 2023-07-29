@@ -27,7 +27,7 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 *Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.
 
 ## Scheduling tasks
-<img src="assets/dragging-example.gif" style="width: 200px;" />
+<img src="assets/dragging-example.gif" width="300" />
 - To **reschedule** a task, drag-and-drop the task onto the target block or time. You can drag a task to one of the day buttons or a day's heading to reschedule to that day. Click on a task to jump to it in Obsidian.
 - To **create** a new scheduled task, drag the heading from the Search popover onto a target time, or click the `+` button on the target time or block. A new task is created in the chosen file or heading.
 - To change the **length** of a task, drag it by the bottom (the "resize arrow" cursor) to a target time.
