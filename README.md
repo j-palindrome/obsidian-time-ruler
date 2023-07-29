@@ -27,6 +27,7 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 *Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.
 
 ## Scheduling tasks
+<img src="assets/dragging-example.gif" style="width: 200px;" />
 - To **reschedule** a task, drag-and-drop the task onto the target block or time. You can drag a task to one of the day buttons or a day's heading to reschedule to that day. Click on a task to jump to it in Obsidian.
 - To **create** a new scheduled task, drag the heading from the Search popover onto a target time, or click the `+` button on the target time or block. A new task is created in the chosen file or heading.
 - To change the **length** of a task, drag it by the bottom (the "resize arrow" cursor) to a target time.
@@ -34,6 +35,7 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 - Dragging and holding over a **date button** will scroll to that date, allowing you to drop the task there.
 
 ## Buttons
+![refresh](assets/buttons.png)
 - Click the **search** (magnifying glass) button to show all tasks and headings and filter them.
 - Click the **calendar** button to toggle between all-day and hourly views.
 - Click the **refresh** (circlular arrow) button to refresh Obsidian tasks and online calendars.
@@ -48,6 +50,7 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 - To **refresh** events, click the `Refresh` button (the circular arrow) in the toolbar.
 
 ## Timer
+![timer](assets/timer.png)
 - To start a **stopwatch**, click the play button without any time entered.
 - To start a **timer**, enter an amount in minutes and press the play button or "Enter."
 - You can **add or subtract** 5 minutes while the timer is playing by clicking the `+` and `-` buttons. 

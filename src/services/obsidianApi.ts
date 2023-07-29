@@ -253,17 +253,25 @@ export async function getDailyNoteInfo(): Promise<
   Pick<AppState, 'dailyNote' | 'dailyNoteFormat' | 'dailyNotePath'> | undefined
 > {
   try {
-    let { folder = '', format } = JSON.parse(
-      await app.vault.adapter.read(app.vault.configDir + '/daily-notes.json')
-    )
-    if (!format) format = 'YYYY-MM-DD'
+    const dailyNoteSettings = app.vault.configDir + '/daily-notes.json'
+    let folder = '',
+      format = 'YYYY-MM-DD'
+    if (app.vault.getAbstractFileByPath(dailyNoteSettings)) {
+      const settings = JSON.parse(
+        await app.vault.adapter.read(app.vault.configDir + '/daily-notes.json')
+      )
+      if (settings.folder) folder = settings.folder
+      if (settings.format) format = settings.format
+    }
+
     const today = moment().format(format)
     return {
-      dailyNote: folder + '/' + today,
+      dailyNote: folder ? folder + '/' + today : today,
       dailyNoteFormat: format,
       dailyNotePath: folder,
     }
   } catch (err) {
+    console.error(err)
     return
   }
 }

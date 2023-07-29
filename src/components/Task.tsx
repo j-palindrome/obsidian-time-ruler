@@ -8,6 +8,8 @@ import { isDateISO } from '../services/util'
 import { TaskPriorities } from '../types/enums'
 import Block from './Block'
 import Button from './Button'
+import { useMemo } from 'react'
+import moment from 'moment'
 
 export type TaskComponentProps = {
   id: string
@@ -74,15 +76,34 @@ export default function Task({
     data: lengthDragData,
   })
 
-  if (!task) return <></>
-
-  const thisHeading = () =>
-    (task.path.includes('#')
-      ? task.path.slice(task.path.lastIndexOf('#') + 1)
-      : task.path.includes('/')
-      ? task.path.slice(task.path.lastIndexOf('/') + 1)
-      : task.path
+  const thisHeading = useMemo(() => {
+    if (type !== 'deadline') return
+    const dailyNoteDateTest = () => {
+      const dailyNotePath = getters.get('dailyNotePath')
+      const dailyNoteFormat = getters.get('dailyNoteFormat')
+      const matchesPath = task.path.match(
+        new RegExp(`${_.escapeRegExp(dailyNotePath)}([^\\/#]+)$`)
+      )?.[1]
+      if (!matchesPath) return false
+      const date = moment(matchesPath, dailyNoteFormat)
+      if (!date.isValid()) return false
+      return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat(
+        'ccc, LLL d'
+      )}`
+    }
+    const dailyTitle = dailyNoteDateTest()
+    return (
+      dailyTitle
+        ? dailyTitle
+        : task.path.includes('#')
+        ? task.path.slice(task.path.lastIndexOf('#') + 1)
+        : task.path.includes('/')
+        ? task.path.slice(task.path.lastIndexOf('/') + 1)
+        : task.path
     ).replace(/\.md/, '')
+  }, [type, task.path])
+
+  if (!task) return <></>
 
   return (
     <div
@@ -97,7 +118,7 @@ export default function Task({
           className='cursor-pointer pl-7 text-xs text-accent hover:underline'
           onClick={() => app.workspace.openLinkText(task.path, '')}
         >
-          {thisHeading()}
+          {thisHeading}
         </div>
       )}
       <div

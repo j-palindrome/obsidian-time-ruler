@@ -6,6 +6,7 @@ import ObsidianAPI from '../services/obsidianApi'
 import { TaskActions } from '../types/enums'
 import { getObsidianAPI } from '../../../link-tree/src/services/store'
 
+export type ViewMode = 'all' | 'scheduled' | 'due' | 'unscheduled'
 export type AppState = {
   tasks: Record<string, TaskProps>
   events: Record<string, EventProps>
@@ -16,7 +17,7 @@ export type AppState = {
   dragData: DragData | null
   findingTask: string | null
   inScroll: number
-  searchStatus: boolean | Partial<TaskProps>
+  searchStatus: false | ViewMode | Partial<TaskProps>
   calendarMode: boolean
   dailyNote: string | null
   dailyNoteFormat: string

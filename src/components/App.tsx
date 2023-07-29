@@ -26,7 +26,7 @@ import {
 } from '../app/store'
 import { useAutoScroll } from '../services/autoScroll'
 import { TaskActions, isTaskProps } from '../types/enums'
-import Block, { Group, Heading } from './Block'
+import Block from './Block'
 import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
@@ -38,13 +38,17 @@ import { TimeSpanTypes } from './Times'
 import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
 import { getDailyNoteInfo } from '../services/obsidianApi'
+import Heading from './Heading'
+import Group from './Group'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const setupStore = async () => {
-    setters.set({ apis, ...(await getDailyNoteInfo()) })
+    const dailyNoteInfo = await getDailyNoteInfo()
+    console.log(dailyNoteInfo)
+    setters.set({ apis, ...dailyNoteInfo })
   }
   useEffect(() => {
     setupStore()
@@ -372,6 +376,16 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
           data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
           {calendarMode && dayPadding()}
+          <Droppable id={'unscheduled::button'} data={{ scheduled: '' }}>
+            <Button
+              className='h-[28px]'
+              onClick={() => {
+                setters.set({ searchStatus: 'unscheduled' })
+              }}
+            >
+              Unscheduled
+            </Button>
+          </Droppable>
           {times.map((times, i) => {
             const thisDate = DateTime.fromISO(times.startISO)
             return (

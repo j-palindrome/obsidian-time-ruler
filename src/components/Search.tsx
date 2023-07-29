@@ -3,12 +3,12 @@ import _, { head } from 'lodash'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
-import { getters, setters, useAppStore } from '../app/store'
-import { Heading } from './Block'
+import { ViewMode, getters, setters, useAppStore } from '../app/store'
 import Button from './Button'
 import Toggle from './Toggle'
 import Task from './Task'
 import Droppable from './Droppable'
+import Heading from './Heading'
 
 export default function Search() {
   const headings = useAppStore((state) => {
@@ -75,12 +75,11 @@ export default function Search() {
   )
 
   const [showingTasks, setShowingTasks] = useState(true)
+  let isShowingTasks = typeof searchStatus !== 'string' ? false : showingTasks
   const searchExp = new RegExp(_.escapeRegExp(search), 'i')
 
-  type ViewMode = 'all' | 'scheduled' | 'due' | 'unscheduled'
-  const [viewMode, setViewMode] = useState<ViewMode>('all')
   const testViewMode = (task: TaskProps) => {
-    switch (viewMode) {
+    switch (searchStatus) {
       case 'all':
         return true
       case 'unscheduled':
@@ -89,6 +88,8 @@ export default function Search() {
         return !!task.due
       case 'scheduled':
         return !!task.scheduled
+      default:
+        return true
     }
   }
 
@@ -101,8 +102,8 @@ export default function Search() {
         <div className='relative px-4 pb-4'>
           <div className='sticky top-0 z-10 pt-4 backdrop-blur'>
             <div className='flex w-full items-center space-x-2'>
-              <h2 className='w-fit'>
-                {searchStatus === true ? 'Search' : 'Create Task'}
+              <h2 className='my-2 w-fit'>
+                {typeof searchStatus === 'string' ? 'Search' : 'Create Task'}
               </h2>
               <input
                 className='sticky top-4 h-6 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
@@ -114,7 +115,7 @@ export default function Search() {
                       searchExp.test(heading)
                     )
                     if (!firstHeading) return
-                    if (searchStatus === true) {
+                    if (typeof searchStatus === 'string') {
                       ev.preventDefault()
                       app.workspace.openLinkText(firstHeading, '')
                     } else if (searchStatus) {
@@ -132,36 +133,40 @@ export default function Search() {
                 ref={inputFrame}
               ></input>
             </div>
-            <div className='space-1 flex flex-wrap'>
-              <Toggle
-                title={'tasks'}
-                callback={(state) => setShowingTasks(state)}
-                value={showingTasks}
-              />
-
-              <div className='flex grow flex-wrap items-center justify-end'>
-                {showingTasks &&
-                  ['all', 'scheduled', 'due', 'unscheduled'].map(
-                    (mode: ViewMode) => (
-                      <Button
-                        key={mode}
-                        onClick={() => setViewMode(mode)}
-                        className={`${
-                          viewMode === mode
-                            ? 'border border-solid border-faint'
-                            : ''
-                        }`}
-                      >
-                        {mode}
-                      </Button>
-                    )
-                  )}
+            {typeof searchStatus === 'string' && (
+              <div className='space-1 -mt-1 flex flex-wrap'>
+                <div className='mt-1'>
+                  <Toggle
+                    title={'tasks'}
+                    callback={(state) => setShowingTasks(state)}
+                    value={showingTasks}
+                  />
+                </div>
+                <div className='grow'></div>
+                <div className='mt-1 flex flex-wrap items-center pl-2'>
+                  {isShowingTasks &&
+                    ['all', 'scheduled', 'due', 'unscheduled'].map(
+                      (mode: ViewMode) => (
+                        <Button
+                          key={mode}
+                          onClick={() => setters.set({ searchStatus: mode })}
+                          className={`${
+                            searchStatus === mode
+                              ? 'border border-solid border-faint'
+                              : ''
+                          }`}
+                        >
+                          {mode}
+                        </Button>
+                      )
+                    )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {headings.map((heading) => {
-            const filteredTasks = showingTasks
+            const filteredTasks = isShowingTasks
               ? tasksByHeading[heading]?.filter(
                   (task) =>
                     searchExp.test(
@@ -171,12 +176,14 @@ export default function Search() {
               : []
             return (
               <Fragment key={heading}>
-                {(viewMode === 'all' || filteredTasks.length > 0) && (
+                {(searchStatus === 'all' ||
+                  !isShowingTasks ||
+                  filteredTasks.length > 0) && (
                   <div key={heading} className='my-4'>
                     {searchExp.test(heading) && (
                       <DraggableHeading
                         dragData={
-                          searchStatus === true
+                          typeof searchStatus === 'string'
                             ? {
                                 dragType: 'group',
                                 tasks: tasksByHeading[heading],
@@ -195,7 +202,7 @@ export default function Search() {
                       />
                     )}
 
-                    {showingTasks &&
+                    {isShowingTasks &&
                       filteredTasks.map((task) => (
                         <Task
                           id={task.id}
@@ -218,7 +225,7 @@ export default function Search() {
     <>
       <Button
         onClick={() => {
-          setters.set({ searchStatus: true })
+          setters.set({ searchStatus: 'all' })
           setSearch('')
         }}
         ref={button}

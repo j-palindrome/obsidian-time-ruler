@@ -13,6 +13,13 @@
 
 # Changelog
 
+## 1.0.3
+- **Fixed:** if daily notes folder is not set, headings still format daily notes nicely.
+- **Added:** `Unscheduled` button to [drag tasks to](https://github.com/joshuatazrein/obsidian-time-ruler/issues/13)
+- **Documented:** added `.gif` to explain dragging more, added pictures of features
+- **Refactored:** Moved `Heading` and `Group` components to their own files
+- **Refactored:** `SearchStatus` can now be set directly in the app store
+
 ## 7/28/2023 (1.0.2)
 - **Fixed:** bug where notes and headings get mistaken for daily notes and titled "Daily: ..." (this was an issue with the Regex used to parse daily note titles), responding to [This issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428)
 - **Fixed:** Saving tasks no longer [strips recurrence information](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
