@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import _, { head } from 'lodash'
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
 import { ViewMode, getters, setters, useAppStore } from '../app/store'
@@ -9,6 +9,7 @@ import Toggle from './Toggle'
 import Task from './Task'
 import Droppable from './Droppable'
 import Heading from './Heading'
+import { priorityNumberToKey } from '../types/enums'
 
 export default function Search() {
   const headings = useAppStore((state) => {
@@ -21,9 +22,15 @@ export default function Search() {
       ),
       (heading) => state.fileOrder.indexOf(heading.replace(/#.*/, ''))
     )
-    if (state.dailyNote && headings.includes(state.dailyNote)) {
-      headings.splice(headings.indexOf(state.dailyNote), 1)
-      headings.splice(0, 0, state.dailyNote)
+    if (state.dailyNote) {
+      let i = 0
+      for (let heading of headings.filter(
+        (heading) => state.dailyNote && heading.startsWith(state.dailyNote)
+      )) {
+        headings.splice(headings.indexOf(heading), 1)
+        headings.splice(i, 0, heading)
+        i++
+      }
     }
     return headings
   }, shallow)
@@ -76,7 +83,14 @@ export default function Search() {
 
   const [showingTasks, setShowingTasks] = useState(true)
   let isShowingTasks = typeof searchStatus !== 'string' ? false : showingTasks
-  const searchExp = new RegExp(_.escapeRegExp(search), 'i')
+
+  const searchExp = new RegExp(
+    search
+      .split(' ')
+      .map((word) => _.escapeRegExp(word))
+      .join('.*'),
+    'i'
+  )
 
   const testViewMode = (task: TaskProps) => {
     switch (searchStatus) {
@@ -92,6 +106,28 @@ export default function Search() {
         return true
     }
   }
+
+  const searchTasks = useMemo(() => {
+    const searchTasks: Record<string, string> = {}
+    for (let [_heading, tasks] of _.entries(tasksByHeading)) {
+      for (let task of tasks) {
+        const searchString =
+          'path: ' +
+          task.path +
+          ' heading: # ' +
+          task.heading +
+          ' title: ' +
+          task.title +
+          (task.tags.length > 0
+            ? ' tag: ' + task.tags.map((tag) => '#' + tag).join(', ')
+            : '') +
+          ' priority: ' +
+          priorityNumberToKey[task.priority]
+        searchTasks[task.id] = searchString
+      }
+    }
+    return searchTasks
+  }, [tasksByHeading])
 
   const searchDiv = () => (
     <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-4'>
@@ -129,7 +165,7 @@ export default function Search() {
                     setters.set({ searchStatus: false })
                   }
                 }}
-                placeholder='filter'
+                placeholder='path: heading: title: tag: priority:'
                 ref={inputFrame}
               ></input>
             </div>
@@ -169,18 +205,20 @@ export default function Search() {
             const filteredTasks = isShowingTasks
               ? tasksByHeading[heading]?.filter(
                   (task) =>
-                    searchExp.test(
-                      task.path + '#' + task.heading + task.title
-                    ) && testViewMode(task)
+                    searchExp.test(searchTasks[task.id]) && testViewMode(task)
                 ) ?? []
               : []
+            const [path, section] = heading.split('#')
+            const headingMatch = searchExp.test(
+              `path: ${path} ${section ? `heading: #${section}` : ''}`
+            )
             return (
               <Fragment key={heading}>
                 {(searchStatus === 'all' ||
                   !isShowingTasks ||
                   filteredTasks.length > 0) && (
                   <div key={heading} className='my-4'>
-                    {searchExp.test(heading) && (
+                    {headingMatch && (
                       <DraggableHeading
                         dragData={
                           typeof searchStatus === 'string'

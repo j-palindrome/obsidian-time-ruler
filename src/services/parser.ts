@@ -163,9 +163,6 @@ export function textToTask(item: any): TaskProps {
   }
 
   const parseRepeat = () => {
-    if (item.text.contains(keyToTasksEmoji.repeat))
-      console.log(item.text, item.text.match(TASKS_REPEAT_SEARCH)?.[1])
-
     return item['repeat'] ?? item.text.match(TASKS_REPEAT_SEARCH)?.[1]
   }
 
@@ -215,8 +212,6 @@ export function taskToText(task: TaskProps, fieldFormat: FieldFormat) {
       draft += `[${key}:: ${value}]`
     })
   }
-
-  console.log(task)
 
   switch (fieldFormat) {
     case 'dataview':

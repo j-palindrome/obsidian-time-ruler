@@ -47,7 +47,6 @@ import Group from './Group'
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const setupStore = async () => {
     const dailyNoteInfo = await getDailyNoteInfo()
-    console.log(dailyNoteInfo)
     setters.set({ apis, ...dailyNoteInfo })
   }
   useEffect(() => {

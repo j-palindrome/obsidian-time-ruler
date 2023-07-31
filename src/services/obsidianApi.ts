@@ -218,13 +218,11 @@ export default class ObsidianAPI extends Component {
   }
 
   async onload() {
-    let indexReady = { current: false }
     this.registerEvent(
       app.metadataCache.on(
         // @ts-ignore
         'dataview:index-ready',
         () => {
-          indexReady.current = true
           this.loadTasks()
         }
       )
@@ -234,16 +232,17 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:metadata-change',
         () => {
-          if (!indexReady.current) return
-          this.loadTasks()
+          if (dv.index.initialized) {
+            this.loadTasks()
+          }
         }
       )
     )
+
     await this.getExcludePaths()
     await this.getDailyPath()
 
     if (dv.index.initialized) {
-      indexReady.current = true
       this.loadTasks()
     }
   }
@@ -312,7 +311,7 @@ export function openTaskInRuler(line: number, path: string) {
   }
 
   setters.set({
-    searchStatus: !gottenTask.scheduled ? true : false,
+    searchStatus: !gottenTask.scheduled ? 'all' : false,
     findingTask: id,
   })
 

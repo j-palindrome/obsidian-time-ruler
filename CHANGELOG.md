@@ -7,6 +7,7 @@
 -  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
 - Option to [add tasks at start or end of headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/12)
+- Right-click option to [schedule tasks for now](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621)
 
 ## Considering
 - Providing [names for time blocks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) (perhaps by moving tasks with durations to the "name" field of a time block)
@@ -14,11 +15,14 @@
 # Changelog
 
 ## 1.0.3
+- **Fixed:** Issue with Time Ruler not updating when Dataview index wasn't ready yet
+- **Fixed:** Search shows tasks in today's daily note under the [proper heading](https://github.com/joshuatazrein/obsidian-time-ruler/issues/14)
 - **Fixed:** if daily notes folder is not set, headings still format daily notes nicely.
 - **Added:** `Unscheduled` button to [drag tasks to](https://github.com/joshuatazrein/obsidian-time-ruler/issues/13)
 - **Documented:** added `.gif` to explain dragging more, added pictures of features
 - **Refactored:** Moved `Heading` and `Group` components to their own files
 - **Refactored:** `SearchStatus` can now be set directly in the app store
+- **Added:** [Filter](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621) by tag, priority, path, and heading in Search
 
 ## 7/28/2023 (1.0.2)
 - **Fixed:** bug where notes and headings get mistaken for daily notes and titled "Daily: ..." (this was an issue with the Regex used to parse daily note titles), responding to [This issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428)
