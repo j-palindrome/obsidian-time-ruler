@@ -14,7 +14,7 @@
 
 # Changelog
 
-## 1.0.3
+## 1.0.3 (7/30/2023)
 - **Fixed:** Issue with Time Ruler not updating when Dataview index wasn't ready yet
 - **Fixed:** Search shows tasks in today's daily note under the [proper heading](https://github.com/joshuatazrein/obsidian-time-ruler/issues/14)
 - **Fixed:** if daily notes folder is not set, headings still format daily notes nicely.
@@ -24,14 +24,14 @@
 - **Refactored:** `SearchStatus` can now be set directly in the app store
 - **Added:** [Filter](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621) by tag, priority, path, and heading in Search
 
-## 7/28/2023 (1.0.2)
+## 1.0.2 (7/28/2023)
 - **Fixed:** bug where notes and headings get mistaken for daily notes and titled "Daily: ..." (this was an issue with the Regex used to parse daily note titles), responding to [This issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428)
 - **Fixed:** Saving tasks no longer [strips recurrence information](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
 - **Fixed:** Saving tasks no longer [strips links](https://github.com/joshuatazrein/obsidian-time-ruler/issues/9#issuecomment-1655801314)
 - **Improved:** Tasks without a scheduled time now show up as a [single block at the top of the day](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428), instead of separated into previous times.
 - **Refactored:** Split up some of `ObsidianApi` class into independent functions.
 
-## 7/22/2023 (1.0.1)
+## 1.0.1 (7/22/2023)
 - **Added:** Support for including/excluding custom statuses
 - **Improved:** Removed Upcoming view, integrated due dates with rest of days. Now tasks with due dates will show up as links each day from when they are scheduled until they are due. 
 - **Improved:** Removed Unscheduled view, improved search to show filterable tasks
