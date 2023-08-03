@@ -7,8 +7,8 @@
   "author": "Joshua Reinier",
   "license": "MIT",
   "scripts": {
-    "dev": "node esbuild.config.mjs",
-    "build": "npm run check && MODE=production node esbuild.config.mjs",
+    "dev": "cd ../../ && npm run dev:tr",
+    "build": "DIR=plugins/time-ruler cd ../../ && npm run build",
     "check": "tsc -noEmit -skipLibCheck"
   }
 }

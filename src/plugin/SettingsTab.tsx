@@ -126,12 +126,17 @@ export default class SettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Custom Filter')
-      .setDesc('Enable a custom Dataview filter to search tasks.')
+      .setDesc(
+        `Enable a custom Dataview filter to filter tasks (at the document level) which is passed to dv.pages('<custom filter>')`
+      )
       .addText((text) => {
-        text.setValue(this.plugin.settings.search).onChange((value) => {
-          this.plugin.settings.search = value
-          this.plugin.saveSettings()
-        })
+        text
+          .setPlaceholder(`dv.pages('<custom filter>')`)
+          .setValue(this.plugin.settings.search)
+          .onChange((value) => {
+            this.plugin.settings.search = value
+            this.plugin.saveSettings()
+          })
       })
 
     const customStatuses = new Setting(containerEl)

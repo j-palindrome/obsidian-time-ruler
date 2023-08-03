@@ -330,6 +330,19 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
   const buttonMaps = times.concat()
   buttonMaps.splice(1, 0, {})
 
+  const unscheduledButton = (
+    <Droppable id={'unscheduled::button'} data={{ scheduled: '' }}>
+      <Button
+        className={`h-[28px] ${calendarMode ? '!w-full flex-none' : ''}`}
+        onClick={() => {
+          setters.set({ searchStatus: 'unscheduled' })
+        }}
+      >
+        Unscheduled
+      </Button>
+    </Droppable>
+  )
+
   return (
     <>
       <div className={`flex w-full items-center space-x-1`}>
@@ -375,16 +388,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
           data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
           {calendarMode && dayPadding()}
-          <Droppable id={'unscheduled::button'} data={{ scheduled: '' }}>
-            <Button
-              className='h-[28px]'
-              onClick={() => {
-                setters.set({ searchStatus: 'unscheduled' })
-              }}
-            >
-              Unscheduled
-            </Button>
-          </Droppable>
+          {unscheduledButton}
           {times.map((times, i) => {
             const thisDate = DateTime.fromISO(times.startISO)
             return (

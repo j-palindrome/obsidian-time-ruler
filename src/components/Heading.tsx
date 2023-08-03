@@ -32,11 +32,18 @@ export default function Heading({
   )
 
   const dailyNoteDateTest = useMemo(() => {
-    const matchesPath = path.match(
-      new RegExp(`${escapeRegExp(dailyNotePath)}([^\\/#]+)$`)
-    )?.[1]
+    // reverting to simple format because it just is too finicky
+    let thisPath = path
+    if (thisPath.includes('/'))
+      thisPath = thisPath.slice(0, thisPath.lastIndexOf('/'))
+    const matchesPath = thisPath === dailyNotePath
     if (!matchesPath) return false
-    const date = moment(matchesPath, dailyNoteFormat)
+    const fileName = (
+      thisPath.includes('/')
+        ? thisPath.slice(thisPath.lastIndexOf('/') + 1)
+        : thisPath
+    ).replace('.md', '')
+    const date = moment(fileName, dailyNoteFormat)
     if (!date.isValid()) return false
     return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat('ccc, LLL d')}`
   }, [])
@@ -63,7 +70,7 @@ export default function Heading({
           return false
         }}
       >
-        {dailyNoteDateTest || name}
+        {name}
       </div>
       <div
         className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'
