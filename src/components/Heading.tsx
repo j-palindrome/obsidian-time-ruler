@@ -46,7 +46,7 @@ export default function Heading({
     const date = moment(fileName, dailyNoteFormat)
     if (!date.isValid()) return false
     return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat('ccc, LLL d')}`
-  }, [])
+  }, [path])
 
   return (
     <div
@@ -70,7 +70,7 @@ export default function Heading({
           return false
         }}
       >
-        {name}
+        {dailyNoteDateTest || name}
       </div>
       <div
         className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'

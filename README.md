@@ -62,6 +62,10 @@ When editing a task via drag-and-drop, tasks are converted to the user's preferr
 - You can **add or subtract** 5 minutes while the timer is playing by clicking the `+` and `-` buttons. 
 - Click the `focus` button (outwards arrows) to expand the timer and focus on current tasks. Shows all-day tasks if Calendar view is on, and only time-based tasks if not.
 
+## Customization Settings
+- **Custom Filter**: This is passed to `dv.pages(<custom filter>)`. It only filters out certain pages, and can't filter specific tasks within those. Use Custom Statuses to filter out tasks. 
+- **Custom Status**: Either **include only** certain custom statuses, or **exclude all** specified custom statuses (characters between `[ ]` in tasks).
+
 # Credit
 - Many thanks to the [Dataview](obsidian://show-plugin?id=dataview), [Tasks](obsidian://show-plugin?id=obsidian-tasks-plugin), and [Full Calendar](obsidian://show-plugin?id=obsidian-full-calendar) plugins for setting the standards and formatting for managing tasks across the Obsidian vault.
 - The Dataview plugin's MetadataCache made Time Ruler possible, so a huge thanks for the automatic indexing and parsing of task metadata.

@@ -79,9 +79,19 @@ export default class ObsidianAPI extends Component {
     const taskTest = new RegExp(
       `[${escapeRegExp(this.settings.customStatus.statuses)}]`
     )
-    const newTasks = (
-      dv.pages(this.settings.search)['file']['tasks'] as DataArray<STask>
-    )
+    let search: DataArray<STask>
+    try {
+      search = dv.pages(this.settings.search)['file'][
+        'tasks'
+      ] as DataArray<STask>
+    } catch (e) {
+      new Notice(
+        'Invalid Dataview query: ' + this.settings.search + '. Please reset.'
+      )
+      throw e
+    }
+
+    const newTasks = search
       .filter((task) => {
         return (
           taskTest.test(task.status) === this.settings.customStatus.include &&
@@ -186,6 +196,7 @@ export default class ObsidianAPI extends Component {
       path,
       heading,
       position,
+      status: ' ',
       ...dropData,
     }
 

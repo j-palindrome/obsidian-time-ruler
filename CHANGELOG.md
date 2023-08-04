@@ -2,7 +2,6 @@
 
 ## In progress
 - Add support for [Full Calendar full notes](https://github.com/joshuatazrein/obsidian-time-ruler/issues/10#issuecomment-1655804209)
-- Update documentation for [custom Dataview filters](https://github.com/joshuatazrein/obsidian-time-ruler/issues/18) and throw an error when they are invalid
 
 ## Planned
 -  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
@@ -17,7 +16,10 @@
 # Changelog
 
 ## 1.0.4 (Upcoming)
-- **Fixed:** `Unscheduled` button is full-width in Day view.
+- **Fixed:** `Unscheduled` button is now full-width in Day view
+- **Fixed:** Preserves [custom statuses](https://github.com/joshuatazrein/obsidian-time-ruler/issues/19) on edit
+- **Fixed:** Certain notes get mistaken for daily notes
+- **Documented:** Update documentation for [custom Dataview filters](https://github.com/joshuatazrein/obsidian-time-ruler/issues/18) and throw an error when they are invalid
 
 ## 1.0.3 (7/30/2023)
 - **Fixed:** Issue with Time Ruler not updating when Dataview index wasn't ready yet

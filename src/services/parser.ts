@@ -182,6 +182,7 @@ export function textToTask(item: any): TaskProps {
         child.completion ? [] : parseId(child as STask)
       ) ?? [],
     type: 'task',
+    status: item.status,
     due,
     scheduled,
     length,
@@ -202,10 +203,11 @@ export function textToTask(item: any): TaskProps {
 }
 
 export function taskToText(task: TaskProps, fieldFormat: FieldFormat) {
-  let draft = `- [${task.completion ? 'x' : ' '}] ${task.originalTitle.replace(
-    /\s+$/,
-    ''
-  )} ${task.tags.length > 0 ? task.tags.join(' ') + ' ' : ''}`
+  let draft = `- [${
+    task.completion ? 'x' : task.status
+  }] ${task.originalTitle.replace(/\s+$/, '')} ${
+    task.tags.length > 0 ? task.tags.join(' ') + ' ' : ''
+  }`
 
   if (task.extraFields) {
     _.sortBy(_.entries(task.extraFields), 0).forEach(([key, value]) => {

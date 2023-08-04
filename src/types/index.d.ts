@@ -1,5 +1,5 @@
 import { STask } from 'obsidian-dataview'
-import { GroupProps } from '../components/Block'
+import { GroupProps } from '../components/Group'
 import { EventComponentProps } from '../components/Event'
 import { TaskComponentProps } from '../components/Task'
 
@@ -31,6 +31,7 @@ declare global {
     length?: { hour: number; minute: number }
     parent?: string
     heading?: string
+    status: string
 
     // TASKS values, to be translated to emojis if setting is enabled
     created?: string

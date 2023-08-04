@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "cd ../../ && npm run dev:tr",
-    "build": "DIR=plugins/time-ruler cd ../../ && npm run build",
+    "build": "cd ../../.. && DIR=plugins/time-ruler npm run build",
     "check": "tsc -noEmit -skipLibCheck"
   }
 }
