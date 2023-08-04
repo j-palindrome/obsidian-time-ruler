@@ -46,7 +46,7 @@
 - **Added:** Calendar view (according to the [Calendar view?](https://github.com/joshuatazrein/obsidian-time-ruler/issues/1) request). Calendar View is daily instead of hourly, showing a vertical day-by-day list of your tasks and an expanded, calendar-style arrangement for switching dates. Switch between this and the hourly view to get a more or less granular view of your tasks.
 - **Added:** Daily note shows at the top of the search box for easy access
 
-## 6/28/2023 (1.0.0)
+## 1.0.0 (6/28/2023)
 - **Added:** custom Dataview filter for tasks (according to the [Custom Statuses](https://github.com/joshuatazrein/obsidian-time-ruler/issues/3) request)
 - **Added:** Plus buttons to add new tasks at specific times
 - **Fixed:** [issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/2) with formatting tasks for Tasks plugin
