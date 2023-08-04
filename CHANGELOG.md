@@ -15,7 +15,7 @@
 
 # Changelog
 
-## 1.0.4 (Upcoming)
+## 1.0.4 (8/4/2023)
 - **Fixed:** `Unscheduled` button is now full-width in Day view
 - **Fixed:** Preserves [custom statuses](https://github.com/joshuatazrein/obsidian-time-ruler/issues/19) on edit
 - **Fixed:** Certain notes get mistaken for daily notes
