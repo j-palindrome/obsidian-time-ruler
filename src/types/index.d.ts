@@ -76,4 +76,6 @@ declare global {
     | ({ dragType: 'time' } & { start: string; due: boolean })
 
   type DropData = Partial<TaskProps> | { type: 'heading'; heading: string }
+
+  type BlockData = [string, (EventProps | TaskProps)[]]
 }

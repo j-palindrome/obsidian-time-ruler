@@ -5,10 +5,11 @@ import Button from './Button'
 import Block from './Block'
 import { useAppStore } from '../app/store'
 import _ from 'lodash'
-import { isDateISO } from '../services/util'
+import { isDateISO, processLength } from '../services/util'
 import { shallow } from 'zustand/shallow'
 import Event from './Event'
 import invariant from 'tiny-invariant'
+import Timeline from './Timeline'
 
 export function Timer() {
   const pauseExpiration = useRef(true)
@@ -121,29 +122,6 @@ export function Timer() {
     }
   }
 
-  const currentTasks: TaskProps[][] = useAppStore((state) => {
-    if (!expanded) return []
-    const now = DateTime.now().plus({ minutes: 15 }).toISO() as string
-    const tasks = _.sortBy(
-      _.entries(
-        _.groupBy(
-          _.filter(
-            state.tasks,
-            (task) =>
-              !!(
-                task.scheduled &&
-                (state.calendarMode || !isDateISO(task.scheduled)) &&
-                task.scheduled < now
-              )
-          ),
-          'scheduled'
-        )
-      ),
-      0
-    ).map((x) => x[1])
-    return tasks
-  }, shallow)
-
   return (
     <div
       className={`${
@@ -204,18 +182,12 @@ export function Timer() {
       </div>
       {expanded && (
         <div className='h-full w-full space-y-2 overflow-y-auto py-2 text-base'>
-          {currentTasks.map((tasks) => {
-            invariant(tasks[0].scheduled)
-            return (
-              <Event
-                key={tasks[0].scheduled}
-                tasks={tasks}
-                startISO={tasks[0].scheduled}
-                endISO={tasks[0].scheduled}
-                blocks={[]}
-              />
-            )
-          })}
+          <Timeline
+            startISO={DateTime.now().toISODate() as string}
+            endISO={DateTime.now().plus({ day: 1 }).toISODate() as string}
+            hideTimes
+            type='minutes'
+          />
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ import { isDateISO } from '../services/util'
 import Block from './Block'
 import Droppable from './Droppable'
 import Times, { TimeSpanTypes } from './Times'
-import TimeSpan, { BlockData } from './TimeSpan'
+import TimeSpan from './TimeSpan'
 import Logo from './Logo'
 import Button from './Button'
 import $ from 'jquery'
@@ -94,7 +94,7 @@ export default function Event({
           </div>
         )}
 
-        <hr className='w-full border-t border-faint'></hr>
+        <hr className='my-0 w-full border-t border-faint'></hr>
 
         <span className='ml-2 whitespace-nowrap'>{formatStart(startISO)}</span>
         {!DateTime.fromISO(startISO).diff(DateTime.fromISO(endISO)) && (

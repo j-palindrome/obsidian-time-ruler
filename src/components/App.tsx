@@ -75,7 +75,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       startISO: today.toISODate() as string,
       endISO: today.plus({ days: 1 }).toISODate() as string,
       type: 'minutes',
-      includePast: true,
     },
     ..._.range(1, datesShown).map((i) => ({
       startISO: today.plus({ days: i }).toISODate() as string,
@@ -181,6 +180,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const getDragElement = () => {
     if (!activeDrag) return <></>
+    console.log(activeDrag)
+
     switch (activeDrag.dragType) {
       case 'task':
         return <Task {...activeDrag} />
@@ -259,7 +260,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }, [])
 
   const calendarMode = useAppStore((state) => state.calendarMode)
-  useEffect(scrollToNow, [calendarMode])
+  useEffect(scrollToNow, [])
 
   return (
     <DndContext

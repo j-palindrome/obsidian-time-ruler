@@ -54,7 +54,9 @@ export default function Group({
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id: `${id}::${dragContainer}::${type}`,
+      id: `${id}::${tasks[0].path}${
+        level === 'heading' ? '::' + tasks[0].heading : ''
+      }::${dragContainer}::${type}`,
       data: dragData,
     })
 
@@ -88,7 +90,7 @@ export default function Group({
       )}
 
       {level === 'group'
-        ? sortedHeadings.map(([name, tasks], i) => (
+        ? sortedHeadings.map(([name, tasks]) => (
             <Group
               level='heading'
               key={name}

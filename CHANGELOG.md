@@ -11,6 +11,7 @@
 - Right-click option to [schedule tasks for now](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621)
 - More specific Dataview custom filter [at task level](https://github.com/joshuatazrein/obsidian-time-ruler/issues/18)
 - Options to drag [deadlines and reminder times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
+- A [simple mode](https://github.com/joshuatazrein/obsidian-time-ruler/issues/21) with `HH:mm-HH:mm` formatting for scheduled times.
 
 ## Considering
 - Providing [names for time blocks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) (perhaps by moving tasks with durations to the "name" field of a time block)
@@ -18,6 +19,9 @@
 # Changelog
 
 ## 1.0.5 (Upcoming)
+- **Improved:** Timer focus mode
+- **Fixed:** Error with drag `id`s for all-day  headings
+- **Fixed:** Scheduled tasks with deadlines disappearing
 
 ## 1.0.4 (8/4/2023)
 - **Fixed:** `Unscheduled` button is now full-width in Day view

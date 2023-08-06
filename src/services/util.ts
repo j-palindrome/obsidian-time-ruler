@@ -4,7 +4,7 @@ export function roundMinutes(date: DateTime) {
   return date.set({
     minute: Math.floor(date.minute / 15) * 15,
     second: 0,
-    millisecond: 0
+    millisecond: 0,
   })
 }
 
@@ -28,3 +28,37 @@ export function deleteTextAtCaret(chars: number) {
 }
 
 export const isDateISO = (isoString: string) => isoString.length === 10
+
+export const processLength = ([time, items]: BlockData) => {
+  const events: EventProps[] = []
+  const tasks: TaskProps[] = []
+
+  for (let item of items) {
+    if (item.type === 'event') events.push(item)
+    else tasks.push(item)
+  }
+  const tasksWithLength = tasks.filter((task) => task.length) as (TaskProps & {
+    length: NonNullable<TaskProps['length']>
+  })[]
+  const totalLength =
+    events.length > 0
+      ? (DateTime.fromISO(events[0].endISO)
+          .diff(DateTime.fromISO(events[0].startISO))
+          .shiftTo('hour', 'minute')
+          .toObject() as { hour: number; minute: number })
+      : tasksWithLength.reduce(
+          ({ hour, minute }, task) => ({
+            hour: hour + task.length.hour,
+            minute: minute + task.length.minute,
+          }),
+          { hour: 0, minute: 0 }
+        )
+
+  const endTime = DateTime.fromISO(time).plus(totalLength).toISO({
+    includeOffset: false,
+    suppressMilliseconds: true,
+    suppressSeconds: true,
+  }) as string
+
+  return { events, tasks, endISO: endTime }
+}

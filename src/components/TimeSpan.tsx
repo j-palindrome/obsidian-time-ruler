@@ -4,13 +4,12 @@ import { Fragment, useEffect, useState } from 'react'
 import { shallow } from 'zustand/shallow'
 import { setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
-import { isDateISO } from '../services/util'
+import { isDateISO, processLength } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
 import Times, { TimeSpanTypes } from './Times'
 
-export type BlockData = [string, (EventProps | TaskProps)[]]
 export default function TimeSpan({
   startISO,
   endISO,
@@ -18,6 +17,7 @@ export default function TimeSpan({
   type,
   startWithHours = false,
   chopStart = false,
+  hideTimes = false,
 }: {
   startISO: string
   endISO: string
@@ -25,10 +25,8 @@ export default function TimeSpan({
   type: TimeSpanTypes
   startWithHours?: boolean
   chopStart?: boolean
+  hideTimes?: boolean
 }) {
-  const now = DateTime.now().toISO() as string
-  const calendarMode = useAppStore((state) => state.calendarMode)
-
   const formattedBlocks: {
     startISO: string
     endISO: string
@@ -36,42 +34,6 @@ export default function TimeSpan({
     events: EventProps[]
     blocks: BlockData[]
   }[] = []
-
-  const processLength = ([time, items]: BlockData) => {
-    const events: EventProps[] = []
-    const tasks: TaskProps[] = []
-
-    for (let item of items) {
-      if (item.type === 'event') events.push(item)
-      else tasks.push(item)
-    }
-    const tasksWithLength = tasks.filter(
-      (task) => task.length
-    ) as (TaskProps & {
-      length: NonNullable<TaskProps['length']>
-    })[]
-    const totalLength =
-      events.length > 0
-        ? (DateTime.fromISO(events[0].endISO)
-            .diff(DateTime.fromISO(events[0].startISO))
-            .shiftTo('hour', 'minute')
-            .toObject() as { hour: number; minute: number })
-        : tasksWithLength.reduce(
-            ({ hour, minute }, task) => ({
-              hour: hour + task.length.hour,
-              minute: minute + task.length.minute,
-            }),
-            { hour: 0, minute: 0 }
-          )
-
-    const endTime = DateTime.fromISO(time).plus(totalLength).toISO({
-      includeOffset: false,
-      suppressMilliseconds: true,
-      suppressSeconds: true,
-    }) as string
-
-    return { events, tasks, endISO: endTime }
-  }
 
   for (let i = 0; i < blocks.length; i++) {
     const [startISO, _tasks] = blocks[i]
@@ -102,7 +64,7 @@ export default function TimeSpan({
 
   return (
     <div className='pb-1'>
-      {!calendarMode && (
+      {!hideTimes && (
         <Times
           dragContainer={startISO}
           type={startWithHours ? 'hours' : type}
@@ -140,9 +102,7 @@ export default function TimeSpan({
                 blocks={thisBlocks}
               />
 
-              {calendarMode ? (
-                <div className='h-2'></div>
-              ) : (
+              {!hideTimes && (
                 <Times
                   dragContainer={startISO}
                   type={type}

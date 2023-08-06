@@ -11,16 +11,18 @@ import Event from './Event'
 import Times, { TimeSpanTypes } from './Times'
 import TimeSpan from './TimeSpan'
 import Task from './Task'
+import invariant from 'tiny-invariant'
 
 export default function Timeline({
   startISO,
   endISO,
   type,
+  hideTimes = false,
 }: {
-  includePast?: boolean
   startISO: string
   endISO: string
   type: TimeSpanTypes
+  hideTimes?: boolean
 }) {
   const now = DateTime.now().toISO() as string
   const events = useAppStore((state) => {
@@ -35,18 +37,18 @@ export default function Timeline({
     )
   }, shallow)
 
-  const filterAllDayChildren = (tasks: TaskProps[]) => {
-    const tasksMap = _.fromPairs(tasks.map((task) => [task.id, task]))
-    return tasks.filter(
-      (task) =>
-        !(
-          task.parent &&
-          tasksMap[task.parent] &&
-          task.scheduled &&
-          isDateISO(task.scheduled)
-        )
-    )
-  }
+  // const filterAllDayChildren = (tasks: TaskProps[]) => {
+  //   const thisTaskIds = new Set(tasks.map((task) => task.id))
+  //   return tasks.filter(
+  //     (task) =>
+  //       !(
+  //         task.parent &&
+  //         thisTaskIds.has(task.parent) &&
+  //         task.scheduled &&
+  //         isDateISO(task.scheduled)
+  //       )
+  //   )
+  // }
 
   const isToday =
     startISO.slice(0, 10) === (DateTime.now().toISODate() as string)
@@ -56,24 +58,26 @@ export default function Timeline({
     const dueTasks: TaskProps[] = []
     const allDayTasks: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
+      const scheduledForToday =
+        task.scheduled &&
+        task.scheduled < endISO &&
+        (isToday || task.scheduled >= startISO)
       if (
-        (!task.scheduled || task.scheduled < startISO) &&
+        !scheduledForToday &&
         task.due &&
         (task.due >= startISO || (isToday && task.due < endISO))
       ) {
         dueTasks.push(task)
-      } else if (task.scheduled && task.scheduled < endISO) {
+      } else if (scheduledForToday) {
+        invariant(task.scheduled)
         if (task.scheduled > startISO) {
           tasks.push(task)
-        } else if (
-          task.scheduled === startISO ||
-          (isToday && task.scheduled <= startISO)
-        ) {
+        } else {
           allDayTasks.push(task)
         }
       }
     })
-    return [filterAllDayChildren(tasks), dueTasks, allDayTasks]
+    return [tasks, dueTasks, allDayTasks]
   }, shallow)
 
   const allDayEvents: EventProps[] = []
@@ -99,15 +103,17 @@ export default function Timeline({
 
   const calendarMode = useAppStore((state) => state.calendarMode)
 
+  const hidingTimes = hideTimes || calendarMode
+
   const timeSpan = (
     <TimeSpan
       {...{ startISO, endISO, type, blocks: timeBlocks }}
       startWithHours={startISO !== DateTime.now().toISODate()}
+      hideTimes={hidingTimes}
     />
   )
 
   const [expanded, setExpanded] = useState(true)
-  const isExpanded = calendarMode || expanded
 
   const foundTaskInAllDay = useAppStore((state) => {
     return state.findingTask &&
@@ -117,7 +123,7 @@ export default function Timeline({
   })
 
   const expandIfFound = () => {
-    if (foundTaskInAllDay && !isExpanded) {
+    if (foundTaskInAllDay && !expanded) {
       setExpanded(true)
       const foundTask = allDayTasks.find(
         (task) => task.id === foundTaskInAllDay
@@ -143,13 +149,11 @@ export default function Timeline({
             }}
           />
           <div className='w-full rounded-lg px-1'>{title || ''}</div>
-          {!calendarMode && (
-            <Button
-              className='aspect-square h-full'
-              onClick={() => setExpanded(!isExpanded)}
-              src={isExpanded ? 'chevron-up' : 'chevron-down'}
-            />
-          )}
+          <Button
+            className='aspect-square h-full'
+            onClick={() => setExpanded(!expanded)}
+            src={expanded ? 'chevron-up' : 'chevron-down'}
+          />
         </div>
       </Droppable>
       <div
@@ -158,7 +162,7 @@ export default function Timeline({
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        {isExpanded && (
+        {expanded && (
           <div
             className={`relative mt-2 w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
               calendarMode ? '' : 'max-h-[50%] flex-none'
