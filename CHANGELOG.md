@@ -2,6 +2,7 @@
 
 ## In progress
 - Add support for [Full Calendar full notes](https://github.com/joshuatazrein/obsidian-time-ruler/issues/10#issuecomment-1655804209)
+- Add formatting for [Obsidian Reminder](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20)
 
 ## Planned
 -  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
@@ -9,11 +10,14 @@
 - Option to [add tasks at start or end of headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/12)
 - Right-click option to [schedule tasks for now](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621)
 - More specific Dataview custom filter [at task level](https://github.com/joshuatazrein/obsidian-time-ruler/issues/18)
+- Options to drag [deadlines and reminder times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
 
 ## Considering
 - Providing [names for time blocks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) (perhaps by moving tasks with durations to the "name" field of a time block)
 
 # Changelog
+
+## 1.0.5 (Upcoming)
 
 ## 1.0.4 (8/4/2023)
 - **Fixed:** `Unscheduled` button is now full-width in Day view
