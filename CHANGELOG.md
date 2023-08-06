@@ -2,7 +2,6 @@
 
 ## In progress
 - Add support for [Full Calendar full notes](https://github.com/joshuatazrein/obsidian-time-ruler/issues/10#issuecomment-1655804209)
-- Add formatting for [Obsidian Reminder](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20)
 
 ## Planned
 -  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
@@ -18,7 +17,12 @@
 
 # Changelog
 
-## 1.0.5 (Upcoming)
+## 1.0.6 (Upcoming)
+- **Improved:** Moved search, refresh, and view buttons to a collapsible menu
+
+## 1.0.5 (8/6/2023)
+- **Added:** Support for [Obsidian Reminder](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20)
+- **Improved:** Time Ruler now auto-detects field formats (Dataview, Tasks, and Full Calendar) and will format changed tasks appropriately. When auto-detecting is impossible, defaults to selected setting.
 - **Improved:** Timer focus mode
 - **Fixed:** Error with drag `id`s for all-day  headings
 - **Fixed:** Scheduled tasks with deadlines disappearing

@@ -25,6 +25,7 @@ export const priorityKeyToNumber = {
 export const priorityNumberToKey = _.invert(priorityKeyToNumber)
 
 export const keyToTasksEmoji = {
+  reminder: '⏰',
   scheduled: '⏳',
   due: '📅',
   start: '🛫',

@@ -10,7 +10,6 @@ import {
 } from '../types/enums'
 import _ from 'lodash'
 import { isDateISO } from './util'
-import TimeRulerPlugin, { FieldFormat } from '../main'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
@@ -27,12 +26,16 @@ export function textToTask(item: any): TaskProps {
   const TAG_SEARCH = /#[\w-\/]+ */g
   const MD_LINK_SEARCH = /\[\[(.*?)\]\]/g
   const LINK_SEARCH = /\[(.*?)\]\(.*?\)/g
+  const REMINDER_MATCH = new RegExp(
+    ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`
+  )
 
   const originalTitle: string = (item.text.match(/(.*?)(\n|$)/)?.[1] ?? '')
     .replace(INLINE_FIELD_SEARCH, '')
     .replace(TASKS_REPEAT_SEARCH, '')
     .replace(TASKS_EMOJI_SEARCH, '')
     .replace(TAG_SEARCH, '')
+    .replace(REMINDER_MATCH, '')
   let title: string = originalTitle
     .replace(MD_LINK_SEARCH, '$1')
     .replace(LINK_SEARCH, '$1')
@@ -143,6 +146,24 @@ export function textToTask(item: any): TaskProps {
     return date
   }
 
+  const parseReminder = () => {
+    const tasksReminders = new RegExp(
+      `${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)`
+    )
+    const nativeReminders = new RegExp(
+      /\(@(\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?)\)/
+    )
+    const kanbanReminders = /@\{(\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?)\}/
+    const reminder =
+      item.text.match(tasksReminders)?.[1] ??
+      item.text.match(nativeReminders)?.[1] ??
+      item.text.match(kanbanReminders)?.[1] ??
+      undefined
+
+    if (reminder) title = title.replace(reminder, '')
+    return reminder
+  }
+
   const parsePriority = (): number => {
     let priority = item['priority']
 
@@ -174,6 +195,7 @@ export function textToTask(item: any): TaskProps {
   const repeat = parseRepeat()
   const priority = parsePriority()
   const length = parseLength(scheduled)
+  const reminder = parseReminder()
 
   return {
     id: parseId(item),
@@ -183,12 +205,14 @@ export function textToTask(item: any): TaskProps {
       ) ?? [],
     type: 'task',
     status: item.status,
+    reminder,
     due,
     scheduled,
     length,
     tags: item.tags,
     title,
     originalTitle,
+    originalText: item.text,
     notes,
     repeat,
     extraFields: _.keys(extraFields).length > 0 ? extraFields : undefined,
@@ -202,7 +226,33 @@ export function textToTask(item: any): TaskProps {
   }
 }
 
-export function taskToText(task: TaskProps, fieldFormat: FieldFormat) {
+const detectFieldFormat = (
+  text: string,
+  defaultFormat: FieldFormat['main']
+): FieldFormat => {
+  const parseMain = (): FieldFormat['main'] => {
+    for (let emoji of Object.keys(TasksEmojiToKey)) {
+      if (text.contains(emoji)) return 'tasks'
+    }
+    if (/\[allDay:: |\[date:: |\[startTime:: |\[endTime:: /.test(text))
+      return 'full-calendar'
+    if (/\[scheduled:: |\[due:: /.test(text)) return 'dataview'
+    return defaultFormat
+  }
+
+  const parseReminder = (): FieldFormat['reminder'] => {
+    if (text.contains(keyToTasksEmoji.reminder)) return 'tasks'
+    if (/@\{\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?\}/.test(text)) return 'kanban'
+    return 'native'
+  }
+
+  return { main: parseMain(), reminder: parseReminder() }
+}
+
+export function taskToText(
+  task: TaskProps,
+  defaultFieldFormat: FieldFormat['main']
+) {
   let draft = `- [${
     task.completion ? 'x' : task.status
   }] ${task.originalTitle.replace(/\s+$/, '')} ${
@@ -215,9 +265,27 @@ export function taskToText(task: TaskProps, fieldFormat: FieldFormat) {
     })
   }
 
-  switch (fieldFormat) {
+  const { main, reminder } = detectFieldFormat(
+    task.originalText,
+    defaultFieldFormat
+  )
+
+  const formatReminder = (): string => {
+    if (!task.reminder) return ''
+    switch (reminder) {
+      case 'kanban':
+        return ` @{${task.reminder}}`
+      case 'native':
+        return ` (@${task.reminder})`
+      case 'tasks':
+        return ` ${keyToTasksEmoji.reminder} ${task.reminder}`
+    }
+  }
+
+  switch (main) {
     case 'dataview':
       if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
+      draft += formatReminder()
       if (task.due) draft += `  [due:: ${task.due}]`
       if (task.length && task.length.hour + task.length.minute > 0) {
         draft += `  [length:: ${
@@ -245,6 +313,7 @@ export function taskToText(task: TaskProps, fieldFormat: FieldFormat) {
           draft += `  [startTime:: ${task.scheduled.slice(11)}]`
         else draft += '  [allDay:: true]'
       }
+      draft += formatReminder()
       if (task.due) draft += `  [due:: ${task.due}]`
       if (
         task.length &&
@@ -276,6 +345,7 @@ export function taskToText(task: TaskProps, fieldFormat: FieldFormat) {
       if (task.scheduled && !isDateISO(task.scheduled)) {
         draft += `  [startTime:: ${task.scheduled.slice(11)}]`
       }
+      draft += formatReminder()
       if (task.priority && task.priority !== TaskPriorities.DEFAULT)
         draft += ` ${keyToTasksEmoji[priorityNumberToKey[task.priority]]}`
       if (task.repeat) draft += ` ${keyToTasksEmoji.repeat} ${task.repeat}`

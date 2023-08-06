@@ -11,7 +11,7 @@ import {
 } from 'obsidian'
 import { useEffect, useRef } from 'react'
 import { Root, createRoot } from 'react-dom/client'
-import TimeRulerPlugin, { FieldFormat } from '../main'
+import TimeRulerPlugin from '../main'
 
 const WEBCAL = 'webcal'
 
@@ -88,10 +88,14 @@ export default class SettingsTab extends PluginSettingTab {
     let { containerEl } = this
     containerEl.empty()
 
+    new Setting(containerEl).setDesc(
+      'Reopen the Time Ruler view for changes to take effect.'
+    )
+
     const format = new Setting(containerEl)
-      .setName('Field Format')
+      .setName('Preferred Field Format')
       .setDesc(
-        'Choose which style of inline fields to use (parses scheduled date or time, due, priority, completion, and start).'
+        'Choose which style of inline fields to use as a default (parses scheduled date/time, due, priority, completion, reminder, and start).'
       )
     format.addDropdown((dropdown) => {
       dropdown.addOptions({
@@ -100,18 +104,11 @@ export default class SettingsTab extends PluginSettingTab {
         tasks: 'Tasks',
       })
       dropdown.setValue(this.plugin.settings.fieldFormat)
-      dropdown.onChange((value: FieldFormat) => {
+      dropdown.onChange((value: FieldFormat['main']) => {
         this.plugin.settings.fieldFormat = value
         this.plugin.saveSettings()
       })
     })
-
-    const div = $(/*html*/ `
-      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px">
-        This setting is only used to edit tasks. Time Ruler parses any relevant fields from the Tasks, Full Calendar, and Dataview plugins. When it edits tasks, it converts them back to your preferred format. 
-      </div>
-    `)[0]
-    containerEl.appendChild(div)
 
     new Setting(containerEl)
       .setName('Muted')
@@ -195,10 +192,6 @@ export default class SettingsTab extends PluginSettingTab {
 
     this.calendarDisplay = containerEl.appendChild(createEl('div'))
     this.root = createRoot(this.calendarDisplay)
-
-    new Setting(containerEl).setDesc(
-      'Reopen the Time Ruler view for changes to take effect.'
-    )
 
     await Promise.all(
       this.plugin.settings.calendars.map((calendar) =>

@@ -4,10 +4,9 @@ import TimeRulerView, { TIME_RULER_VIEW } from './index'
 import SettingsTab from './plugin/SettingsTab'
 import { openTaskInRuler } from './services/obsidianApi'
 
-export type FieldFormat = 'tasks' | 'dataview' | 'full-calendar'
 interface TimeRulerSettings {
   calendars: string[]
-  fieldFormat: FieldFormat
+  fieldFormat: FieldFormat['main']
   muted: boolean
   inbox: string | null
   search: string
@@ -20,8 +19,8 @@ interface TimeRulerSettings {
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
   calendars: [],
-  muted: false,
   fieldFormat: 'dataview',
+  muted: false,
   inbox: null,
   search: '',
   fileOrder: [],

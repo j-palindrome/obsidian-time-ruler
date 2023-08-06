@@ -37,12 +37,12 @@ export default function Heading({
     if (thisPath.includes('/'))
       thisPath = thisPath.slice(0, thisPath.lastIndexOf('/'))
     const matchesPath = thisPath === dailyNotePath
+
     if (!matchesPath) return false
     const fileName = (
-      thisPath.includes('/')
-        ? thisPath.slice(thisPath.lastIndexOf('/') + 1)
-        : thisPath
+      path.includes('/') ? path.slice(path.lastIndexOf('/') + 1) : path
     ).replace('.md', '')
+
     const date = moment(fileName, dailyNoteFormat)
     if (!date.isValid()) return false
     return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat('ccc, LLL d')}`

@@ -4,6 +4,11 @@ import { EventComponentProps } from '../components/Event'
 import { TaskComponentProps } from '../components/Task'
 
 declare global {
+  type FieldFormat = {
+    main: 'dataview' | 'full-calendar' | 'tasks'
+    reminder: 'native' | 'tasks' | 'kanban'
+  }
+
   type EventProps = {
     id: string
     startISO: string
@@ -22,6 +27,7 @@ declare global {
     type: 'task' | 'parent' | 'deadline' | 'link' | 'search'
     title: string
     originalTitle: string
+    originalText: string
     notes?: string
     tags: string[]
     children: string[]
@@ -32,6 +38,9 @@ declare global {
     parent?: string
     heading?: string
     status: string
+
+    // Obsidian Reminder
+    reminder?: string
 
     // TASKS values, to be translated to emojis if setting is enabled
     created?: string
@@ -78,4 +87,10 @@ declare global {
   type DropData = Partial<TaskProps> | { type: 'heading'; heading: string }
 
   type BlockData = [string, (EventProps | TaskProps)[]]
+}
+
+declare module 'obsidian' {
+  interface Vault {
+    getConfig: (key: string) => string | undefined
+  }
 }

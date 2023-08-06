@@ -1,23 +1,22 @@
 import $ from 'jquery'
 import _, { escapeRegExp } from 'lodash'
-import { DateTime, Duration } from 'luxon'
-import { App, Component, MarkdownView, Notice, Platform, TFile } from 'obsidian'
+import { DateTime } from 'luxon'
+import moment from 'moment'
+import {
+  App,
+  Component,
+  MarkdownView,
+  Notice,
+  Platform,
+  TFile,
+  normalizePath,
+} from 'obsidian'
 import { DataArray, DataviewApi, STask, getAPI } from 'obsidian-dataview'
 import { AppState, getters, setters } from '../app/store'
 import { sounds } from '../assets/assets'
 import TimeRulerPlugin from '../main'
-import {
-  RESERVED_FIELDS,
-  TaskPriorities,
-  TasksEmojiToKey,
-  keyToTasksEmoji,
-  priorityKeyToNumber,
-  priorityNumberToKey,
-} from '../types/enums'
-import { isDateISO } from './util'
-import moment from 'moment'
+import { TaskPriorities } from '../types/enums'
 import { taskToText, textToTask } from './parser'
-import { FieldFormat } from '../main'
 
 let dv: DataviewApi
 
@@ -189,6 +188,7 @@ export default class ObsidianAPI extends Component {
       children: [],
       title: '',
       originalTitle: '',
+      originalText: '',
       tags: [],
       priority: TaskPriorities.DEFAULT,
       id: '',
@@ -263,20 +263,19 @@ export async function getDailyNoteInfo(): Promise<
   Pick<AppState, 'dailyNote' | 'dailyNoteFormat' | 'dailyNotePath'> | undefined
 > {
   try {
-    const dailyNoteSettings = app.vault.configDir + '/daily-notes.json'
     let folder = '',
       format = 'YYYY-MM-DD'
-    if (app.vault.getAbstractFileByPath(dailyNoteSettings)) {
+    try {
       const settings = JSON.parse(
         await app.vault.adapter.read(app.vault.configDir + '/daily-notes.json')
       )
       if (settings.folder) folder = settings.folder
       if (settings.format) format = settings.format
-    }
+    } catch (error) {}
 
     const today = moment().format(format)
     return {
-      dailyNote: folder ? folder + '/' + today : today,
+      dailyNote: normalizePath(folder) + '/' + today,
       dailyNoteFormat: format,
       dailyNotePath: folder,
     }

@@ -10,6 +10,7 @@ import Block from './Block'
 import Button from './Button'
 import { useMemo } from 'react'
 import moment from 'moment'
+import Logo from './Logo'
 
 export type TaskComponentProps = {
   id: string
@@ -201,6 +202,14 @@ export default function Task({
             onClick={() => openTaskInRuler(task.position.start.line, task.path)}
           >
             {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
+          </div>
+        )}
+        {task.reminder && (
+          <div className='ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
+            <Logo src='alarm-clock' className='mr-1' />
+            <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
+              'M/d'
+            )}${task.reminder.slice(10)}`}</span>
           </div>
         )}
       </div>

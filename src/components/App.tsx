@@ -40,6 +40,7 @@ import { Platform } from 'obsidian'
 import { getDailyNoteInfo } from '../services/obsidianApi'
 import Heading from './Heading'
 import Group from './Group'
+import Logo from './Logo'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -180,7 +181,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const getDragElement = () => {
     if (!activeDrag) return <></>
-    console.log(activeDrag)
 
     switch (activeDrag.dragType) {
       case 'task':
@@ -284,6 +284,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         }}
       >
         <DragOverlay dropAnimation={null}>{getDragElement()}</DragOverlay>
+        <Search />
         <Buttons {...{ times, datesShown, setDatesShown, datesShownState }} />
         <Timer />
         <div
@@ -319,6 +320,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
 
   const nextButton = (
     <Button
+      className={`${calendarMode ? '!w-full' : ''}`}
       onClick={() => setDatesShown(datesShownState + 7)}
       src={'chevron-right'}
     />
@@ -334,7 +336,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
   const unscheduledButton = (
     <Droppable id={'unscheduled::button'} data={{ scheduled: '' }}>
       <Button
-        className={`h-[28px] ${calendarMode ? '!w-full flex-none' : ''}`}
+        className={`h-[28px]`}
         onClick={() => {
           setters.set({ searchStatus: 'unscheduled' })
         }}
@@ -347,39 +349,56 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
   return (
     <>
       <div className={`flex w-full items-center space-x-1`}>
-        <div
-          className={`space-2 flex-none ${
-            calendarMode
-              ? 'grid grid-cols-2'
-              : 'flex items-center justify-center'
-          }`}
-        >
-          <Search />
-
-          <Button
-            title='reload'
-            onClick={async () => {
-              getters.getCalendarAPI().loadEvents()
-              const obsidianAPI = getters.getObsidianAPI()
-              setters.set({
-                ...(await getDailyNoteInfo()),
-              })
-              obsidianAPI.loadTasks()
-            }}
-            src={'rotate-cw'}
-          />
-
-          <Button
-            title='toggle day view'
-            onClick={() => {
-              setters.set({
-                calendarMode: !calendarMode,
-              })
-            }}
-            src={calendarMode ? 'calendar-days' : 'calendar'}
-          ></Button>
-          {calendarMode && nextButton}
+        <div className='text-left'>
+          <div className='group relative'>
+            <Button src='more-horizontal' />
+            <div className='absolute left-0 top-full z-50 hidden max-w-[80vw] p-2 group-hover:block'>
+              <div className='rounded-lg border border-solid border-faint bg-primary p-2'>
+                <div
+                  className='clickable-icon flex items-center !justify-start space-x-2'
+                  onClick={() => {
+                    setters.set({ searchStatus: 'all' })
+                  }}
+                >
+                  <Logo src={'search'} className='w-6 flex-none' />
+                  <span className='whitespace-nowrap'>Search</span>
+                </div>
+                <div
+                  className='clickable-icon flex items-center !justify-start space-x-2'
+                  onClick={async () => {
+                    getters.getCalendarAPI().loadEvents()
+                    const obsidianAPI = getters.getObsidianAPI()
+                    setters.set({
+                      ...(await getDailyNoteInfo()),
+                    })
+                    obsidianAPI.loadTasks()
+                  }}
+                >
+                  <Logo src={'rotate-cw'} className='w-6 flex-none' />
+                  <span className='whitespace-nowrap'>Reload</span>
+                </div>
+                <div
+                  className='clickable-icon flex items-center !justify-start space-x-2'
+                  onClick={() => {
+                    setters.set({
+                      calendarMode: !calendarMode,
+                    })
+                  }}
+                >
+                  <Logo
+                    src={calendarMode ? 'calendar-days' : 'calendar'}
+                    className='w-6 flex-none'
+                  />
+                  <span className='whitespace-nowrap'>{`${
+                    calendarMode ? 'Hourly' : 'Daily'
+                  } view`}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {calendarMode && unscheduledButton}
         </div>
+
         <div
           className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start ${
             calendarMode
@@ -389,7 +408,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
           data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
           {calendarMode && dayPadding()}
-          {unscheduledButton}
+          {!calendarMode && unscheduledButton}
           {times.map((times, i) => {
             const thisDate = DateTime.fromISO(times.startISO)
             return (
@@ -415,7 +434,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
             )
           })}
 
-          {!calendarMode && nextButton}
+          {nextButton}
         </div>
       </div>
     </>
