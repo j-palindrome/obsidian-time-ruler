@@ -18,11 +18,15 @@ Time Ruler uses the [Dataview](obsidian://show-plugin?id=dataview) plugin to rea
 
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
+- **Simple**: (only in Daily Notes) `hh:mm - hh:mm /*task content*/ > mm-dd ?/!/!!/!!!
 - **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: #h#m]  [priority:: lowest/low/medium/high/highest]`
 - **Tasks**: `[startTime:: hh-mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
 - **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh-mm]  [endTime:: hh-mm]  (or [allDay:: true]) [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`
 
-When editing a task via drag-and-drop, tasks are converted to the user's preferred format (Dataview, Tasks, or Full Calendar). This can be changed in Settings. 
+### Reminder
+You can specify any of the [Obsidian Reminder](https://obsidian-reminder.cf/guide/set-reminders.html#reminder-format) formats as well. 
+
+When editing a task via drag-and-drop, tasks are converted back to the formatting detected in the task. If this is not possible, the user's preferred format (Dataview, Tasks, or Full Calendar) is used. This can be changed in Settings. 
 
 *Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.
 
