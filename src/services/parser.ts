@@ -32,7 +32,7 @@ export function textToTask(item: any): TaskProps {
     ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`
   )
   const SIMPLE_SCHEDULED = /^\d+:\d+( ?- ?\d+:\d+)?/
-  const SIMPLE_PRIORITY = / (?|!|!!|!!!)$/
+  const SIMPLE_PRIORITY = / (\?|\!{1,3})$/
   const SIMPLE_DUE = / > (\d{4}-d{2}-d{2})/
 
   const titleLine: string = item.text.match(/(.*?)(\n|$)/)?.[1] ?? ''

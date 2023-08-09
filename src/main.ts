@@ -1,8 +1,19 @@
-import { App, MarkdownFileInfo, MarkdownView, Notice, Plugin } from 'obsidian'
+import { DateTime } from 'luxon'
+import {
+  App,
+  MarkdownFileInfo,
+  MarkdownView,
+  Menu,
+  Notice,
+  Plugin,
+  setIcon,
+} from 'obsidian'
 import { getAPI } from 'obsidian-dataview'
 import TimeRulerView, { TIME_RULER_VIEW } from './index'
 import SettingsTab from './plugin/SettingsTab'
 import { openTaskInRuler } from './services/obsidianApi'
+import { taskToText, textToTask } from './services/parser'
+import { getters, setters } from './app/store'
 
 interface TimeRulerSettings {
   calendars: string[]
@@ -85,10 +96,10 @@ export default class TimeRulerPlugin extends Plugin {
     openTaskInRuler(cursor.line, path)
   }
 
-  openMenu(menu, context) {
+  openMenu(menu: Menu, context: MarkdownView | MarkdownFileInfo) {
     const cursor = context.editor?.getCursor()
-    if (!cursor) return
-    const line = context.editor?.getLine(cursor.line)
+    if (!cursor || !(context instanceof MarkdownView)) return
+    const line = context.editor.getLine(cursor.line)
     if (!line || !/ *- \[ \] /.test(line)) return
     menu.addItem((item) =>
       item
@@ -96,6 +107,41 @@ export default class TimeRulerPlugin extends Plugin {
         .setTitle('Reveal in Time Ruler')
         .onClick(() => this.jumpToTask(context))
     )
+    menu.addItem((item) =>
+      item
+        .setIcon('ruler')
+        .setTitle('Do now')
+        .onClick(() => this.editTask(context, cursor.line, 'now'))
+    )
+    menu.addItem((item) =>
+      item
+        .setIcon('ruler')
+        .setTitle('Unschedule')
+        .onClick(() => this.editTask(context, cursor.line, 'unschedule'))
+    )
+  }
+
+  async editTask(
+    context: MarkdownView,
+    line: number,
+    modification: 'now' | 'unschedule'
+  ) {
+    const id = context.file.path.replace('.md', '') + '::' + line
+    let scheduled: TaskProps['scheduled']
+    switch (modification) {
+      case 'now':
+        let now = DateTime.now().startOf('minute')
+        while (now.minute % 15 !== 0) now = now.plus({ minute: 1 })
+        scheduled = now.toISO({
+          includeOffset: false,
+          suppressMilliseconds: true,
+          suppressSeconds: true,
+        }) as string
+        break
+      case 'unschedule':
+        scheduled = ''
+    }
+    setters.patchTasks([id], { scheduled })
   }
 
   async activateView() {
