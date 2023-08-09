@@ -4,20 +4,23 @@
 - Add support for [Full Calendar full notes](https://github.com/joshuatazrein/obsidian-time-ruler/issues/10#issuecomment-1655804209)
 
 ## Planned
--  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
 - Option to [add tasks at start or end of headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/12)
 - Right-click option to [schedule tasks for now](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621)
 - More specific Dataview custom filter [at task level](https://github.com/joshuatazrein/obsidian-time-ruler/issues/18)
 - Options to drag [deadlines and reminder times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
-- A [simple mode](https://github.com/joshuatazrein/obsidian-time-ruler/issues/21) with `HH:mm-HH:mm` formatting for scheduled times.
 
 ## Considering
 - Providing [names for time blocks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) (perhaps by moving tasks with durations to the "name" field of a time block)
+-  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
 
 # Changelog
 
-## 1.0.6 (Upcoming)
+## 1.1.0 (Upcoming)
+- **Added:** Support [emoji and custom status](https://github.com/joshuatazrein/obsidian-time-ruler/issues/26) displaying in tasks
+- **Added:** Filter by [custom status](https://github.com/joshuatazrein/obsidian-time-ruler/issues/25)
+- **Added:** A [simple mode](https://github.com/joshuatazrein/obsidian-time-ruler/issues/21) with `HH:mm-HH:mm` formatting for scheduled times.
+- **Added:** larger drop target for [dates](https://github.com/joshuatazrein/obsidian-time-ruler/issues/24)
 - **Improved:** Moved search, refresh, and view buttons to a collapsible menu
 
 ## 1.0.5 (8/6/2023)

@@ -104,6 +104,8 @@ export default function Task({
     ).replace(/\.md/, '')
   }, [type, task.path])
 
+  if (task.title.includes('pioneer')) console.log(task.title, task)
+
   if (!task) return <></>
 
   return (
@@ -131,10 +133,12 @@ export default function Task({
           <Button
             onPointerDown={() => false}
             onClick={() => completeTask()}
-            className={`selectable flex-none rounded-checkbox border border-solid border-faint bg-transparent p-0 shadow-none hover:border-normal ${
+            className={`selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint bg-transparent p-0 pb-[1px] text-xs shadow-none hover:border-normal ${
               isLink ? 'h-2 w-2' : 'h-4 w-4'
             }`}
-          />
+          >
+            {task.status}
+          </Button>
         </div>
         <div
           className={`w-fit min-w-[24px] cursor-pointer break-words leading-line hover:underline ${
@@ -144,10 +148,12 @@ export default function Task({
               ? 'text-accent'
               : type === 'deadline'
               ? ''
-              : task.priority === TaskPriorities.LOW || isLink
+              : task.priority === TaskPriorities.LOW ||
+                isLink ||
+                task.status === 'x'
               ? 'text-faint'
               : ''
-          }`}
+          } ${task.status === 'x' ? 'line-through' : ''}`}
           onPointerDown={() => false}
           onClick={() => openTask(task)}
         >

@@ -132,6 +132,18 @@ export default function Search() {
     return searchTasks
   }, [tasksByHeading])
 
+  const [status, setStatus] = useState<string | null>(null)
+
+  const allStatuses = useMemo(() => {
+    return [
+      ...new Set(
+        Object.values(tasksByHeading)
+          .flat()
+          .map((task) => task.status)
+      ),
+    ].sort()
+  }, [tasksByHeading])
+
   const searching = !!searchStatus
 
   return (
@@ -177,6 +189,30 @@ export default function Search() {
                     placeholder='path: heading: title: tag: priority:'
                     ref={inputFrame}
                   ></input>
+                  {allStatuses.length > 1 && (
+                    <div className='group relative h-fit flex-none'>
+                      <Button className='clickable-icon'>
+                        {status === ' ' ? '[ ]' : status ?? 'status'}
+                      </Button>
+                      <div className='absolute right-0 top-full z-30 hidden rounded-lg border-solid border-faint bg-primary group-hover:block'>
+                        <Button
+                          className='clickable-icon w-full'
+                          onClick={() => setStatus(null)}
+                        >
+                          clear
+                        </Button>
+                        {allStatuses.map((status) => (
+                          <Button
+                            key={status}
+                            className='clickable-icon h-line w-full'
+                            onClick={() => setStatus(status)}
+                          >
+                            {status === ' ' ? '[ ]' : status}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {typeof searchStatus === 'string' && (
                   <div className='space-1 -mt-1 flex flex-wrap'>
@@ -216,6 +252,7 @@ export default function Search() {
                 const filteredTasks = isShowingTasks
                   ? tasksByHeading[heading]?.filter(
                       (task) =>
+                        !(status && task.status !== status) &&
                         searchExp.test(searchTasks[task.id]) &&
                         testViewMode(task)
                     ) ?? []
@@ -226,7 +263,7 @@ export default function Search() {
                 )
                 return (
                   <Fragment key={heading}>
-                    {(searchStatus === 'all' ||
+                    {((searchStatus === 'all' && !status) ||
                       !isShowingTasks ||
                       filteredTasks.length > 0) && (
                       <div key={heading} className='my-4'>

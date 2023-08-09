@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   fileOrder: [],
   customStatus: {
     include: false,
-    statuses: '-',
+    statuses: 'x-',
   },
 }
 

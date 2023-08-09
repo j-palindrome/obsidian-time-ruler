@@ -7,6 +7,8 @@ import {
   keyToTasksEmoji,
   priorityKeyToNumber,
   priorityNumberToKey,
+  priorityNumberToSimplePriority,
+  simplePriorityToNumber,
 } from '../types/enums'
 import _ from 'lodash'
 import { isDateISO } from './util'
@@ -29,13 +31,20 @@ export function textToTask(item: any): TaskProps {
   const REMINDER_MATCH = new RegExp(
     ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`
   )
+  const SIMPLE_SCHEDULED = /^\d+:\d+( ?- ?\d+:\d+)?/
+  const SIMPLE_PRIORITY = / (?|!|!!|!!!)$/
+  const SIMPLE_DUE = / > (\d{4}-d{2}-d{2})/
 
-  const originalTitle: string = (item.text.match(/(.*?)(\n|$)/)?.[1] ?? '')
+  const titleLine: string = item.text.match(/(.*?)(\n|$)/)?.[1] ?? ''
+  const originalTitle: string = titleLine
     .replace(INLINE_FIELD_SEARCH, '')
     .replace(TASKS_REPEAT_SEARCH, '')
     .replace(TASKS_EMOJI_SEARCH, '')
     .replace(TAG_SEARCH, '')
     .replace(REMINDER_MATCH, '')
+    .replace(SIMPLE_SCHEDULED, '')
+    .replace(SIMPLE_DUE, '')
+    .replace(SIMPLE_PRIORITY, '')
   let title: string = originalTitle
     .replace(MD_LINK_SEARCH, '$1')
     .replace(LINK_SEARCH, '$1')
@@ -89,6 +98,7 @@ export function textToTask(item: any): TaskProps {
   const parseScheduled = () => {
     let scheduled = item.scheduled as DateTime | undefined
     let isDate: boolean = false
+
     if (!scheduled) {
       let date = item.date as string | undefined
       const testDailyNoteTask = !date && item.parent === undefined
@@ -184,17 +194,48 @@ export function textToTask(item: any): TaskProps {
   }
 
   const parseRepeat = () => {
-    return item['repeat'] ?? item.text.match(TASKS_REPEAT_SEARCH)?.[1]
+    return item['repeat'] ?? titleLine.match(TASKS_REPEAT_SEARCH)?.[1]
   }
 
-  const scheduled = parseScheduled()
-  const due = parseDateKey('due')
+  const parseSimple = () => {
+    let simpleScheduled: string | undefined,
+      simpleLength: TaskProps['length'] | undefined,
+      simpleDue: TaskProps['due'] | undefined,
+      simplePriority: TaskProps['priority'] | undefined
+    const scheduled = titleLine.match(SIMPLE_SCHEDULED)?.[0]
+    if (scheduled) {
+      const [startTime, endTime] = scheduled.split(/ ?- ?/)
+      const date = item.section.path
+        .replace(/\.md$/, '')
+        .match(new RegExp(`${ISO_MATCH}$`))?.[0]
+      if (date && startTime) {
+        simpleScheduled = date + 'T' + startTime
+      }
+      if (simpleScheduled && endTime) {
+        const duration = DateTime.fromISO(date + 'T' + endTime)
+          .diff(DateTime.fromISO(simpleScheduled))
+          .shiftTo('hour', 'minute')
+        simpleLength = { hour: duration.hours, minute: duration.minutes }
+      }
+    }
+    const priorityMatch = titleLine.match(SIMPLE_PRIORITY)?.[1]
+    simplePriority = priorityMatch
+      ? simplePriorityToNumber[priorityMatch]
+      : undefined
+    simpleDue = titleLine.match(SIMPLE_DUE)?.[1]
+    return { simpleScheduled, simpleLength, simplePriority, simpleDue }
+  }
+
+  const { simpleScheduled, simpleLength, simpleDue, simplePriority } =
+    parseSimple()
+  const scheduled = simpleScheduled ?? parseScheduled()
+  const due = simpleDue ?? parseDateKey('due')
   const completion = parseDateKey('completion')
   const start = parseDateKey('start')
   const created = parseDateKey('created')
   const repeat = parseRepeat()
-  const priority = parsePriority()
-  const length = parseLength(scheduled)
+  const priority = simplePriority ?? parsePriority()
+  const length = simpleLength ?? parseLength(scheduled)
   const reminder = parseReminder()
 
   return {
@@ -231,6 +272,7 @@ const detectFieldFormat = (
   defaultFormat: FieldFormat['main']
 ): FieldFormat => {
   const parseMain = (): FieldFormat['main'] => {
+    if (/^\d+:\d+( ?- ?\d+:\d+)? /.test(text)) return 'simple'
     for (let emoji of Object.keys(TasksEmojiToKey)) {
       if (text.contains(emoji)) return 'tasks'
     }
@@ -283,6 +325,34 @@ export function taskToText(
   }
 
   switch (main) {
+    case 'simple':
+      if (task.scheduled && !isDateISO(task.scheduled)) {
+        let scheduledTime = task.scheduled.slice(11, 16)
+        if (task.length) {
+          const end = DateTime.fromISO(task.scheduled).plus(task.length)
+          scheduledTime += ` - ${end.toFormat('HH:mm')}`
+        }
+        draft =
+          draft.slice(0, 6) +
+          scheduledTime +
+          ' ' +
+          draft.slice(6).replace(/^\s+/, '')
+      }
+      if (task.due) draft += `  > ${task.due}`
+      if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
+        draft += ` ${priorityNumberToSimplePriority[task.priority]}`
+      }
+      if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
+      if (task.start) {
+        draft += `  [start:: ${task.start}]`
+      }
+      if (task.created) {
+        draft += `  [created:: ${task.created}]`
+      }
+      if (task.completion) {
+        draft += `  [completion:: ${task.completion}]`
+      }
+      break
     case 'dataview':
       if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
       draft += formatReminder()

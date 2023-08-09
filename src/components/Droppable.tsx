@@ -5,7 +5,7 @@ export default function Droppable({
   children,
   id,
   data,
-  ref
+  ref,
 }: {
   children: JSX.Element
   id: string
@@ -14,16 +14,18 @@ export default function Droppable({
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id,
-    data
+    data,
   })
 
   return cloneElement(children, {
     ref: ref
-      ? node => {
+      ? (node) => {
           ref(node)
           setNodeRef(node)
         }
       : setNodeRef,
-    className: `${children.props.className} ${isOver ? '!bg-selection' : ''}`
+    className: `${children.props.className} rounded-lg ${
+      isOver ? '!bg-selection' : ''
+    }`,
   })
 }

@@ -5,7 +5,7 @@ import { TaskComponentProps } from '../components/Task'
 
 declare global {
   type FieldFormat = {
-    main: 'dataview' | 'full-calendar' | 'tasks'
+    main: 'dataview' | 'full-calendar' | 'tasks' | 'simple'
     reminder: 'native' | 'tasks' | 'kanban'
   }
 

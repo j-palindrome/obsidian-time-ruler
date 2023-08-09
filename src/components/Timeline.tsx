@@ -37,19 +37,6 @@ export default function Timeline({
     )
   }, shallow)
 
-  // const filterAllDayChildren = (tasks: TaskProps[]) => {
-  //   const thisTaskIds = new Set(tasks.map((task) => task.id))
-  //   return tasks.filter(
-  //     (task) =>
-  //       !(
-  //         task.parent &&
-  //         thisTaskIds.has(task.parent) &&
-  //         task.scheduled &&
-  //         isDateISO(task.scheduled)
-  //       )
-  //   )
-  // }
-
   const isToday =
     startISO.slice(0, 10) === (DateTime.now().toISODate() as string)
 
@@ -59,12 +46,14 @@ export default function Timeline({
     const allDayTasks: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
       const scheduledForToday =
+        !task.completion &&
         task.scheduled &&
         task.scheduled < endISO &&
         (isToday || task.scheduled >= startISO)
       if (
         !scheduledForToday &&
         task.due &&
+        !task.completion &&
         (task.due >= startISO || (isToday && task.due < endISO))
       ) {
         dueTasks.push(task)
@@ -157,8 +146,8 @@ export default function Timeline({
         </div>
       </Droppable>
       <div
-        className={`h-0 grow space-y-2 ${
-          calendarMode ? 'overflow-y-auto' : 'flex flex-col'
+        className={`flex h-0 grow flex-col space-y-2 ${
+          calendarMode ? 'overflow-y-auto' : ''
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
@@ -201,12 +190,18 @@ export default function Timeline({
         )}
 
         <div
-          className={`w-full overflow-x-hidden rounded-lg ${
-            calendarMode ? '' : 'h-full overflow-y-auto'
+          className={`flex h-0 w-full grow flex-col overflow-x-hidden rounded-lg ${
+            calendarMode ? '' : 'overflow-y-auto'
           }`}
           data-auto-scroll={calendarMode ? undefined : 'y'}
         >
           {timeSpan}
+          <Droppable
+            data={{ scheduled: startISO }}
+            id={startISO + '::timeline::end'}
+          >
+            <div className='h-0 grow'></div>
+          </Droppable>
         </div>
       </div>
     </div>

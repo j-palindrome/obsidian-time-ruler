@@ -22,6 +22,14 @@ export const priorityKeyToNumber = {
   default: TaskPriorities.DEFAULT,
 }
 
+export const simplePriorityToNumber = {
+  '?': TaskPriorities.LOWEST,
+  '!': TaskPriorities.LOW,
+  '!!': TaskPriorities.HIGH,
+  '!!!': TaskPriorities.HIGHEST,
+}
+
+export const priorityNumberToSimplePriority = _.invert(simplePriorityToNumber)
 export const priorityNumberToKey = _.invert(priorityKeyToNumber)
 
 export const keyToTasksEmoji = {
