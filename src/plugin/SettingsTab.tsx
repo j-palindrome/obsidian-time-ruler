@@ -158,6 +158,18 @@ export default class SettingsTab extends PluginSettingTab {
         })
     })
 
+    const showCompleted = new Setting(containerEl)
+      .setName('Show Completed')
+      .setDesc('Show completed tasks')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.showCompleted)
+          .onChange((value) => {
+            this.plugin.settings.showCompleted = value
+            this.plugin.saveSettings()
+          })
+      )
+
     let newCalendarLink: TextComponent
     new Setting(containerEl)
       .setName('Calendars')

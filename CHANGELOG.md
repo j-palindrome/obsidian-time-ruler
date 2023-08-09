@@ -15,7 +15,7 @@
 
 # Changelog
 
-## 1.1.0 (Upcoming)
+## 1.1.0 (8/9/2023)
 - **Added:** Right-click option to [schedule tasks for now](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621) and to unschedule tasks 
 - **Added:** Support [emoji and custom status](https://github.com/joshuatazrein/obsidian-time-ruler/issues/26) displaying in tasks
 - **Added:** Filter by [custom status](https://github.com/joshuatazrein/obsidian-time-ruler/issues/25)

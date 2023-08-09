@@ -26,6 +26,7 @@ interface TimeRulerSettings {
     include: boolean
     statuses: string
   }
+  showCompleted: boolean
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -37,8 +38,9 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   fileOrder: [],
   customStatus: {
     include: false,
-    statuses: 'x-',
+    statuses: '-',
   },
+  showCompleted: false,
 }
 
 export default class TimeRulerPlugin extends Plugin {

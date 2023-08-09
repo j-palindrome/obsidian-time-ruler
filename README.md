@@ -1,4 +1,4 @@
-Time Ruler combines the best parts of a nested tasklist and an event-based calendar view. Drag-and-drop tasks to time-block and reschedule, and view tasks on top of read-only online calendars. Integrates well with the Tasks, FullCalendar, and Reminder plugins.
+Time Ruler combines the best parts of a nested tasklist and an event-based calendar view. Drag-and-drop tasks to time-block and reschedule, and view tasks on top of read-only online calendars. Integrates well with the Tasks, FullCalendar, Reminder, and Obsidian Day Planner plugins.
 
 ![cover](assets/time-ruler-cover.png)
 

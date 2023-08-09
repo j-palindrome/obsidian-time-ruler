@@ -93,6 +93,7 @@ export default class ObsidianAPI extends Component {
     const newTasks = search
       .filter((task) => {
         return (
+          !(!this.settings.showCompleted && task.completed) &&
           taskTest.test(task.status) === this.settings.customStatus.include &&
           !(this.excludePaths && this.excludePaths.test(task.path)) &&
           !(
