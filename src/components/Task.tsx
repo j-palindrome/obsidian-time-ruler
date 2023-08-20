@@ -116,7 +116,7 @@ export default function Task({
     >
       {type === 'deadline' && (
         <div
-          className='tpext-xs cursor-pointer pl-7 text-accent hover:underline'
+          className='cursor-pointer pl-7 text-xs text-accent hover:underline'
           onClick={() => app.workspace.openLinkText(task.path, '')}
         >
           {thisHeading}
