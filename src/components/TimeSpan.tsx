@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import _, { toSafeInteger } from 'lodash'
 import { DateTime } from 'luxon'
 import { Fragment, useEffect, useState } from 'react'
 import { shallow } from 'zustand/shallow'
@@ -35,6 +35,18 @@ export default function TimeSpan({
     blocks: BlockData[]
   }[] = []
 
+  const dayStartEnd = useAppStore((state) => state.dayStartEnd)
+  const testStart = DateTime.fromISO(startISO)
+  const maxStart = DateTime.max(
+    testStart,
+    testStart.set({ hour: dayStartEnd[0] })
+  ).toISO() as string
+  const testEnd = DateTime.fromISO(endISO)
+  const minEnd = DateTime.min(
+    testEnd,
+    testStart.set({ hour: dayStartEnd[1] })
+  ).toISO() as string
+
   for (let i = 0; i < blocks.length; i++) {
     const [startISO, _tasks] = blocks[i]
 
@@ -68,8 +80,8 @@ export default function TimeSpan({
         <Times
           dragContainer={startISO}
           type={startWithHours ? 'hours' : type}
-          startISO={startISO}
-          endISO={blocks[0]?.[0] ?? endISO}
+          startISO={maxStart}
+          endISO={blocks[0]?.[0] ?? minEnd}
           chopStart={chopStart}
           chopEnd
         />
@@ -106,8 +118,8 @@ export default function TimeSpan({
                 <Times
                   dragContainer={startISO}
                   type={type}
-                  startISO={thisEndISO}
-                  endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
+                  startISO={_.max([maxStart, thisEndISO]) as string}
+                  endISO={formattedBlocks[i + 1]?.startISO ?? minEnd}
                   chopEnd
                   chopStart={thisStartISO === thisEndISO}
                 />

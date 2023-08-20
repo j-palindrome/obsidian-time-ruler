@@ -48,7 +48,8 @@ import Logo from './Logo'
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const setupStore = async () => {
     const dailyNoteInfo = await getDailyNoteInfo()
-    setters.set({ apis, ...dailyNoteInfo })
+    const dayStartEnd = apis.obsidian.getSetting('dayStartEnd')
+    setters.set({ apis, ...dailyNoteInfo, dayStartEnd })
   }
   useEffect(() => {
     setupStore()

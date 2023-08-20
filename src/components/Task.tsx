@@ -104,8 +104,6 @@ export default function Task({
     ).replace(/\.md/, '')
   }, [type, task.path])
 
-  if (task.title.includes('pioneer')) console.log(task.title, task)
-
   if (!task) return <></>
 
   return (
@@ -118,7 +116,7 @@ export default function Task({
     >
       {type === 'deadline' && (
         <div
-          className='cursor-pointer pl-7 text-xs text-accent hover:underline'
+          className='tpext-xs cursor-pointer pl-7 text-accent hover:underline'
           onClick={() => app.workspace.openLinkText(task.path, '')}
         >
           {thisHeading}
@@ -133,7 +131,7 @@ export default function Task({
           <Button
             onPointerDown={() => false}
             onClick={() => completeTask()}
-            className={`selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint bg-transparent p-0 pb-[1px] text-xs shadow-none hover:border-normal ${
+            className={`selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint bg-transparent p-0 text-xs shadow-none hover:border-normal ${
               isLink ? 'h-2 w-2' : 'h-4 w-4'
             }`}
           >
@@ -160,7 +158,7 @@ export default function Task({
           {task.title}
         </div>
         <div
-          className='no-scrollbar flex h-full min-h-line min-w-[24px] grow cursor-grab items-center justify-end space-x-1 overflow-x-auto overflow-y-auto rounded-full font-menu'
+          className='no-scrollbar flex h-full min-h-line min-w-[24px] grow cursor-grab flex-wrap items-center justify-end space-x-1 font-menu child:my-1'
           {...attributes}
           {...listeners}
           ref={setActivatorNodeRef}

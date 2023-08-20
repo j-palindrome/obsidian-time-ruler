@@ -39,6 +39,9 @@ export default class ObsidianAPI extends Component {
     this.saveSettings = saveSettings
   }
 
+  getSetting = <T extends keyof TimeRulerPlugin['settings']>(setting: T) =>
+    this.settings[setting] as TimeRulerPlugin['settings'][T]
+
   playComplete() {
     if (this.settings.muted) return
     sounds.pop.currentTime = 0
@@ -83,9 +86,14 @@ export default class ObsidianAPI extends Component {
       search = dv.pages(this.settings.search)['file'][
         'tasks'
       ] as DataArray<STask>
+      if (this.settings.taskSearch) {
+        search = search.filter((item) =>
+          item.text.contains(this.settings.taskSearch)
+        )
+      }
     } catch (e) {
       new Notice(
-        'Invalid Dataview query: ' + this.settings.search + '. Please reset.'
+        'Invalid Dataview query: ' + this.settings.search + '. Please fix.'
       )
       throw e
     }

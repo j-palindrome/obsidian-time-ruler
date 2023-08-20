@@ -21,12 +21,14 @@ interface TimeRulerSettings {
   muted: boolean
   inbox: string | null
   search: string
+  taskSearch: string
   fileOrder: string[]
   customStatus: {
     include: boolean
     statuses: string
   }
   showCompleted: boolean
+  dayStartEnd: [number, number]
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -35,12 +37,14 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   muted: false,
   inbox: null,
   search: '',
+  taskSearch: '',
   fileOrder: [],
   customStatus: {
     include: false,
     statuses: '-',
   },
   showCompleted: false,
+  dayStartEnd: [0, 24],
 }
 
 export default class TimeRulerPlugin extends Plugin {

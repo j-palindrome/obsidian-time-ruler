@@ -6,14 +6,23 @@
 ## Planned
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
 - Option to [add tasks at start or end of headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/12)
-- More specific Dataview custom filter [at task level](https://github.com/joshuatazrein/obsidian-time-ruler/issues/18)
 - Options to drag [deadlines and reminder times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
+- Support [custom status emojis](https://github.com/joshuatazrein/obsidian-time-ruler/issues/28)
+- Add dragging tasks between documents (auto-move)
 
 ## Considering
+- [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
 - Providing [names for time blocks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) (perhaps by moving tasks with durations to the "name" field of a time block)
 -  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
 
 # Changelog
+
+# 1.2.0 (8/20/2023)
+- **Added:** Support for [changing day start and hours](https://github.com/joshuatazrein/obsidian-time-ruler/issues/30)
+- **Added:** Formatting for [many tags in tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/29#issuecomment-1680609684)
+- **Added:** Formatting** for [block references](https://github.com/joshuatazrein/obsidian-time-ruler/issues/29#issuecomment-1680609684) and [here](https://github.com/joshuatazrein/obsidian-time-ruler/issues/32)
+- **Added:** Allow for [singe-digit hours](https://github.com/joshuatazrein/obsidian-time-ruler/issues/27) in simple mode
+- **Added:** More specific Dataview custom filter [at task level](https://github.com/joshuatazrein/obsidian-time-ruler/issues/18)
 
 ## 1.1.0 (8/9/2023)
 - **Added:** Right-click option to [schedule tasks for now](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16#event-9959008621) and to unschedule tasks 

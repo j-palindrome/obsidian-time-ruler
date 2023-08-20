@@ -18,7 +18,7 @@ Time Ruler uses the [Dataview](obsidian://show-plugin?id=dataview) plugin to rea
 
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
-- **Simple**: (only in Daily Notes) `hh:mm - hh:mm task content > yyyy-mm-dd ?/!/!!/!!!`
+- **Day Planner**: (only in Daily Notes) `hh:mm - hh:mm task content > yyyy-mm-dd ?/!/!!/!!!` (`>` is for deadline)
 - **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: #h#m]  [priority:: lowest/low/medium/high/highest]`
 - **Tasks**: `[startTime:: hh-mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
 - **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh-mm]  [endTime:: hh-mm]  (or [allDay:: true]) [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`

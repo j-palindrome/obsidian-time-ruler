@@ -121,6 +121,48 @@ export default class SettingsTab extends PluginSettingTab {
         })
       })
 
+    const dayStartEnd = new Setting(containerEl)
+      .setName('Day Start & End')
+      .setDesc('Choose the boundaries of the Time Ruler hour tick-marks.')
+    const hourStart = createSpan()
+    hourStart.setText('start')
+    dayStartEnd.controlEl.appendChild(hourStart)
+    dayStartEnd.addDropdown((component) => {
+      let options: Record<string, string> = {}
+      for (let i = 0; i < 13; i++) {
+        options[`${i}`] = `${i}:00`
+      }
+      component
+        .addOptions(options)
+        .setValue(String(this.plugin.settings.dayStartEnd[0]))
+        .onChange((newValue) => {
+          this.plugin.settings.dayStartEnd = [
+            parseInt(newValue),
+            this.plugin.settings.dayStartEnd[1],
+          ]
+          this.plugin.saveSettings()
+        })
+    })
+    const hourEnd = createSpan()
+    hourEnd.setText('end')
+    dayStartEnd.controlEl.appendChild(hourEnd)
+    dayStartEnd.addDropdown((component) => {
+      let options: Record<string, string> = {}
+      for (let i = 13; i < 25; i++) {
+        options[`${i}`] = `${i}:00`
+      }
+      component
+        .addOptions(options)
+        .setValue(String(this.plugin.settings.dayStartEnd[1]))
+        .onChange((newValue) => {
+          this.plugin.settings.dayStartEnd = [
+            this.plugin.settings.dayStartEnd[0],
+            parseInt(newValue),
+          ]
+          this.plugin.saveSettings()
+        })
+    })
+
     new Setting(containerEl)
       .setName('Custom Filter')
       .setDesc(
@@ -135,6 +177,19 @@ export default class SettingsTab extends PluginSettingTab {
             this.plugin.saveSettings()
           })
       })
+
+    new Setting(containerEl)
+      .setName('Task Filter')
+      .setDesc('Only include tasks which match the following search.')
+      .addText((text) =>
+        text
+          .setPlaceholder('Match text in tasks')
+          .setValue(this.plugin.settings.taskSearch)
+          .onChange((value) => {
+            this.plugin.settings.taskSearch = value
+            this.plugin.saveSettings()
+          })
+      )
 
     const customStatuses = new Setting(containerEl)
       .setName('Custom Statuses')
@@ -158,7 +213,7 @@ export default class SettingsTab extends PluginSettingTab {
         })
     })
 
-    const showCompleted = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Show Completed')
       .setDesc('Show completed tasks')
       .addToggle((toggle) =>

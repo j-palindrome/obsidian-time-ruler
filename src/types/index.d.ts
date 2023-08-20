@@ -38,6 +38,7 @@ declare global {
     parent?: string
     heading?: string
     status: string
+    blockReference?: string
 
     // Obsidian Reminder
     reminder?: string

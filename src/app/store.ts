@@ -5,6 +5,7 @@ import CalendarAPI from '../services/calendarApi'
 import ObsidianAPI from '../services/obsidianApi'
 import { TaskActions } from '../types/enums'
 import { getObsidianAPI } from '../../../link-tree/src/services/store'
+import TimeRulerPlugin from '../main'
 
 export type ViewMode = 'all' | 'scheduled' | 'due' | 'unscheduled'
 export type AppState = {
@@ -22,6 +23,7 @@ export type AppState = {
   dailyNote: string | null
   dailyNoteFormat: string
   dailyNotePath: string
+  dayStartEnd: TimeRulerPlugin['settings']['dayStartEnd']
   fileOrder: string[]
 }
 
@@ -38,6 +40,7 @@ export const useAppStore = create<AppState>(() => ({
   dailyNote: null,
   dailyNoteFormat: 'YYYY-MM-DD',
   dailyNotePath: '',
+  dayStartEnd: [0, 24],
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {

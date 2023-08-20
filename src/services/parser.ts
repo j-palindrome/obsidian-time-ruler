@@ -35,8 +35,11 @@ export function textToTask(item: any): TaskProps {
   const SIMPLE_PRIORITY = / (\?|\!{1,3})$/
   const SIMPLE_DUE = / > (\d{4}-d{2}-d{2})/
 
+  const BLOCK_REFERENCE = /\^{a-z0-9}+$/
+
   const titleLine: string = item.text.match(/(.*?)(\n|$)/)?.[1] ?? ''
   const originalTitle: string = titleLine
+    .replace(BLOCK_REFERENCE, '')
     .replace(INLINE_FIELD_SEARCH, '')
     .replace(TASKS_REPEAT_SEARCH, '')
     .replace(TASKS_EMOJI_SEARCH, '')
@@ -209,7 +212,13 @@ export function textToTask(item: any): TaskProps {
         .replace(/\.md$/, '')
         .match(new RegExp(`${ISO_MATCH}$`))?.[0]
       if (date && startTime) {
-        simpleScheduled = date + 'T' + startTime
+        simpleScheduled =
+          date +
+          'T' +
+          startTime
+            .split(':')
+            .map((hours) => hours.padStart(2, '0'))
+            .join(':')
       }
       if (simpleScheduled && endTime) {
         const duration = DateTime.fromISO(date + 'T' + endTime)
@@ -264,6 +273,7 @@ export function textToTask(item: any): TaskProps {
     completion,
     start,
     created,
+    blockReference: titleLine.match(BLOCK_REFERENCE)?.[0],
   }
 }
 
@@ -327,10 +337,10 @@ export function taskToText(
   switch (main) {
     case 'simple':
       if (task.scheduled && !isDateISO(task.scheduled)) {
-        let scheduledTime = task.scheduled.slice(11, 16)
+        let scheduledTime = task.scheduled.slice(11, 16).replace(/^0/, '')
         if (task.length) {
           const end = DateTime.fromISO(task.scheduled).plus(task.length)
-          scheduledTime += ` - ${end.toFormat('HH:mm')}`
+          scheduledTime += ` - ${end.toFormat('HH:mm').replace(/^0/, '')}`
         }
         draft =
           draft.slice(0, 6) +
@@ -428,6 +438,8 @@ export function taskToText(
         draft += ` ${keyToTasksEmoji.completion} ${task.completion}`
       break
   }
+
+  if (task.blockReference) draft += ' ' + task.blockReference
 
   return draft
 }
