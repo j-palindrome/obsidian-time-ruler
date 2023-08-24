@@ -31,7 +31,7 @@ export function textToTask(item: any): TaskProps {
   const REMINDER_MATCH = new RegExp(
     ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`
   )
-  const SIMPLE_SCHEDULED = /^\d+:\d+( ?- ?\d+:\d+)?/
+  const SIMPLE_SCHEDULED = /^\d{1,2}(:\d{1,2})?( ?- ?\d{1,2}(:\d{1,2})?)?/
   const SIMPLE_PRIORITY = / (\?|\!{1,3})$/
   const SIMPLE_DUE = / > (\d{4}-d{2}-d{2})/
 
@@ -201,6 +201,14 @@ export function textToTask(item: any): TaskProps {
   }
 
   const parseSimple = () => {
+    const convertTimeToISO = (time: string) => {
+      if (time.includes(':'))
+        return time
+          .split(':')
+          .map((hours) => hours?.padStart(2, '0') ?? '00')
+          .join(':')
+      else return time.padStart(2, '0') + ':00'
+    }
     let simpleScheduled: string | undefined,
       simpleLength: TaskProps['length'] | undefined,
       simpleDue: TaskProps['due'] | undefined,
@@ -212,16 +220,17 @@ export function textToTask(item: any): TaskProps {
         .replace(/\.md$/, '')
         .match(new RegExp(`${ISO_MATCH}$`))?.[0]
       if (date && startTime) {
-        simpleScheduled =
-          date +
-          'T' +
-          startTime
-            .split(':')
-            .map((hours) => hours.padStart(2, '0'))
-            .join(':')
+        simpleScheduled = date + 'T' + convertTimeToISO(startTime)
       }
       if (simpleScheduled && endTime) {
-        const duration = DateTime.fromISO(date + 'T' + endTime)
+        const endISO =
+          date +
+          'T' +
+          endTime
+            .split(':')
+            .map((hours) => hours?.padStart(2, '0') ?? '00')
+            .join(':')
+        const duration = DateTime.fromISO(endISO)
           .diff(DateTime.fromISO(simpleScheduled))
           .shiftTo('hour', 'minute')
         simpleLength = { hour: duration.hours, minute: duration.minutes }

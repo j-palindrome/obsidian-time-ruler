@@ -45,7 +45,7 @@ export default function Heading({
 
     const date = moment(fileName, dailyNoteFormat)
     if (!date.isValid()) return false
-    return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat('ccc, LLL d')}`
+    return 'Daily'
   }, [path])
 
   return (
