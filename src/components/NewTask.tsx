@@ -93,7 +93,6 @@ export default function NewTask() {
                         getters
                           .getObsidianAPI()
                           .createTask(path, splitHeading, newTask)
-                        console.log('creating task', path, splitHeading)
 
                         setTimeout(() => setters.set({ newTask: false }))
                       }}

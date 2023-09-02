@@ -243,7 +243,6 @@ export function textToTask(item: any): TaskProps {
       const times = time.split(/ ?- ?/)
       startTime = times[0]
       endTime = times[1]
-      console.log(startTime, endTime)
 
       if (startTime) {
         simpleScheduled += 'T' + convertTimeToISO(startTime)

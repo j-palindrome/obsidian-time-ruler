@@ -188,6 +188,12 @@ export default function Timeline({
           }`}
           data-auto-scroll={calendarMode ? undefined : 'y'}
         >
+          {isToday && (
+            <div className='mt-2 flex w-full items-center px-5'>
+              <div className='w-full border-0 border-b border-solid border-red-800'></div>
+              <div className='h-1 w-1 rounded-full bg-red-800'></div>
+            </div>
+          )}
           {timeSpan}
           <Droppable
             data={{ scheduled: startISO }}
