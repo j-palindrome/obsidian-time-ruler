@@ -23,13 +23,11 @@ Task metadata can be specified in any of the following formats:
   - In Daily Notes, you can omit the date from scheduled and Time Ruler will parse the date from the note title. Only 24-hour format times are understood. 
   - You can omit minutes and only put `hh - hh` for times.
 - **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: #h#m]  [priority:: lowest/low/medium/high/highest]`
+  - `#h#m` examples: `1h`, `1h30m`, `1.5h`, etc. Any [Dataview duration](https://blacksmithgu.github.io/obsidian-dataview/annotation/types-of-metadata/#duration) will work.
 - **Tasks**: `[startTime:: hh:mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
   - ⏳: scheduled, 📅: due. See the [Tasks docs](https://publish.obsidian.md/tasks/Getting+Started/Dates) for a full description.
   - Order matters: inline fields must go before tasks emojis or Tasks won't understand it.
 - **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh:mm]  [endTime:: hh:mm] or [allDay:: true] [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`
-
-**Notes:**
-- `#h#m` examples: `1h`, `1h30m`, `1.5h`, etc. Any [Dataview duration](https://blacksmithgu.github.io/obsidian-dataview/annotation/types-of-metadata/#duration) will work.
 
 ### Reminder
 You can specify any of the [Obsidian Reminder](https://obsidian-reminder.cf/guide/set-reminders.html#reminder-format) formats as well. 
@@ -43,16 +41,17 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
 <img src="assets/dragging-example.gif" width="300" />
 
 - To **reschedule** a task, drag-and-drop the task onto the target block or time. You can drag a task to one of the day buttons or a day's heading to reschedule to that day. Click on a task to jump to it in Obsidian.
-- To **create** a new scheduled task, drag the heading from the Search popover onto a target time, or click the `+` button on the target time or block. A new task is created in the chosen file or heading.
-- To change the **length** of a task, drag it by the bottom (the "resize arrow" cursor) to a target time.
+- To **create** a new scheduled task, drag the `+` button (top left) onto a time. For unscheduled, simply click the `+` button.
+- To change the **length** of a task, drag its length onto a time.
+- To change the **deadline** of a task, drag its deadline onto a time.
+- To **unschedule** a task, drag the task to the `Unscheduled` button.
 - You can also drag **groups, headings, and blocks** to reschedule all of the tasks contained in them.
 - Dragging and holding over a **date button** will scroll to that date, allowing you to drop the task there.
 
 ## Buttons
 
-![refresh](assets/buttons.png)
-
-- **Search**: Show all tasks and headings. Filter by tag, priority, filepath, or heading.
+Click the menu `...` button (top-left) to view settings.
+- **Search**: Show all tasks and headings. Filter by tag, priority, filepath, or heading. Also click **Unscheduled** to view unscheduled tasks.
 - **Daily / Hourly view**: Toggle between daily and hourly views. In daily view, hours are hidden. 
 - **Refresh**: Reload Obsidian tasks and online calendars.
 - **Unscheduled:** Drag a task here to unschedule it. Click to show unscheduled tasks.
