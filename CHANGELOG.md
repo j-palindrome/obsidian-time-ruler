@@ -6,18 +6,26 @@
 ## Planned
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
 - Option to [add tasks at start or end of headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/12)
-- Options to drag [deadlines and reminder times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
 - Support [custom status emojis](https://github.com/joshuatazrein/obsidian-time-ruler/issues/28)
-- Add dragging tasks between documents (auto-move)
 
 ## Considering
 - [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
 - Providing [names for time blocks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) (perhaps by moving tasks with durations to the "name" field of a time block)
 -  Option to [hide/show headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/11#issuecomment-1655862428) to reduce visual clutter
+- Options to drag [deadlines and reminder times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
 
 # Changelog
 
-# 1.2.0 (8/20/2023)
+## 1.4.0 (Upcoming)
+- **Added:** Easier way to drag [task times]()
+- **Added:** New quick-add for tasks: Click or drag the `+` button to a time, enter the task title, and select a file!
+- **Documented:** How to format [query sources](https://github.com/joshuatazrein/obsidian-time-ruler/issues/37)
+- **Documented:** Better description of [task formats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/38)
+
+## 1.3.0 (8/26/2023)
+- **Added:** Options to drag [deadlines](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
+
+## 1.2.0 (8/20/2023)
 - **Added:** Support for [changing day start and hours](https://github.com/joshuatazrein/obsidian-time-ruler/issues/30)
 - **Added:** Formatting for [many tags in tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/29#issuecomment-1680609684)
 - **Added:** Formatting** for [block references](https://github.com/joshuatazrein/obsidian-time-ruler/issues/29#issuecomment-1680609684) and [here](https://github.com/joshuatazrein/obsidian-time-ruler/issues/32)

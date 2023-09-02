@@ -1,9 +1,12 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
-import { roundMinutes } from '../services/util'
+import { isLengthType, roundMinutes } from '../services/util'
 import ObsidianAPI from '../services/obsidianApi'
-import { getters, setters } from '../app/store'
+import { getters, setters, useAppStore } from '../app/store'
 import Button from './Button'
+import Droppable from './Droppable'
+import { useStore } from 'src/plugins/link-tree/src/services/store'
+import { useEffect } from 'react'
 
 export type TimeSpanTypes = 'minutes' | 'hours' | 'days'
 export default function Times({
@@ -12,7 +15,6 @@ export default function Times({
   type = 'minutes',
   chopEnd,
   chopStart,
-  due,
   dragContainer,
 }: {
   startISO: string
@@ -20,7 +22,6 @@ export default function Times({
   type: TimeSpanTypes
   chopEnd?: boolean
   chopStart?: boolean
-  due?: boolean
   dragContainer: string
 }) {
   const times: DateTime[] = []
@@ -49,7 +50,7 @@ export default function Times({
   return (
     <div className={`min-h-[4px]`}>
       {times.map((time) => (
-        <Time key={time.toISO()} {...{ type, time, due, dragContainer }} />
+        <Time key={time.toISO()} {...{ type, time, dragContainer }} />
       ))}
     </div>
   )
@@ -58,10 +59,9 @@ export default function Times({
 export type TimeProps = {
   time: DateTime
   type: TimeSpanTypes
-  due?: boolean
   dragContainer: string
 }
-function Time({ time, type, due, dragContainer }: TimeProps) {
+function Time({ time, type, dragContainer }: TimeProps) {
   const minutes = time.minute
   const hours = time.hour
   const day = time.weekday
@@ -73,14 +73,13 @@ function Time({ time, type, due, dragContainer }: TimeProps) {
   }) as string
 
   const { isOver, setNodeRef } = useDroppable({
-    id: iso + (due ? '::due' : '::scheduled'),
-    data: due ? { due: iso } : ({ scheduled: iso } as DropData),
+    id: iso + '::scheduled',
+    data: { scheduled: iso } as DropData,
   })
 
   const dragData: DragData = {
     dragType: 'time',
     start: iso,
-    due: due ?? false,
   }
   const {
     setNodeRef: setDragNodeRef,
@@ -91,19 +90,40 @@ function Time({ time, type, due, dragContainer }: TimeProps) {
     data: dragData,
   })
 
+  const isDraggingTime = useAppStore((state) =>
+    isLengthType(state.dragData?.dragType)
+  )
+
+  useEffect(() => {
+    if (isDraggingTime) {
+      setters.set({
+        dragData: { ...getters.get('dragData'), end: iso } as DragData,
+      })
+    }
+  }, [isOver, isDraggingTime])
+
+  const selectedClassName = useAppStore((state) => {
+    if (
+      !state.dragData ||
+      !isLengthType(state.dragData?.dragType) ||
+      !state.dragData['end']
+    )
+      return ''
+    return `${
+      state.dragData['start'] <= iso && state.dragData['end'] >= iso
+        ? 'bg-accent'
+        : ''
+    } ${state.dragData['end'] === iso ? 'rounded-b-lg' : ''} ${
+      state.dragData['start'] === iso ? 'rounded-t-lg' : ''
+    }`
+  })
+
   return (
     <div
-      className={`group flex h-[16px] cursor-pointer items-center justify-end`}
-      key={time.toISO()}
+      className={`group flex h-[16px] items-center justify-end ${selectedClassName}`}
+      key={iso}
       ref={setNodeRef}
     >
-      <Button
-        src='plus'
-        className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
-        onClick={() => {
-          setters.set({ searchStatus: { scheduled: iso } })
-        }}
-      />
       <div
         className='flex h-full w-full items-center'
         {...attributes}

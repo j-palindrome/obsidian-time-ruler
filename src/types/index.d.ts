@@ -2,6 +2,7 @@ import { STask } from 'obsidian-dataview'
 import { GroupProps } from '../components/Group'
 import { EventComponentProps } from '../components/Event'
 import { TaskComponentProps } from '../components/Task'
+import { DueDateComponentProps } from '../components/DueDate'
 
 declare global {
   type FieldFormat = {
@@ -82,8 +83,14 @@ declare global {
     | ({ dragType: 'task' } & TaskComponentProps)
     | ({ dragType: 'event' } & EventComponentProps)
     | { dragType: 'new'; path: string }
-    | ({ dragType: 'task-length' } & { id: string; start: string })
-    | ({ dragType: 'time' } & { start: string; due: boolean })
+    | ({ dragType: 'task-length' } & {
+        id: string
+        start: string
+        end?: string
+      })
+    | ({ dragType: 'time' } & { start: string; end?: string })
+    | ({ dragType: 'due' } & DueDateComponentProps)
+    | { dragType: 'new_button' }
 
   type DropData = Partial<TaskProps> | { type: 'heading'; heading: string }
 
@@ -93,5 +100,8 @@ declare global {
 declare module 'obsidian' {
   interface Vault {
     getConfig: (key: string) => string | undefined
+    readConfigJson: (
+      path: string
+    ) => Promise<Record<string, string | number | boolean>>
   }
 }

@@ -71,17 +71,8 @@ export default function Event({
         draggable ? 'selectable cursor-grab' : ''
       }`}
     >
-      <Button
-        src='plus'
-        className='ml-2 mr-1 h-4 w-4 flex-none opacity-0 transition-opacity duration-300 group-hover:opacity-100'
-        onClick={() => {
-          setters.set({
-            searchStatus: due ? { due: startISO } : { scheduled: startISO },
-          })
-        }}
-      />
       <div
-        className='flex w-full items-center'
+        className='flex w-full items-center pl-6'
         {...(draggable
           ? { ref: setActivatorNodeRef, ...attributes, ...listeners }
           : undefined)}

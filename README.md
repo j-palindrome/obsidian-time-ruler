@@ -18,15 +18,23 @@ Time Ruler uses the [Dataview](obsidian://show-plugin?id=dataview) plugin to rea
 
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
-- **Day Planner**: (only in Daily Notes) `hh:mm - hh:mm task content > yyyy-mm-dd ?/!/!!/!!!` (`>` is for deadline)
+- **Day Planner**: `YYYY-MM-DD hh:mm - hh:mm task content > yyyy-mm-dd ?/!/!!/!!!`
+  - Beginning date/times: scheduled & length, `>`: due date.
+  - In Daily Notes, you can omit the date from scheduled and Time Ruler will parse the date from the note title. Only 24-hour format times are understood. 
+  - You can omit minutes and only put `hh - hh` for times.
 - **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: #h#m]  [priority:: lowest/low/medium/high/highest]`
-- **Tasks**: `[startTime:: hh-mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
-- **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh-mm]  [endTime:: hh-mm]  (or [allDay:: true]) [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`
+- **Tasks**: `[startTime:: hh:mm]  [length:: #h#m] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
+  - ⏳: scheduled, 📅: due. See the [Tasks docs](https://publish.obsidian.md/tasks/Getting+Started/Dates) for a full description.
+  - Order matters: inline fields must go before tasks emojis or Tasks won't understand it.
+- **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh:mm]  [endTime:: hh:mm] or [allDay:: true] [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`
+
+**Notes:**
+- `#h#m` examples: `1h`, `1h30m`, `1.5h`, etc. Any [Dataview duration](https://blacksmithgu.github.io/obsidian-dataview/annotation/types-of-metadata/#duration) will work.
 
 ### Reminder
 You can specify any of the [Obsidian Reminder](https://obsidian-reminder.cf/guide/set-reminders.html#reminder-format) formats as well. 
 
-When editing a task via drag-and-drop, tasks are converted back to the formatting detected in the task. If this is not possible, the user's preferred format (Dataview, Tasks, or Full Calendar) is used. This can be changed in Settings. 
+When editing a task via drag-and-drop, tasks are converted back to the formatting detected in the task. If this is not possible, the user's preferred format (Day Planner, Dataview, Tasks, or Full Calendar) is used. This can be changed in Settings. 
 
 *Note:* Double-spaces are used between brackets because without them, Obsidian thinks they are markdown links.
 
@@ -69,7 +77,13 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
 - Click the `focus` button (outwards arrows) to expand the timer and focus on current tasks. Shows all-day tasks if Calendar view is on, and only time-based tasks if not.
 
 ## Customization Settings
-- **Custom Filter**: This is passed to `dv.pages(<custom filter>)`. It only filters out certain pages, and can't filter specific tasks within those. Use Custom Statuses to filter out tasks. 
+- **Custom Filter**: This is passed to `dv.pages(<custom filter>)`. It only filters out certain pages, and can't filter specific tasks within those. Use Custom Statuses to filter out tasks. See this [link](https://blacksmithgu.github.io/obsidian-dataview/api/code-reference/#dvpagessource) for `dv.pages()` and this [link](https://blacksmithgu.github.io/obsidian-dataview/reference/sources/) for how to format query sources.
+  - Include a folder and its children: `"folder"`
+  - Exclude a folder and its children: `-"folder"`
+  - Include two folders and exclude a third: `"folder" or "folder2" and -"folder3"`
+  - Include tags: `#tag or #tag2 and -#tag3`
+  - Include pages which link to a page: `[[page]]`
+  - Include links from page: `outgoing([[page]])`
 - **Custom Status**: Either **include only** certain custom statuses, or **exclude all** specified custom statuses (characters between `[ ]` in tasks).
 
 # Credit

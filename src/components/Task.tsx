@@ -4,13 +4,18 @@ import { DateTime } from 'luxon'
 import { openTask, openTaskInRuler } from '../services/obsidianApi'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
-import { isDateISO } from '../services/util'
+import {
+  isDateISO,
+  parseDateFromPath,
+  parseHeadingFromPath,
+} from '../services/util'
 import { TaskPriorities } from '../types/enums'
 import Block from './Block'
 import Button from './Button'
 import { useMemo } from 'react'
 import moment from 'moment'
 import Logo from './Logo'
+import DueDate from './DueDate'
 
 export type TaskComponentProps = {
   id: string
@@ -67,6 +72,7 @@ export default function Task({
     dragType: 'task-length',
     id,
     start: task?.scheduled ?? '',
+    end: task?.scheduled ?? '',
   }
   const {
     setNodeRef: setLengthNodeRef,
@@ -77,32 +83,14 @@ export default function Task({
     data: lengthDragData,
   })
 
+  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
+  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
   const thisHeading = useMemo(() => {
-    if (type !== 'deadline') return
-    const dailyNoteDateTest = () => {
-      const dailyNotePath = getters.get('dailyNotePath')
-      const dailyNoteFormat = getters.get('dailyNoteFormat')
-      const matchesPath = task.path.match(
-        new RegExp(`${_.escapeRegExp(dailyNotePath)}([^\\/#]+)$`)
-      )?.[1]
-      if (!matchesPath) return false
-      const date = moment(matchesPath, dailyNoteFormat)
-      if (!date.isValid()) return false
-      return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat(
-        'ccc, LLL d'
-      )}`
-    }
-    const dailyTitle = dailyNoteDateTest()
-    return (
-      dailyTitle
-        ? dailyTitle
-        : task.path.includes('#')
-        ? task.path.slice(task.path.lastIndexOf('#') + 1)
-        : task.path.includes('/')
-        ? task.path.slice(task.path.lastIndexOf('/') + 1)
-        : task.path
-    ).replace(/\.md/, '')
-  }, [type, task.path])
+    const { name: heading } = parseHeadingFromPath(task.path)
+    const date = parseDateFromPath(task?.path, dailyNotePath, dailyNoteFormat)
+    if (!date) return heading
+    return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat('ccc, LLL d')}`
+  }, [task?.path, dailyNotePath, dailyNoteFormat])
 
   if (!task) return <></>
 
@@ -158,7 +146,7 @@ export default function Task({
           {task.title}
         </div>
         <div
-          className='no-scrollbar flex h-full min-h-line min-w-[24px] grow cursor-grab flex-wrap items-center justify-end space-x-1 font-menu child:my-1'
+          className='flex h-full min-h-line min-w-[24px] grow cursor-grab flex-wrap items-center justify-end space-x-1 font-menu child:my-1'
           {...attributes}
           {...listeners}
           ref={setActivatorNodeRef}
@@ -184,13 +172,19 @@ export default function Task({
               }
             </div>
           )}
-          {task.length && (
-            <div className='whitespace-nowrap text-xs text-accent'>
-              {task.length.hour ? `${task.length.hour}h` : ''}
-              {task.length.minute ? `${task.length.minute}m` : ''}
-            </div>
-          )}
         </div>
+
+        {task.length && (
+          <div
+            className='cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent'
+            ref={setLengthNodeRef}
+            {...lengthAttributes}
+            {...lengthListeners}
+          >
+            {task.length.hour ? `${task.length.hour}h` : ''}
+            {task.length.minute ? `${task.length.minute}m` : ''}
+          </div>
+        )}
 
         {(isLink || type == 'search') && task.scheduled && (
           <div
@@ -201,12 +195,7 @@ export default function Task({
           </div>
         )}
         {task.due && (
-          <div
-            className='ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-accent'
-            onClick={() => openTaskInRuler(task.position.start.line, task.path)}
-          >
-            {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
-          </div>
+          <DueDate task={task} dragId={`${id}::${type}::${dragContainer}`} />
         )}
         {task.reminder && (
           <div className='ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
@@ -230,14 +219,6 @@ export default function Task({
         <div className='break-words pl-7 pr-2 text-xs text-faint'>
           {task.notes}
         </div>
-      )}
-      {task.scheduled && !isDateISO(task.scheduled) && (
-        <div
-          className='-mt-1 h-1 w-full cursor-ns-resize border-muted hover:border-b'
-          {...lengthAttributes}
-          {...lengthListeners}
-          ref={setLengthNodeRef}
-        ></div>
       )}
 
       <div className='pl-6'>

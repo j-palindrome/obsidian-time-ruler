@@ -10,22 +10,26 @@ import Task from './Task'
 import Droppable from './Droppable'
 import Heading from './Heading'
 import { priorityNumberToKey } from '../types/enums'
+import moment from 'moment'
+import { convertSearchToRegExp, getTasksByHeading } from '../services/util'
 
 export default function Search() {
   const headings = useAppStore((state) => {
+    const dailyNote =
+      state.dailyNotePath + moment().format(state.dailyNoteFormat)
     const headings = _.sortBy(
       _.uniq(
         _.flatMap(state.tasks, (task) => {
           const path = task.path.replace(/\.md$/, '')
           return [path, path + (task.heading ? '#' + task.heading : '')]
-        }).concat(state.dailyNote ? [state.dailyNote] : [])
+        }).concat(dailyNote ? [dailyNote] : [])
       ),
       (heading) => state.fileOrder.indexOf(heading.replace(/#.*/, ''))
     )
-    if (state.dailyNote) {
+    if (dailyNote) {
       let i = 0
       for (let heading of headings.filter(
-        (heading) => state.dailyNote && heading.startsWith(state.dailyNote)
+        (heading) => dailyNote && heading.startsWith(dailyNote)
       )) {
         headings.splice(headings.indexOf(heading), 1)
         headings.splice(i, 0, heading)
@@ -71,29 +75,13 @@ export default function Search() {
   }, [searchStatus])
 
   const tasksByHeading = useAppStore(
-    (state) =>
-      _.mapValues(
-        _.groupBy(
-          _.filter(state.tasks, (task) => !task.parent),
-          (task) =>
-            task.path.replace('.md', '') +
-            (task.heading ? '#' + task.heading : '')
-        ),
-        (tasks) => _.sortBy(tasks, 'id')
-      ),
+    (state) => getTasksByHeading(state.tasks),
     shallow
   )
 
   const [showingTasks, setShowingTasks] = useState(true)
-  let isShowingTasks = typeof searchStatus !== 'string' ? false : showingTasks
 
-  const searchExp = new RegExp(
-    search
-      .split(' ')
-      .map((word) => _.escapeRegExp(word))
-      .join('.*'),
-    'i'
-  )
+  const searchExp = convertSearchToRegExp(search)
 
   const testViewMode = (task: TaskProps) => {
     switch (searchStatus) {
@@ -157,11 +145,7 @@ export default function Search() {
             <div className='relative px-4 pb-4'>
               <div className='sticky top-0 z-10 pt-4 backdrop-blur'>
                 <div className='flex w-full items-center space-x-2'>
-                  <h2 className='my-2 w-fit'>
-                    {typeof searchStatus === 'string'
-                      ? 'Search'
-                      : 'Create Task'}
-                  </h2>
+                  <h2 className='my-2 w-fit'>Search</h2>
                   <input
                     className='sticky top-4 h-6 w-full space-y-2 rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
                     value={search}
@@ -175,11 +159,6 @@ export default function Search() {
                         if (typeof searchStatus === 'string') {
                           ev.preventDefault()
                           app.workspace.openLinkText(firstHeading, '')
-                        } else if (searchStatus) {
-                          const [path, heading] = firstHeading.split('#')
-                          getters
-                            .getObsidianAPI()
-                            .createTask(path + '.md', heading, searchStatus)
                         }
                         setters.set({ searchStatus: false })
                       } else if (ev.key === 'Escape') {
@@ -214,42 +193,39 @@ export default function Search() {
                     </div>
                   )}
                 </div>
-                {typeof searchStatus === 'string' && (
-                  <div className='space-1 -mt-1 flex flex-wrap'>
-                    <div className='mt-1'>
-                      <Toggle
-                        title={'tasks'}
-                        callback={(state) => setShowingTasks(state)}
-                        value={showingTasks}
-                      />
-                    </div>
-                    <div className='grow'></div>
-                    <div className='mt-1 flex flex-wrap items-center pl-2'>
-                      {isShowingTasks &&
-                        ['all', 'scheduled', 'due', 'unscheduled'].map(
-                          (mode: ViewMode) => (
-                            <Button
-                              key={mode}
-                              onClick={() =>
-                                setters.set({ searchStatus: mode })
-                              }
-                              className={`${
-                                searchStatus === mode
-                                  ? 'border border-solid border-faint'
-                                  : ''
-                              }`}
-                            >
-                              {mode}
-                            </Button>
-                          )
-                        )}
-                    </div>
+
+                <div className='space-1 -mt-1 flex flex-wrap'>
+                  <div className='mt-1'>
+                    <Toggle
+                      title={'tasks'}
+                      callback={(state) => setShowingTasks(state)}
+                      value={showingTasks}
+                    />
                   </div>
-                )}
+                  <div className='grow'></div>
+                  <div className='mt-1 flex flex-wrap items-center pl-2'>
+                    {showingTasks &&
+                      ['all', 'scheduled', 'due', 'unscheduled'].map(
+                        (mode: ViewMode) => (
+                          <Button
+                            key={mode}
+                            onClick={() => setters.set({ searchStatus: mode })}
+                            className={`${
+                              searchStatus === mode
+                                ? 'border border-solid border-faint'
+                                : ''
+                            }`}
+                          >
+                            {mode}
+                          </Button>
+                        )
+                      )}
+                  </div>
+                </div>
               </div>
 
               {headings.map((heading) => {
-                const filteredTasks = isShowingTasks
+                const filteredTasks = showingTasks
                   ? tasksByHeading[heading]?.filter(
                       (task) =>
                         !(status && task.status !== status) &&
@@ -264,7 +240,7 @@ export default function Search() {
                 return (
                   <Fragment key={heading}>
                     {((searchStatus === 'all' && !status) ||
-                      !isShowingTasks ||
+                      !showingTasks ||
                       filteredTasks.length > 0) && (
                       <div key={heading} className='my-4'>
                         {headingMatch && (
@@ -289,7 +265,7 @@ export default function Search() {
                           />
                         )}
 
-                        {isShowingTasks &&
+                        {showingTasks &&
                           filteredTasks.map((task) => (
                             <Task
                               id={task.id}

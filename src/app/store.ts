@@ -18,13 +18,13 @@ export type AppState = {
   dragData: DragData | null
   findingTask: string | null
   inScroll: number
-  searchStatus: false | ViewMode | Partial<TaskProps>
+  searchStatus: false | ViewMode
   calendarMode: boolean
-  dailyNote: string | null
   dailyNoteFormat: string
   dailyNotePath: string
   dayStartEnd: TimeRulerPlugin['settings']['dayStartEnd']
   fileOrder: string[]
+  newTask: false | Partial<TaskProps>
 }
 
 export const useAppStore = create<AppState>(() => ({
@@ -37,10 +37,10 @@ export const useAppStore = create<AppState>(() => ({
   searchStatus: false,
   calendarMode: false,
   fileOrder: [],
-  dailyNote: null,
   dailyNoteFormat: 'YYYY-MM-DD',
   dailyNotePath: '',
   dayStartEnd: [0, 24],
+  newTask: false,
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {

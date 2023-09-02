@@ -102,6 +102,7 @@ export default class SettingsTab extends PluginSettingTab {
         dataview: 'Dataview',
         'full-calendar': 'Full Calendar',
         tasks: 'Tasks',
+        simple: 'Day Planner',
       })
       dropdown.setValue(this.plugin.settings.fieldFormat)
       dropdown.onChange((value: FieldFormat['main']) => {

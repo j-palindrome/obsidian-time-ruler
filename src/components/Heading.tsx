@@ -4,6 +4,7 @@ import moment from 'moment'
 import { useMemo } from 'react'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
+import { parseDateFromPath, parseHeadingFromPath } from '../services/util'
 
 export type HeadingProps = { path: string }
 export default function Heading({
@@ -13,40 +14,17 @@ export default function Heading({
   path: string
   dragProps?: any
 }) {
-  const level = path.includes('#') ? 'heading' : 'group'
-  const name = (
-    level === 'heading'
-      ? path.slice(path.lastIndexOf('#') + 1)
-      : path.includes('/')
-      ? path.slice(path.lastIndexOf('/') + 1)
-      : path
-  ).replace(/\.md/, '')
+  const { name, level } = useMemo(() => parseHeadingFromPath(path), [path])
   const searchStatus = useAppStore((state) => state.searchStatus)
-  const { dailyNotePath, dailyNoteFormat } = useAppStore(
-    (state) => ({
-      dailyNote: state.dailyNote,
-      dailyNotePath: state.dailyNotePath,
-      dailyNoteFormat: state.dailyNoteFormat,
-    }),
-    shallow
-  )
+
+  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
+  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
 
   const dailyNoteDateTest = useMemo(() => {
-    // reverting to simple format because it just is too finicky
-    let thisPath = path
-    if (thisPath.includes('/'))
-      thisPath = thisPath.slice(0, thisPath.lastIndexOf('/'))
-    const matchesPath = thisPath === dailyNotePath
-
-    if (!matchesPath) return false
-    const fileName = (
-      path.includes('/') ? path.slice(path.lastIndexOf('/') + 1) : path
-    ).replace('.md', '')
-
-    const date = moment(fileName, dailyNoteFormat)
-    if (!date.isValid()) return false
-    return 'Daily'
-  }, [path])
+    const date = parseDateFromPath(path, dailyNotePath, dailyNoteFormat)
+    if (!date) return false
+    return `Daily: ${DateTime.fromJSDate(date.toDate()).toFormat('ccc, LLL d')}`
+  }, [path, dailyNotePath, dailyNoteFormat])
 
   return (
     <div

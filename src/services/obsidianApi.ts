@@ -159,6 +159,8 @@ export default class ObsidianAPI extends Component {
     heading: string | undefined,
     dropData: Partial<TaskProps>
   ) {
+    if (!path.endsWith('.md')) path += '.md'
+
     let position = {
       start: { col: 0, line: 0, offset: 0 },
       end: { col: 0, line: 0, offset: 0 },
@@ -267,22 +269,17 @@ export default class ObsidianAPI extends Component {
 }
 
 export async function getDailyNoteInfo(): Promise<
-  Pick<AppState, 'dailyNote' | 'dailyNoteFormat' | 'dailyNotePath'> | undefined
+  Pick<AppState, 'dailyNoteFormat' | 'dailyNotePath'> | undefined
 > {
   try {
-    let folder = '',
-      format = 'YYYY-MM-DD'
-    try {
-      const settings = JSON.parse(
-        await app.vault.adapter.read(app.vault.configDir + '/daily-notes.json')
-      )
-      if (settings.folder) folder = settings.folder
-      if (settings.format) format = settings.format
-    } catch (error) {}
+    let { folder, format } = (await app.vault.readConfigJson(
+      'daily-notes'
+    )) as Record<string, string>
+    if (!folder) folder = '/'
+    if (!folder.endsWith('/')) folder += '/'
+    if (!format) format = 'YYYY-MM-DD'
 
-    const today = moment().format(format)
     return {
-      dailyNote: normalizePath(folder) + '/' + today,
       dailyNoteFormat: format,
       dailyNotePath: folder,
     }

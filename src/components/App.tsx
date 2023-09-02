@@ -8,15 +8,16 @@ import {
   PointerSensor,
   TouchSensor,
   pointerWithin,
+  useDraggable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
 import $ from 'jquery'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
+import { Platform } from 'obsidian'
 import { useEffect, useRef, useState } from 'react'
 import useStateRef from 'react-usestateref'
-import { shallow } from 'zustand/shallow'
 import {
   AppState,
   getters,
@@ -25,22 +26,22 @@ import {
   useAppStoreRef,
 } from '../app/store'
 import { useAutoScroll } from '../services/autoScroll'
-import { TaskActions, isTaskProps } from '../types/enums'
-import Block from './Block'
+import { getDailyNoteInfo } from '../services/obsidianApi'
+import { isTaskProps } from '../types/enums'
 import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
+import Group from './Group'
+import Heading from './Heading'
+import Logo from './Logo'
 import Search from './Search'
 import Task from './Task'
 import Timeline from './Timeline'
 import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
+import DueDate from './DueDate'
 import invariant from 'tiny-invariant'
-import { Platform } from 'obsidian'
-import { getDailyNoteInfo } from '../services/obsidianApi'
-import Heading from './Heading'
-import Group from './Group'
-import Logo from './Logo'
+import NewTask from './NewTask'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -93,53 +94,58 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     const dropData = ev.over?.data.current as DropData | undefined
     const dragData = activeDragRef.current
 
-    if (dropData && dragData) {
+    if (dragData?.dragType === 'new_button' && !dropData) {
+      setters.set({ newTask: { scheduled: undefined } })
+    } else if (dropData && dragData) {
       if (!isTaskProps(dropData)) {
+        // use case where dropping on a heading or group
         if (dropData.type === 'heading' && dragData.dragType === 'group') {
           setters.updateFileOrder(dragData.name, dropData.heading)
         }
-      } else if (isTaskProps(dropData)) {
-        if (dragData.dragType === 'time') {
-          if (!dropData.scheduled) return
-          const { hours, minutes } = DateTime.fromISO(dropData.scheduled)
-            .diff(DateTime.fromISO(dragData.start))
-            .shiftTo('hours', 'minutes')
-            .toObject() as { hours: number; minutes: number }
-          setters.set({
-            searchStatus: {
-              scheduled: dragData.start,
-              length: { hour: hours, minute: minutes },
-            },
-          })
-        } else if (dragData.dragType === 'new') {
-          const [path, heading] = dragData.path.split('#')
-          getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
-        } else if (dragData.dragType === 'task-length') {
-          if (!dropData.scheduled) return
-          const start = DateTime.fromISO(dragData.start)
-          const end = DateTime.fromISO(dropData.scheduled)
-          const length = end.diff(start).shiftTo('hours', 'minutes')
-
-          if (length.hours + length.minutes < 0) return
-          const taskLength = {
-            hour: length.hours ?? 0,
-            minute: length.minutes ?? 0,
-          }
-
-          setters.patchTasks([dragData.id], {
-            length: taskLength,
-          })
-        } else {
-          setters.patchTasks(
-            dragData.dragType === 'group' || dragData.dragType === 'event'
-              ? dragData.tasks.flatMap((x) =>
-                  x.type === 'parent' ? x.children : x.id
-                )
-              : dragData.dragType === 'task'
-              ? [dragData.id]
-              : [],
-            dropData
-          )
+      } else {
+        switch (dragData.dragType) {
+          case 'new_button':
+            setters.set({ newTask: { scheduled: dropData.scheduled } })
+            break
+          case 'time':
+          case 'task-length':
+            if (!dropData.scheduled) return
+            const { hours, minutes } = DateTime.fromISO(dropData.scheduled)
+              .diff(DateTime.fromISO(dragData.start))
+              .shiftTo('hours', 'minutes')
+              .toObject() as { hours: number; minutes: number }
+            if (dragData.dragType === 'task-length') {
+              setters.patchTasks([dragData.id], {
+                length: { hour: hours, minute: minutes },
+              })
+            } else {
+              setters.set({
+                newTask: {
+                  scheduled: dropData.scheduled,
+                  length: { hour: hours, minute: minutes },
+                },
+              })
+            }
+            break
+          case 'new':
+            const [path, heading] = dragData.path.split('#')
+            getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
+            break
+          case 'group':
+          case 'event':
+            setters.patchTasks(
+              dragData.tasks.flatMap((x) =>
+                x.type === 'parent' ? x.children : x.id
+              ),
+              dropData
+            )
+            break
+          case 'task':
+            setters.patchTasks([dragData.id], dropData)
+            break
+          case 'due':
+            setters.patchTasks([dragData.task.id], { due: dropData.scheduled })
+            break
         }
       }
     }
@@ -187,17 +193,23 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       case 'task':
         return <Task {...activeDrag} />
       case 'task-length':
-        return <div className='h-0.5 w-full cursor-ns-resize bg-faint'></div>
+      case 'time':
+        return <></>
       case 'group':
         return <Group {...activeDrag} />
       case 'event':
         return <Event {...activeDrag} isDragging={true} />
       case 'new':
         return <Heading {...activeDrag} />
+      case 'due':
+        return <DueDate {...activeDrag} />
+      case 'new_button':
+        return <NewTask />
     }
   }
 
   const [childWidth, setChildWidth, childWidthRef] = useStateRef('child:w-full')
+  const [overlayWidth, setOverlayWidth] = useState(1)
 
   useEffect(() => {
     function outputSize() {
@@ -215,7 +227,16 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           : width < 1200
           ? 'child:w-1/3'
           : 'child:w-1/4'
-      if (newChildWidth !== childWidthRef.current) setChildWidth(newChildWidth)
+      const overlayWidths = {
+        'child:w-full': 1,
+        'child:w-1/2': 2,
+        'child:w-1/3': 3,
+        'child:w-1/4': 4,
+      }
+      if (newChildWidth !== childWidthRef.current) {
+        setChildWidth(newChildWidth)
+        setOverlayWidth(overlayWidths[newChildWidth])
+      }
     }
     outputSize()
 
@@ -284,10 +305,18 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           background: 'transparent',
         }}
       >
-        <DragOverlay dropAnimation={null}>{getDragElement()}</DragOverlay>
+        <DragOverlay
+          dropAnimation={null}
+          style={{ width: `calc((100% - 48px) / ${overlayWidth})` }}
+        >
+          {getDragElement()}
+        </DragOverlay>
         <Search />
         <Buttons {...{ times, datesShown, setDatesShown, datesShownState }} />
         <Timer />
+        <div className='absolute left-6 top-[86px]'>
+          <NewTask />
+        </div>
         <div
           className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childWidth}`}
           id='time-ruler-times'
@@ -347,55 +376,84 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
     </Droppable>
   )
 
+  const [showingModal, setShowingModal] = useState(false)
+  const modalFrame = useRef<HTMLDivElement>(null)
+  const checkShowing = (ev: MouseEvent) => {
+    invariant(modalFrame.current)
+    const els = document.elementsFromPoint(ev.clientX, ev.clientY)
+
+    if (!els.includes(modalFrame.current)) {
+      setShowingModal(false)
+    }
+  }
+  useEffect(() => {
+    window.removeEventListener('mousedown', checkShowing)
+    if (showingModal) {
+      window.addEventListener('mousedown', checkShowing)
+    }
+    return () => window.removeEventListener('mousedown', checkShowing)
+  }, [showingModal])
+
   return (
     <>
       <div className={`flex w-full items-center space-x-1`}>
         <div className='text-left'>
           <div className='group relative'>
-            <Button src='more-horizontal' />
-            <div className='absolute left-0 top-full z-50 hidden max-w-[80vw] p-2 group-hover:block'>
-              <div className='rounded-lg border border-solid border-faint bg-primary p-2'>
-                <div
-                  className='clickable-icon flex items-center !justify-start space-x-2'
-                  onClick={() => {
-                    setters.set({ searchStatus: 'all' })
-                  }}
-                >
-                  <Logo src={'search'} className='w-6 flex-none' />
-                  <span className='whitespace-nowrap'>Search</span>
-                </div>
-                <div
-                  className='clickable-icon flex items-center !justify-start space-x-2'
-                  onClick={async () => {
-                    getters.getCalendarAPI().loadEvents()
-                    const obsidianAPI = getters.getObsidianAPI()
-                    setters.set({
-                      ...(await getDailyNoteInfo()),
-                    })
-                    obsidianAPI.loadTasks()
-                  }}
-                >
-                  <Logo src={'rotate-cw'} className='w-6 flex-none' />
-                  <span className='whitespace-nowrap'>Reload</span>
-                </div>
-                <div
-                  className='clickable-icon flex items-center !justify-start space-x-2'
-                  onClick={() => {
-                    setters.set({
-                      calendarMode: !calendarMode,
-                    })
-                  }}
-                >
-                  <Logo
-                    src={calendarMode ? 'calendar-days' : 'calendar'}
-                    className='w-6 flex-none'
-                  />
-                  <span className='whitespace-nowrap'>{`${
-                    calendarMode ? 'Hourly' : 'Daily'
-                  } view`}</span>
+            <Button
+              src='more-horizontal'
+              onClick={(ev) => setShowingModal(!showingModal)}
+            />
+            {showingModal && (
+              <div
+                className='absolute left-0 top-full z-50 max-w-[80vw] p-2'
+                ref={modalFrame}
+              >
+                <div className='rounded-lg border border-solid border-faint bg-primary p-2'>
+                  <div
+                    className='clickable-icon flex items-center !justify-start space-x-2'
+                    onClick={() => {
+                      setters.set({ searchStatus: 'all' })
+                      setShowingModal(false)
+                    }}
+                  >
+                    <Logo src={'search'} className='w-6 flex-none' />
+                    <span className='whitespace-nowrap'>Search</span>
+                  </div>
+                  <div
+                    className='clickable-icon flex items-center !justify-start space-x-2'
+                    onClick={async () => {
+                      getters.getCalendarAPI().loadEvents()
+                      const obsidianAPI = getters.getObsidianAPI()
+                      setters.set({
+                        ...(await getDailyNoteInfo()),
+                      })
+                      obsidianAPI.loadTasks()
+                      setShowingModal(false)
+                    }}
+                  >
+                    <Logo src={'rotate-cw'} className='w-6 flex-none' />
+                    <span className='whitespace-nowrap'>Reload</span>
+                  </div>
+                  <div
+                    className='clickable-icon flex items-center !justify-start space-x-2'
+                    onClick={() => {
+                      setters.set({
+                        calendarMode: !calendarMode,
+                      })
+                      setShowingModal(false)
+                    }}
+                  >
+                    <Logo
+                      src={calendarMode ? 'calendar-days' : 'calendar'}
+                      className='w-6 flex-none'
+                    />
+                    <span className='whitespace-nowrap'>{`${
+                      calendarMode ? 'Hourly' : 'Daily'
+                    } view`}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           {calendarMode && unscheduledButton}
         </div>
