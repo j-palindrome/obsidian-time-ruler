@@ -202,7 +202,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       case 'new':
         return <Heading {...activeDrag} />
       case 'due':
-        return <DueDate {...activeDrag} />
+        return <DueDate {...activeDrag} isDragging />
       case 'new_button':
         return <NewTask />
     }
@@ -314,7 +314,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         <Search />
         <Buttons {...{ times, datesShown, setDatesShown, datesShownState }} />
         <Timer />
-        <div className='absolute left-6 top-[86px]'>
+        <div className='absolute bottom-6 left-6'>
           <NewTask />
         </div>
         <div
@@ -476,11 +476,7 @@ const Buttons = ({ times, datesShown, datesShownState, setDatesShown }) => {
                 id={times.startISO + '::button'}
                 data={{ scheduled: times.startISO }}
               >
-                <Button
-                  className='h-[28px]'
-                  onClick={() => scrollToSection(i)}
-                  data-section-scroll={i}
-                >
+                <Button className='h-[28px]' onClick={() => scrollToSection(i)}>
                   {thisDate.toFormat(
                     calendarMode
                       ? thisDate.day === 1 || i === 0

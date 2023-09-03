@@ -111,7 +111,7 @@ export default function Task({
         </div>
       )}
       <div
-        className={`selectable flex items-center rounded-lg pr-2 ${
+        className={`selectable group flex items-center rounded-lg pr-2 ${
           isLink ? 'font-menu text-xs' : 'font-sans'
         }`}
       >
@@ -174,17 +174,26 @@ export default function Task({
           )}
         </div>
 
-        {task.length && (
-          <div
-            className='cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent'
-            ref={setLengthNodeRef}
-            {...lengthAttributes}
-            {...lengthListeners}
-          >
-            {task.length.hour ? `${task.length.hour}h` : ''}
-            {task.length.minute ? `${task.length.minute}m` : ''}
-          </div>
-        )}
+        {task.scheduled &&
+          !isDateISO(task.scheduled) &&
+          task.scheduled > (DateTime.now().toISODate() as string) && (
+            <div
+              className={`cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent ${
+                !task.length
+                  ? 'opacity-0 transition-opacity duration-100 group-hover:opacity-100'
+                  : ''
+              }`}
+              ref={setLengthNodeRef}
+              {...lengthAttributes}
+              {...lengthListeners}
+            >
+              {!task.length
+                ? 'length'
+                : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
+                    task.length?.minute ? `${task.length?.minute}m` : ''
+                  }`}
+            </div>
+          )}
 
         {(isLink || type == 'search') && task.scheduled && (
           <div
@@ -194,9 +203,9 @@ export default function Task({
             {DateTime.fromISO(task.scheduled).toFormat('EEEEE M/d')}
           </div>
         )}
-        {task.due && (
-          <DueDate task={task} dragId={`${id}::${type}::${dragContainer}`} />
-        )}
+
+        <DueDate task={task} dragId={`${id}::${type}::${dragContainer}`} />
+
         {task.reminder && (
           <div className='ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
             <Logo src='alarm-clock' className='mr-1' />

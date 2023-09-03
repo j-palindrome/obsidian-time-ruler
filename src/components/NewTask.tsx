@@ -54,7 +54,10 @@ export default function NewTask() {
   return (
     <>
       <div className='h-8 w-8' {...attributes} {...listeners} ref={setNodeRef}>
-        <Button className='h-full w-full cursor-grab rounded-full' src='plus' />
+        <Button
+          className='h-full w-full cursor-grab rounded-full bg-accent child:invert'
+          src='plus'
+        />
       </div>
       {newTask && (
         <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-8'>

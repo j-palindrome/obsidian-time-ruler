@@ -74,10 +74,8 @@ export default function Search() {
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [searchStatus])
 
-  const tasksByHeading = useAppStore(
-    (state) => getTasksByHeading(state.tasks),
-    shallow
-  )
+  const tasks = useAppStore((state) => state.tasks, shallow)
+  const tasksByHeading = useMemo(() => getTasksByHeading(tasks), [tasks])
 
   const [showingTasks, setShowingTasks] = useState(true)
 
@@ -133,6 +131,87 @@ export default function Search() {
   }, [tasksByHeading])
 
   const searching = !!searchStatus
+
+  const filterTask = (task: TaskProps) =>
+    !(status && task.status !== status) && searchExp.test(searchTasks[task.id])
+
+  const sortByHeading = (unscheduled: boolean) => (
+    <>
+      {headings.map((heading) => {
+        const filteredTasks = showingTasks
+          ? tasksByHeading[heading]?.filter((task) => filterTask(task)) ?? []
+          : []
+        const [path, section] = heading.split('#')
+        const headingMatch = searchExp.test(
+          `path: ${path} ${section ? `heading: #${section}` : ''}`
+        )
+        return (
+          <Fragment key={heading}>
+            {((searchStatus === 'all' && !status) ||
+              !showingTasks ||
+              filteredTasks.length > 0) && (
+              <div key={heading} className='my-4'>
+                {headingMatch && (
+                  <DraggableHeading
+                    dragData={
+                      typeof searchStatus === 'string'
+                        ? {
+                            dragType: 'group',
+                            tasks: tasksByHeading[heading],
+                            hidePaths: [],
+                            name: heading,
+                            level: heading.includes('#') ? 'heading' : 'group',
+                            type: 'search',
+                            id: heading,
+                            dragContainer: 'search',
+                          }
+                        : { dragType: 'new', path: heading }
+                    }
+                    path={heading}
+                  />
+                )}
+
+                {showingTasks &&
+                  filteredTasks.map((task) => (
+                    <Task
+                      id={task.id}
+                      key={task.id}
+                      type='search'
+                      dragContainer={'search'}
+                    />
+                  ))}
+              </div>
+            )}
+          </Fragment>
+        )
+      })}
+    </>
+  )
+
+  const sortTasksBy = (type: 'due' | 'scheduled') => (
+    <>
+      {_.sortBy(
+        _.filter(tasks, (task) => filterTask(task) && !!task[type]),
+        type
+      ).map((task) => (
+        <Task type='search' id={task.id} dragContainer='search' key={task.id} />
+      ))}
+    </>
+  )
+
+  const displayTasks = () => {
+    invariant(searchStatus)
+    switch (searchStatus) {
+      case 'all':
+        return sortByHeading(false)
+      case 'unscheduled':
+        return sortByHeading(true)
+      case 'due':
+        return sortTasksBy('due')
+      case 'scheduled':
+        return sortTasksBy('scheduled')
+    }
+  }
 
   return (
     <>
@@ -205,7 +284,7 @@ export default function Search() {
                   <div className='grow'></div>
                   <div className='mt-1 flex flex-wrap items-center pl-2'>
                     {showingTasks &&
-                      ['all', 'scheduled', 'due', 'unscheduled'].map(
+                      ['all', 'unscheduled', 'scheduled', 'due'].map(
                         (mode: ViewMode) => (
                           <Button
                             key={mode}
@@ -223,62 +302,7 @@ export default function Search() {
                   </div>
                 </div>
               </div>
-
-              {headings.map((heading) => {
-                const filteredTasks = showingTasks
-                  ? tasksByHeading[heading]?.filter(
-                      (task) =>
-                        !(status && task.status !== status) &&
-                        searchExp.test(searchTasks[task.id]) &&
-                        testViewMode(task)
-                    ) ?? []
-                  : []
-                const [path, section] = heading.split('#')
-                const headingMatch = searchExp.test(
-                  `path: ${path} ${section ? `heading: #${section}` : ''}`
-                )
-                return (
-                  <Fragment key={heading}>
-                    {((searchStatus === 'all' && !status) ||
-                      !showingTasks ||
-                      filteredTasks.length > 0) && (
-                      <div key={heading} className='my-4'>
-                        {headingMatch && (
-                          <DraggableHeading
-                            dragData={
-                              typeof searchStatus === 'string'
-                                ? {
-                                    dragType: 'group',
-                                    tasks: tasksByHeading[heading],
-                                    hidePaths: [],
-                                    name: heading,
-                                    level: heading.includes('#')
-                                      ? 'heading'
-                                      : 'group',
-                                    type: 'search',
-                                    id: heading,
-                                    dragContainer: 'search',
-                                  }
-                                : { dragType: 'new', path: heading }
-                            }
-                            path={heading}
-                          />
-                        )}
-
-                        {showingTasks &&
-                          filteredTasks.map((task) => (
-                            <Task
-                              id={task.id}
-                              key={task.id}
-                              type='search'
-                              dragContainer={'search'}
-                            />
-                          ))}
-                      </div>
-                    )}
-                  </Fragment>
-                )
-              })}
+              {displayTasks()}
             </div>
           </div>
         </div>

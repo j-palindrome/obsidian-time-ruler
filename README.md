@@ -50,12 +50,13 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
 
 ## Buttons
 
-Click the menu `...` button (top-left) to view settings.
-- **Search**: Show all tasks and headings. Filter by tag, priority, filepath, or heading. Also click **Unscheduled** to view unscheduled tasks.
+- Click the **menu** `...` button (top-left) to view settings.
+- **Search**: Show all tasks and headings. Filter by tag, priority, filepath, or heading. 
+  - `scheduled` and `due` views show tasks sorted by scheduled and due. `unscheduled` and `all` sort & group tasks by heading.
 - **Daily / Hourly view**: Toggle between daily and hourly views. In daily view, hours are hidden. 
 - **Refresh**: Reload Obsidian tasks and online calendars.
-- **Unscheduled:** Drag a task here to unschedule it. Click to show unscheduled tasks.
-- **Days:** Click to scroll to that date, drag a task on top to schedule it for that date.
+- **Unscheduled:** Drag a task here to unschedule it. Click to show unscheduled tasks (shortcut to Search view).
+- **Dates:** Click to scroll to that date, drag a task on top to schedule it for that date.
 
 ## Obsidian integrations
 - **Click** on tasks and headings to show them in Obsidian (Time Ruler will update while you edit them)

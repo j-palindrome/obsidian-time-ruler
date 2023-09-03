@@ -7,8 +7,13 @@ import invariant from 'tiny-invariant'
 export type DueDateComponentProps = {
   task: TaskProps
   dragId: string
+  isDragging?: boolean
 }
-export default function DueDate({ task, dragId }: DueDateComponentProps) {
+export default function DueDate({
+  task,
+  dragId,
+  isDragging = false,
+}: DueDateComponentProps) {
   const dragData: DragData = {
     dragType: 'due',
     task,
@@ -19,16 +24,16 @@ export default function DueDate({ task, dragId }: DueDateComponentProps) {
     data: dragData,
   })
 
-  return !task.due ? (
-    <></>
-  ) : (
+  return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className='ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent'
+      className={`ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline ${
+        !task.due && !isDragging ? 'hidden group-hover:block' : ''
+      }`}
     >
-      {DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
+      {!task.due ? 'due' : DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
     </div>
   )
 }

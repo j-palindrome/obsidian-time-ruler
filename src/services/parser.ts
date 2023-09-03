@@ -249,9 +249,12 @@ export function textToTask(item: any): TaskProps {
 
         if (endTime) {
           const endISO = date + 'T' + convertTimeToISO(endTime)
-          const duration = DateTime.fromISO(endISO)
-            .diff(DateTime.fromISO(simpleScheduled))
-            .shiftTo('hour', 'minute')
+          let endDate = DateTime.fromISO(endISO)
+          const startDate = DateTime.fromISO(simpleScheduled)
+          if (endDate < startDate) {
+            endDate = endDate.plus({ day: 1 })
+          }
+          const duration = endDate.diff(startDate).shiftTo('hour', 'minute')
           simpleLength = { hour: duration.hours, minute: duration.minutes }
         }
       }
@@ -267,14 +270,14 @@ export function textToTask(item: any): TaskProps {
 
   const { simpleScheduled, simpleLength, simpleDue, simplePriority } =
     parseSimple()
-  const scheduled = simpleScheduled ?? parseScheduled()
-  const due = simpleDue ?? parseDateKey('due')
+  const scheduled = parseScheduled() ?? simpleScheduled
+  const due = parseDateKey('due') ?? simpleDue
   const completion = parseDateKey('completion')
   const start = parseDateKey('start')
   const created = parseDateKey('created')
   const repeat = parseRepeat()
-  const priority = simplePriority ?? parsePriority()
-  const length = simpleLength ?? parseLength(scheduled)
+  const priority = parsePriority() ?? simplePriority
+  const length = parseLength(scheduled) ?? simpleLength
   const reminder = parseReminder()
 
   return {

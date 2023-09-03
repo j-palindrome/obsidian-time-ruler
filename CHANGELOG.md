@@ -18,6 +18,12 @@
 
 # Changelog
 
+## 1.3.1 (9/2/2023)
+
+**Added:**
+- `scheduled` and `due` modes in Search now sort tasks by scheduled or due
+- Tasks without set lengths or deadlines still have a draggable handle to set them
+
 ## 1.3.0 (9/2/2023)
 
 ** Added:** 

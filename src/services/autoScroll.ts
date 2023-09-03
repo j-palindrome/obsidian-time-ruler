@@ -34,19 +34,19 @@ export const useAutoScroll = (dragging: boolean) => {
         case 'top':
           el.scrollBy({
             top: scrollInfo.value,
-            behavior: 'smooth'
+            behavior: 'smooth',
           })
           break
         case 'left':
           el.scrollBy({
             left: scrollInfo.value,
-            behavior: 'smooth'
+            behavior: 'smooth',
           })
           break
         case 'section':
           $(el).children()[scrollInfo.value]?.scrollIntoView({
             inline: 'start',
-            behavior: 'smooth'
+            behavior: 'smooth',
           })
           break
       }
@@ -74,7 +74,7 @@ export const useAutoScroll = (dragging: boolean) => {
     )
 
     const yTargets = targets.filter(
-      el => el.getAttribute('data-auto-scroll') === 'y'
+      (el) => el.getAttribute('data-auto-scroll') === 'y'
     )
     for (let el of yTargets) {
       const rect = el.getBoundingClientRect()
@@ -82,7 +82,7 @@ export const useAutoScroll = (dragging: boolean) => {
         if (!scrollAction.current)
           prepareScroll(el, {
             type: 'top',
-            value: (rect.height - MARGIN * 2) * -1
+            value: (rect.height - MARGIN * 2) * -1,
           })
         continueAutoScroll = true
         break
@@ -95,7 +95,7 @@ export const useAutoScroll = (dragging: boolean) => {
     }
 
     const xTargets = targets.filter(
-      el => el.getAttribute('data-auto-scroll') === 'x'
+      (el) => el.getAttribute('data-auto-scroll') === 'x'
     )
     for (let el of xTargets) {
       const rect = el.getBoundingClientRect()
@@ -103,7 +103,7 @@ export const useAutoScroll = (dragging: boolean) => {
         if (!scrollAction.current)
           prepareScroll(el, {
             type: 'left',
-            value: (rect.width - MARGIN * 2) * -1
+            value: (rect.width - MARGIN * 2) * -1,
           })
         continueAutoScroll = true
         break
@@ -113,20 +113,6 @@ export const useAutoScroll = (dragging: boolean) => {
         continueAutoScroll = true
         break
       }
-    }
-
-    const sectionButtonTarget = targets.find(el =>
-      el.getAttribute('data-section-scroll')
-    )
-    if (sectionButtonTarget) {
-      if (!scrollAction.current)
-        prepareScroll($('#time-ruler-times')[0] as HTMLDivElement, {
-          type: 'section',
-          value: parseInt(
-            sectionButtonTarget.getAttribute('data-section-scroll') as string
-          )
-        })
-      continueAutoScroll = true
     }
 
     if (!continueAutoScroll && scrollAction.current) {

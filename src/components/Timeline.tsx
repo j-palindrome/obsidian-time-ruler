@@ -130,7 +130,7 @@ export default function Timeline({
     <div className='flex h-full flex-col'>
       <Droppable data={{ scheduled: startISO }} id={startISO + '::timeline'}>
         <div className='group flex w-full flex-none items-center'>
-          <div className='ml-9 w-full rounded-lg px-1'>{title || ''}</div>
+          <div className='ml-6 w-full rounded-lg px-1'>{title || ''}</div>
           <Button
             className='aspect-square h-full'
             onClick={() => setExpanded(!expanded)}
