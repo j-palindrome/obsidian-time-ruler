@@ -13,6 +13,7 @@ import {
 import _ from 'lodash'
 import { isDateISO, parseDateFromPath } from './util'
 import { getters } from '../app/store'
+import { startTransition } from 'react'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
@@ -108,52 +109,97 @@ export function textToTask(item: any): TaskProps {
     return parsedLength
   }
 
-  const parseScheduled = () => {
-    let scheduled = item.scheduled as DateTime | undefined
-    let isDate: boolean = false
+  const parseScheduledAndLength = () => {
+    let rawScheduled = item.scheduled as DateTime | undefined
+    let rawLength = item.length as Duration | undefined
+    let length: TaskProps['length']
+    let scheduled: TaskProps['scheduled']
+    if (rawLength) length = { hour: rawLength.hours, minute: rawLength.minutes }
+    let isDate: boolean = true
 
-    if (!scheduled) {
-      let date = item.date as string | undefined
-      const testDailyNoteTask = !date && item.parent === undefined
-      if (testDailyNoteTask) {
-        date = item.section.path
-          .replace(/\.md$/, '')
-          .match(new RegExp(`${ISO_MATCH}$`))?.[0]
+    // test for date
+    if (!rawScheduled) {
+      // test inline
+      const inlineDate =
+        new RegExp(`${keyToTasksEmoji.scheduled} ?(${ISO_MATCH})`)?.[1] ??
+        titleLine.match(SIMPLE_SCHEDULED_DATE)?.[1]
+      if (inlineDate) {
+        rawScheduled = DateTime.fromISO(inlineDate)
+        if (!isDateISO(inlineDate)) isDate = false
       }
-      if (!date) return
-      scheduled = DateTime.fromISO(date)
-      isDate = true
+    }
+    if (!rawScheduled) {
+      // test note title
+      let titleDate = item.date as string | undefined
+      const parsedPathDate = parseDateFromPath(item.path)
+      if (parsedPathDate)
+        titleDate = parsedPathDate.toISOString(false).slice(0, 10)
+      if (titleDate) rawScheduled = DateTime.fromISO(titleDate)
     }
 
-    const lengthCheck = item.text.match(
-      new RegExp(
-        `\\[scheduled:: (.*?)\\s*\\]|${keyToTasksEmoji.scheduled} ?(${ISO_MATCH})`
-      )
-    )
-    const foundDate = lengthCheck?.[1] ?? lengthCheck?.[2]
-    if (foundDate?.length === 10) isDate = true
+    // test for time (and length)
+    if (rawScheduled) {
+      let hour: number | undefined,
+        minute: number | undefined = 0
+      let endHour: number | undefined,
+        endMinute: number | undefined = 0
+      if (item['startTime']) {
+        const splitStartTime = item['startTime'].split(':')
+        hour = parseInt(splitStartTime[0])
+        minute = parseInt(splitStartTime[1])
+        if (item['endTime']) {
+          const splitEndTime = item['endTime'].split(':')
+          endHour = parseInt(splitEndTime[0])
+          endMinute = parseInt(splitEndTime[1])
+        }
+      } else {
+        const titleWithoutDate = titleLine.replace(SIMPLE_SCHEDULED_DATE, '')
+        const simpleScheduled = titleWithoutDate.match(
+          SIMPLE_SCHEDULED_TIME
+        )?.[1]
+        if (simpleScheduled) {
+          const fullTime = simpleScheduled.split(/ ?- ?/)
+          const [hourString, minuteString] = fullTime[0].split(':')
+          hour = parseInt(hourString)
+          if (minuteString) minute = parseInt(minuteString)
+          const endTime = fullTime[1]
+          if (endTime) {
+            const [hourString, minuteString] = endTime.split(':')
+            endHour = parseInt(hourString[0])
+            if (minuteString) endMinute = parseInt(minuteString)
+          }
+        }
+      }
 
-    if (item['startTime']) {
-      const [hour, minute] = item['startTime']
-        .split(':')
-        .map((x: string) => parseInt(x))
-
-      if (!isNaN(hour) && !isNaN(minute)) {
-        scheduled = scheduled.set({ hour, minute })
+      if (
+        hour !== undefined &&
+        !isNaN(hour) &&
+        minute !== undefined &&
+        !isNaN(minute)
+      ) {
+        rawScheduled = rawScheduled.set({ hour, minute })
         isDate = false
+        if (
+          endHour !== undefined &&
+          endMinute !== undefined &&
+          !isNaN(endHour) &&
+          !isNaN(endMinute)
+        ) {
+          let endTime = rawScheduled.set({ hour: endHour, minute: endMinute })
+          if (endTime < rawScheduled) endTime = endTime.plus({ day: 1 })
+          rawLength = endTime.diff(rawScheduled).shiftTo('hour', 'minute')
+          length = { hour: rawLength.hours, minute: rawLength.minutes }
+        }
       }
     }
-    if (!DateTime.isDateTime(scheduled)) {
-      return undefined
-    }
 
-    return isDate
-      ? (scheduled.toISODate() as string)
-      : (scheduled.toISO({
-          includeOffset: false,
-          suppressMilliseconds: true,
-          suppressSeconds: true,
-        }) as string)
+    if (!DateTime.isDateTime(rawScheduled)) scheduled = undefined
+    else {
+      scheduled = (
+        isDate ? rawScheduled.toISODate() : rawScheduled.toISO()
+      ) as string
+    }
+    return { scheduled, length }
   }
 
   const parseDateKey = (key: 'due' | 'created' | 'start' | 'completion') => {
@@ -161,12 +207,16 @@ export function textToTask(item: any): TaskProps {
       ? ((item[key] as DateTime).toISODate() as string)
       : undefined
     if (!date) {
+      // test tasks
       date = item.text.match(
         new RegExp(`${keyToTasksEmoji[key]} ?(${ISO_MATCH})`)
       )?.[1]
     }
-    if (!date) return
-    return date
+    if (!date && key === 'due') {
+      // test simple due
+      date = titleLine.match(SIMPLE_DUE)?.[1]
+    }
+    return date ?? undefined
   }
 
   const parseReminder = () => {
@@ -190,7 +240,11 @@ export function textToTask(item: any): TaskProps {
   const parsePriority = (): number => {
     let priority = item['priority']
 
-    if (!priority) {
+    if (typeof priority === 'number') return priority
+    else if (priority)
+      return priorityKeyToNumber[priority] ?? TaskPriorities.DEFAULT
+    else {
+      // tasks priority
       for (let emoji of [
         keyToTasksEmoji.highest,
         keyToTasksEmoji.high,
@@ -201,83 +255,26 @@ export function textToTask(item: any): TaskProps {
         if (item.text.includes(emoji))
           return priorityKeyToNumber[TasksEmojiToKey[emoji]]
       }
-      return TaskPriorities.DEFAULT
-    } else if (typeof priority === 'number') return priority
-    else return priorityKeyToNumber[priority] ?? TaskPriorities.DEFAULT
+
+      // simple priority
+      const priorityMatch = titleLine.match(SIMPLE_PRIORITY)?.[1]
+      if (priorityMatch) return simplePriorityToNumber[priorityMatch]
+    }
+
+    return TaskPriorities.DEFAULT
   }
 
   const parseRepeat = () => {
     return item['repeat'] ?? titleLine.match(TASKS_REPEAT_SEARCH)?.[1]
   }
 
-  const parseSimple = () => {
-    const convertTimeToISO = (time: string) => {
-      if (time.includes(':'))
-        return time
-          .split(':')
-          .map((hours) => hours?.padStart(2, '0') ?? '00')
-          .join(':')
-      else return time.padStart(2, '0') + ':00'
-    }
-    let simpleScheduled: string | undefined,
-      simpleLength: TaskProps['length'],
-      simpleDue: TaskProps['due'],
-      simplePriority: TaskProps['priority'] | undefined
-    let date = titleLine.match(SIMPLE_SCHEDULED_DATE)?.[1]
-    if (!date) {
-      const parsedPathDate = parseDateFromPath(item.path)
-      if (parsedPathDate) date = parsedPathDate.toISOString(false).slice(0, 10)
-    }
-
-    let time = titleLine
-      .replace(SIMPLE_SCHEDULED_DATE, '')
-      .match(SIMPLE_SCHEDULED_TIME)?.[0]
-
-    if (date) {
-      simpleScheduled = date
-    }
-
-    if (simpleScheduled && time) {
-      let startTime: string | undefined, endTime: string | undefined
-
-      const times = time.split(/ ?- ?/)
-      startTime = times[0]
-      endTime = times[1]
-
-      if (startTime) {
-        simpleScheduled += 'T' + convertTimeToISO(startTime)
-
-        if (endTime) {
-          const endISO = date + 'T' + convertTimeToISO(endTime)
-          let endDate = DateTime.fromISO(endISO)
-          const startDate = DateTime.fromISO(simpleScheduled)
-          if (endDate < startDate) {
-            endDate = endDate.plus({ day: 1 })
-          }
-          const duration = endDate.diff(startDate).shiftTo('hour', 'minute')
-          simpleLength = { hour: duration.hours, minute: duration.minutes }
-        }
-      }
-    }
-
-    const priorityMatch = titleLine.match(SIMPLE_PRIORITY)?.[1]
-    simplePriority = priorityMatch
-      ? simplePriorityToNumber[priorityMatch]
-      : undefined
-    simpleDue = titleLine.match(SIMPLE_DUE)?.[1]
-    return { simpleScheduled, simpleLength, simplePriority, simpleDue }
-  }
-
-  const { simpleScheduled, simpleLength, simpleDue, simplePriority } =
-    parseSimple()
-  const scheduled = parseScheduled() ?? simpleScheduled
-  const due = parseDateKey('due') ?? simpleDue
+  const { length, scheduled } = parseScheduledAndLength()
+  const due = parseDateKey('due')
   const completion = parseDateKey('completion')
   const start = parseDateKey('start')
   const created = parseDateKey('created')
   const repeat = parseRepeat()
-  const priority = parsePriority() ?? simplePriority
-  const length = parseLength(scheduled) ?? simpleLength
+  const priority = parsePriority()
   const reminder = parseReminder()
 
   return {

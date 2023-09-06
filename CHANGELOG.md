@@ -7,6 +7,8 @@
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
 - Option to [add tasks at start or end of headings](https://github.com/joshuatazrein/obsidian-time-ruler/issues/12)
 - Support [custom status emojis](https://github.com/joshuatazrein/obsidian-time-ruler/issues/28)
+- Add more sounds to [timer](https://github.com/joshuatazrein/obsidian-time-ruler/issues/43)
+- [Visible layers](https://github.com/joshuatazrein/obsidian-time-ruler/issues/47) for overlapping tasks
 
 ## Considering
 - [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
@@ -15,6 +17,8 @@
 - Options to drag [deadlines and reminder times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/20) in addition to scheduled time
 - Options for [sorting](https://github.com/joshuatazrein/obsidian-time-ruler/issues/16):
   - The capability to sort tasks, even those that have been filtered using specific keywords, based on due dates or priority. This means having multiple sorting and filtering views. For instance, in amplenote, tasks can be viewed by individual notes they were created in, while still being sorted alphabetically or by priority.
+- Resizeable split between [all day and hourly view](https://github.com/joshuatazrein/obsidian-time-ruler/issues/45)
+- Optimize [performance](https://github.com/joshuatazrein/obsidian-time-ruler/issues/48)
 
 # Changelog
 
@@ -23,6 +27,9 @@
 **Added:**
 - `scheduled` and `due` modes in Search now sort tasks by scheduled or due
 - Tasks without set lengths or deadlines still have a draggable handle to set them
+
+**Fixed:**
+- Removed automatic scroll on hover for date buttons, it was too fast and unpredictable.
 
 ## 1.3.0 (9/2/2023)
 

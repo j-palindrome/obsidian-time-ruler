@@ -243,6 +243,7 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:index-ready',
         () => {
+          console.log('reloading')
           this.loadTasks()
         }
       )
@@ -253,8 +254,9 @@ export default class ObsidianAPI extends Component {
         'dataview:metadata-change',
         () => {
           if (dv.index.initialized) {
+            console.log('reloading')
             this.loadTasks()
-          }
+          } else console.log('not initialized')
         }
       )
     )
@@ -263,6 +265,8 @@ export default class ObsidianAPI extends Component {
     await this.getDailyPath()
 
     if (dv.index.initialized) {
+      console.log('reloading')
+
       this.loadTasks()
     }
   }
