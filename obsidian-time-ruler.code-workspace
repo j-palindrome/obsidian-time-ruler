@@ -1,0 +1,11 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "prettier.configPath": "../../.prettierrc",
+    "typewriterScrollMode.enable": false
+  }
+}

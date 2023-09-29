@@ -1,0 +1,35 @@
+@tailwind utilities;
+@tailwind components;
+@tailwind base;
+
+@layer base {
+  #time-ruler button {
+    @apply selectable bg-transparent;
+  }
+}
+
+@layer components {
+  .selectable {
+    @apply transition-colors duration-300 mouse:hover:bg-hover;
+  }
+}
+
+@layer utilities {
+  .obsidian-border {
+    box-shadow: 0 0 0 1px var(--background-modifier-border);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .force-hover:hover {
+    opacity: var(--icon-opacity-hover) !important;
+    color: var(--icon-color-hover) !important;
+    background-color: var(--background-modifier-hover) !important;
+  }
+
+  .force-hover {
+    @apply transition-colors duration-300;
+  }
+}

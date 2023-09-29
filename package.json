@@ -1,0 +1,14 @@
+{
+  "name": "obsidian-time-ruler",
+  "version": "1.0.0",
+  "description": "Time Ruler",
+  "main": "main.js",
+  "keywords": [],
+  "author": "Joshua Reinier",
+  "license": "MIT",
+  "scripts": {
+    "dev": "cd ../../ && npm run dev:tr",
+    "build": "cd ../../ && DIR=time-ruler npm run build",
+    "check": "tsc -noEmit -skipLibCheck"
+  }
+}
