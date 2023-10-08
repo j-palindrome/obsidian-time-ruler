@@ -29,6 +29,15 @@ Task metadata can be specified in any of the following formats:
   - Order matters: inline fields must go before tasks emojis or Tasks won't understand it.
 - **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh:mm]  [endTime:: hh:mm] or [allDay:: true] [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest]`
 
+
+### Pages (tasks from full notes)
+Time Ruler now reads **Full Calendar note events** as well as any page with `completed: false` or `completed: null` and the following optional Properties:
+- `scheduled: date`
+- `due: date`
+- `priority: highest/high/medium/low/lowest`
+- `length: #h#m` (a Dataview duration - see above)
+- `start: date`
+
 ### Reminder
 You can specify any of the [Obsidian Reminder](https://obsidian-reminder.cf/guide/set-reminders.html#reminder-format) formats as well. 
 
