@@ -15,6 +15,7 @@ import { isDateISO, parseDateFromPath } from './util'
 import { getters } from '../app/store'
 import { startTransition } from 'react'
 import { create } from 'zustand'
+import TimeRulerPlugin from '../main'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
@@ -37,8 +38,10 @@ const KANBAN_TIME = / ?@@\{(\d{2}:\d{2})\}/
 export function textToTask(
   item: any,
   dailyNotePath: string,
-  dailyNoteFormat: string
+  dailyNoteFormat: string,
+  defaultFormat: TimeRulerPlugin['settings']['fieldFormat']
 ): TaskProps {
+  const { main: mainFormat } = detectFieldFormat(item.text, defaultFormat)
   const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */g
   const TAG_SEARCH = /#[\p{Letter}\/\d_-]+/gu
   const MD_LINK_SEARCH = /\[\[(.*?)\]\]/g
@@ -51,20 +54,29 @@ export function textToTask(
 
   const titleLine: string = item.text.match(/(.*?)(\n|$)/)?.[1] ?? ''
 
-  const originalTitle: string = titleLine
+  let originalTitle: string = titleLine
     .replace(BLOCK_REFERENCE, '')
     .replace(INLINE_FIELD_SEARCH, '')
-    .replace(TASKS_REPEAT_SEARCH, '')
-    .replace(TASKS_EMOJI_SEARCH, '')
     .replace(TAG_SEARCH, '')
     .replace(REMINDER_MATCH, '')
-    .replace(KANBAN_DATE, '')
-    .replace(KANBAN_TIME, '')
-    // these have to be in order for simple scheduled to detect at beginning
-    .replace(SIMPLE_SCHEDULED_DATE, '')
-    .replace(SIMPLE_SCHEDULED_TIME, '')
-    .replace(SIMPLE_DUE, '')
-    .replace(SIMPLE_PRIORITY, '')
+
+  if (mainFormat === 'simple') {
+    originalTitle = originalTitle
+      // these have to be in order for simple scheduled to detect at beginning
+      .replace(SIMPLE_SCHEDULED_DATE, '')
+      .replace(SIMPLE_SCHEDULED_TIME, '')
+      .replace(SIMPLE_DUE, '')
+      .replace(SIMPLE_PRIORITY, '')
+  } else if (mainFormat === 'tasks') {
+    originalTitle = originalTitle
+      .replace(TASKS_REPEAT_SEARCH, '')
+      .replace(TASKS_EMOJI_SEARCH, '')
+  } else if (mainFormat === 'kanban') {
+    originalTitle = originalTitle
+      .replace(KANBAN_DATE, '')
+      .replace(KANBAN_TIME, '')
+  }
+
   let title: string = originalTitle
     .replace(MD_LINK_SEARCH, '$1')
     .replace(LINK_SEARCH, '$1')
@@ -92,6 +104,12 @@ export function textToTask(
     let length: TaskProps['length']
     let scheduled: TaskProps['scheduled']
     if (rawLength) length = { hour: rawLength.hours, minute: rawLength.minutes }
+    let logLength = false
+    if (length) {
+      console.log('length:', item)
+      logLength = true
+    }
+
     let isDate: boolean = true
     if (rawScheduled) {
       // has Dataview scheduled, check if it's an ISO
@@ -102,7 +120,6 @@ export function textToTask(
     // test for date
     if (!rawScheduled) {
       // test inline
-
       const inlineDate =
         new RegExp(`${keyToTasksEmoji.scheduled} ?(${ISO_MATCH})`)?.[1] ??
         titleLine.match(SIMPLE_SCHEDULED_DATE)?.[1]
@@ -144,7 +161,8 @@ export function textToTask(
         titleDate = parsedPathDate.toISOString(false).slice(0, 10)
       if (titleDate) rawScheduled = DateTime.fromISO(titleDate)
     }
-    // test for time (and length)
+
+    // test for day planner time (and length)
     if (rawScheduled) {
       let hour: number | undefined,
         minute: number | undefined = 0
@@ -161,11 +179,11 @@ export function textToTask(
         }
       } else {
         const titleWithoutDate = titleLine.replace(SIMPLE_SCHEDULED_DATE, '')
-        const simpleScheduled = titleWithoutDate.match(
+        const simpleScheduledTime = titleWithoutDate.match(
           SIMPLE_SCHEDULED_TIME
         )?.[1]
-        if (simpleScheduled) {
-          const fullTime = simpleScheduled.split(/ ?- ?/)
+        if (simpleScheduledTime) {
+          const fullTime = simpleScheduledTime.split(/ ?- ?/)
           const [hourString, minuteString] = fullTime[0].split(':')
           hour = parseInt(hourString)
           if (minuteString) minute = parseInt(minuteString)
@@ -212,12 +230,16 @@ export function textToTask(
             })
       ) as string
     }
+
+    if (logLength) console.log(length)
+
     return { scheduled, length }
   }
 
   const parseDateKey = (key: 'due' | 'created' | 'start' | 'completion') => {
     let date = item[key]
-    if (item[key] instanceof DateTime) {
+
+    if (DateTime.isDateTime(date)) {
       date = item[key].toISODate() as string
     }
     if (!date) {
@@ -292,6 +314,8 @@ export function textToTask(
   const priority = parsePriority()
   const reminder = parseReminder()
 
+  if (length) console.log('task:', title, length)
+
   return {
     id: parseId(item),
     page: false,
@@ -301,6 +325,7 @@ export function textToTask(
       ) ?? [],
     type: 'task',
     status: item.status,
+    fieldFormat: mainFormat,
     reminder,
     due,
     scheduled,
@@ -324,7 +349,8 @@ export function textToTask(
 }
 
 export function pageToTask(
-  item: Record<string, Literal> & { file: PageMetadata }
+  item: Record<string, Literal> & { file: PageMetadata },
+  defaultFieldFormat: TimeRulerPlugin['settings']['fieldFormat']
 ): TaskProps {
   const testDateTime = (prop) =>
     DateTime.isDateTime(prop)
@@ -341,6 +367,69 @@ export function pageToTask(
       ? { hour: prop.hours, minute: prop.minutes }
       : undefined
 
+  const parseScheduledAndLength = () => {
+    let scheduled: TaskProps['scheduled'] = testDateTime(item.scheduled)
+    let length: TaskProps['length'] = testDuration(item.length)
+    let isDate = false
+    let startHours: number | undefined = undefined,
+      startMinutes: number | undefined = undefined
+
+    const date = testDateTime(item.date)
+    if (date) {
+      // full calendar
+      if (item.allDay) {
+        isDate = true
+        scheduled = date
+      } else if (typeof item.startTime === 'string') {
+        let [sampleHours, sampleMinutes] = item.startTime?.split(':')
+        if (sampleHours !== undefined && sampleMinutes !== undefined) {
+          startHours = parseInt(sampleHours)
+          startMinutes = parseInt(sampleMinutes)
+        }
+        if (
+          typeof item.endTime === 'string' &&
+          startHours !== undefined &&
+          startMinutes !== undefined
+        ) {
+          // read length from start & end times
+          let [sampleEndHours, sampleEndMinutes] = item.endTime.split(':')
+          if (sampleHours !== undefined && sampleMinutes !== undefined) {
+            const endHours = parseInt(sampleEndHours)
+            const endMinutes = parseInt(sampleEndMinutes)
+            const endTime = DateTime.fromISO(date).set({
+              hour: endHours,
+              minute: endMinutes,
+            })
+            const startTime = DateTime.fromISO(date).set({
+              hour: startHours,
+              minute: startMinutes,
+            })
+            const durationLength = endTime
+              .diff(startTime)
+              .shiftTo('hour', 'minute')
+            length = {
+              hour: durationLength.hours,
+              minute: durationLength.minutes,
+            }
+            scheduled = startTime.toISO({
+              includeOffset: false,
+              suppressMilliseconds: true,
+              suppressSeconds: true,
+            }) as string
+          }
+        }
+      }
+    }
+
+    if (isDate && scheduled) scheduled = scheduled.slice(0, 10)
+    return { scheduled, length }
+  }
+
+  const { scheduled, length } = parseScheduledAndLength()
+
+  const fieldFormat: FieldFormat['main'] =
+    item.date || item.startTime ? 'full-calendar' : 'dataview'
+
   return {
     id: item.file.path,
     originalText: item.file.name as any,
@@ -355,8 +444,8 @@ export function pageToTask(
     status: ' ',
     reminder: testDateTime(item.reminder),
     due: testDateTime(item.due),
-    scheduled: testDateTime(item.scheduled),
-    length: testDuration(item.length),
+    scheduled,
+    length,
     tags: [...item.file.tags],
     title: item.file.name as any,
     originalTitle: item.file.name as any,
@@ -371,6 +460,7 @@ export function pageToTask(
     start: testDateTime(item.start),
     created: testDateTime(item.created),
     blockReference: undefined,
+    fieldFormat,
   }
 }
 
@@ -379,11 +469,7 @@ const detectFieldFormat = (
   defaultFormat: FieldFormat['main']
 ): FieldFormat => {
   const parseMain = (): FieldFormat['main'] => {
-    if (
-      SIMPLE_SCHEDULED_TIME.test(text) ||
-      SIMPLE_SCHEDULED_DATE.test(text) ||
-      SIMPLE_DUE.test(text)
-    )
+    if (SIMPLE_SCHEDULED_DATE.test(text) || SIMPLE_DUE.test(text))
       return 'simple'
     for (let emoji of Object.keys(TasksEmojiToKey)) {
       if (text.contains(emoji)) return 'tasks'
@@ -593,4 +679,98 @@ export function taskToText(
   if (task.blockReference) draft += ' ' + task.blockReference
 
   return draft
+}
+
+export function taskToPage(task: TaskProps, frontmatter: Record<string, any>) {
+  if (task.fieldFormat === 'full-calendar') {
+    if (task.scheduled) {
+      if (isDateISO(task.scheduled)) {
+        frontmatter.allDay = true
+        frontmatter.date = task.scheduled
+        delete frontmatter['startTime']
+        delete frontmatter['endTime']
+      } else {
+        delete frontmatter['allDay']
+        frontmatter.date = task.scheduled.slice(0, 10)
+        frontmatter.startTime = task.scheduled.slice(11, 16)
+        if (task.length) {
+          const endTime = DateTime.fromISO(task.scheduled).plus(task.length)
+          frontmatter.endTime = (
+            endTime.toISO({
+              suppressMilliseconds: true,
+              suppressSeconds: true,
+              includeOffset: false,
+            }) as string
+          ).slice(11, 16)
+        }
+      }
+    } else {
+      delete frontmatter['startTime']
+      delete frontmatter['endTime']
+      delete frontmatter['allDay']
+      delete frontmatter['date']
+    }
+
+    for (let property of [
+      'due',
+      'completion',
+      'reminder',
+    ] as (keyof typeof propertyIndex)[]) {
+      setProperty(frontmatter, property, task[property])
+    }
+  } else {
+    for (let property of [
+      'due',
+      'scheduled',
+      'completion',
+      'reminder',
+    ] as (keyof typeof propertyIndex)[]) {
+      setProperty(frontmatter, property, task[property])
+    }
+
+    if (task.length && task.length.hour + task.length.minute) {
+      frontmatter['length'] = `${task.length.hour}h${task.length.minute}m`
+    }
+  }
+
+  if (task.priority !== TaskPriorities.DEFAULT) {
+    frontmatter.priority = priorityNumberToKey[task.priority]
+  }
+
+  if (task.completion) {
+    setProperty(frontmatter, 'completed', true)
+  } else {
+    setProperty(frontmatter, 'completed', false)
+  }
+}
+
+export const propertyIndex = {
+  completed: ['complete', 'completed', 'Complete', 'Completed'],
+  scheduled: ['scheduled', 'Scheduled', 'date', 'Date'],
+  due: ['due', 'Due', 'deadline', 'Deadline'],
+  reminder: ['reminder', 'Reminder'],
+  completion: ['Completion', 'completion'],
+}
+
+export function setProperty(
+  page: Record<string, any>,
+  property: keyof typeof propertyIndex,
+  value: any
+) {
+  for (let index of propertyIndex[property]) {
+    if (page[index] !== undefined) {
+      page[index] = value
+      return
+    }
+  }
+  page[property] = value
+}
+
+export function getProperty(
+  page: Record<string, any>,
+  property: keyof typeof propertyIndex
+) {
+  for (let index of propertyIndex[property]) {
+    if (page[index] !== undefined) return page[index]
+  }
 }

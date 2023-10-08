@@ -100,32 +100,36 @@ export const parseDateFromPath = (
 
 export const parseGroupHeadingFromPath = (
   path: string,
+  isPage: boolean,
   dailyNotePath: string,
   dailyNoteFormat: string
 ) => {
-  let name = path.slice(path.lastIndexOf('/') + 1).replace(/\.md$/, '')
+  let name: string
+  if (isPage) {
+    // page headings are their containing folder
+    const folder = path.slice(0, path.lastIndexOf('/'))
+    name = folder.includes('/')
+      ? folder.slice(folder.lastIndexOf('/') + 1)
+      : folder
+  } else {
+    name = path.slice(path.lastIndexOf('/') + 1).replace(/\.md$/, '')
+  }
   if (parseDateFromPath(name, dailyNotePath, dailyNoteFormat)) return 'Daily'
   return name
 }
 
 export const parseHeadingFromPath = (
   path: string,
+  isPage: boolean,
   dailyNotePath: string,
   dailyNoteFormat: string
 ): { level: 'heading' | 'group'; name: string } => {
   const level = path.includes('#') ? 'heading' : 'group'
-  let name = (
+  let name =
     level === 'heading'
-      ? path.slice(path.lastIndexOf('#') + 1)
-      : path.includes('/')
-      ? path.slice(path.lastIndexOf('/') + 1)
-      : path
-  ).replace(/\.md$/, '')
-  if (
-    level === 'group' &&
-    parseDateFromPath(name, dailyNotePath, dailyNoteFormat)
-  )
-    name = 'Daily'
+      ? path.slice(path.lastIndexOf('#') + 1).replace(/\.md$/, '')
+      : parseGroupHeadingFromPath(path, isPage, dailyNotePath, dailyNoteFormat)
+
   return { level, name }
 }
 
@@ -138,7 +142,12 @@ export const getTasksByHeading = (
   return _.sortBy(
     _.entries(
       _.groupBy(tasks, (task) =>
-        parseGroupHeadingFromPath(task.path, dailyNotePath, dailyNoteFormat)
+        parseGroupHeadingFromPath(
+          task.path,
+          task.page,
+          dailyNotePath,
+          dailyNoteFormat
+        )
       )
     ),
     ([heading, _tasks]) => fileOrder.indexOf(heading)

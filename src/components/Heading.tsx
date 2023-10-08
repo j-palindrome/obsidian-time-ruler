@@ -11,22 +11,22 @@ import Droppable from './Droppable'
 export type HeadingProps = { path: string }
 export default function Heading({
   path,
+  isPage,
   dragProps,
   idString,
 }: {
   path: string
+  isPage: boolean
   dragProps?: any
   idString: string
 }) {
   const dailyNotePath = useAppStore((state) => state.dailyNotePath)
   const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
   const { name, level } = useMemo(
-    () => parseHeadingFromPath(path, dailyNotePath, dailyNoteFormat),
+    () => parseHeadingFromPath(path, isPage, dailyNotePath, dailyNoteFormat),
     [path]
   )
   const searchStatus = useAppStore((state) => state.searchStatus)
-
-  const isDate = parseDateFromPath(path, dailyNotePath, dailyNoteFormat)
 
   const hideHeadings = useAppStore((state) => state.hideHeadings)
   if (hideHeadings) return <></>
@@ -54,20 +54,24 @@ export default function Heading({
             level === 'heading' ? 'text-muted' : 'font-bold text-accent'
           }`}
           onPointerDown={() => false}
-          onClick={() => {
-            if (!searchStatus || typeof searchStatus === 'string') {
-              app.workspace.openLinkText(path, '')
-            } else if (searchStatus) {
-              const [filePath, heading] = path.split('#')
-              getters
-                .getObsidianAPI()
-                .createTask(filePath + '.md', heading, searchStatus)
-              setters.set({ searchStatus: false })
-            }
-            return false
-          }}
+          onClick={
+            isPage
+              ? undefined
+              : () => {
+                  if (!searchStatus || typeof searchStatus === 'string') {
+                    app.workspace.openLinkText(path, '')
+                  } else if (searchStatus) {
+                    const [filePath, heading] = path.split('#')
+                    getters
+                      .getObsidianAPI()
+                      .createTask(filePath + '.md', heading, searchStatus)
+                    setters.set({ searchStatus: false })
+                  }
+                  return false
+                }
+          }
         >
-          {isDate ? 'Daily' : name}
+          {name}
         </div>
         <div
           className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'

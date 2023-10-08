@@ -23,7 +23,15 @@ import { AppState, getters, setters } from '../app/store'
 import { sounds } from '../assets/assets'
 import TimeRulerPlugin from '../main'
 import { TaskPriorities, priorityNumberToKey } from '../types/enums'
-import { pageToTask, taskToText, textToTask } from './parser'
+import {
+  getProperty,
+  pageToTask,
+  propertyIndex,
+  setProperty,
+  taskToPage,
+  taskToText,
+  textToTask,
+} from './parser'
 import { parseHeadingFromPath } from './util'
 
 let dv: DataviewApi
@@ -90,11 +98,10 @@ export default class ObsidianAPI extends Component {
       throw e
     }
 
-    const pageSearch = dv
-      .pages()
-      .where((page) => page.completed === false) as DataArray<
-      Record<string, Literal> & { file: PageMetadata }
-    >
+    const pageSearch = dv.pages().where((page) => {
+      const completed = getProperty(page, 'completed')
+      return completed === false || completed === null
+    }) as DataArray<Record<string, Literal> & { file: PageMetadata }>
 
     if (this.settings.filterFunction) {
       try {
@@ -147,10 +154,21 @@ export default class ObsidianAPI extends Component {
     if (_.isEqual(newLoadTasks, this.previousLoadTasks)) return
     this.previousLoadTasks = newLoadTasks
 
-    const pages = newPages.flatMap((page) => pageToTask(page))
+    const pages = newPages.flatMap((page) =>
+      pageToTask(page, this.settings.fieldFormat)
+    )
+
+    console.log(pages)
 
     const tasks = newTasks
-      .flatMap((item) => textToTask(item, dailyNotePath, dailyNoteFormat))
+      .flatMap((item) =>
+        textToTask(
+          item,
+          dailyNotePath,
+          dailyNoteFormat,
+          this.settings.fieldFormat
+        )
+      )
       .concat(pages)
 
     const tasksDict = _.fromPairs(tasks.map((task) => [task.id, task]))
@@ -166,7 +184,12 @@ export default class ObsidianAPI extends Component {
     const newHeadings = _.uniq(
       tasks.map(
         (task) =>
-          parseHeadingFromPath(task.path, dailyNotePath, dailyNoteFormat).name
+          parseHeadingFromPath(
+            task.path,
+            task.page,
+            dailyNotePath,
+            dailyNoteFormat
+          ).name
       )
     )
       .filter((heading) => !this.settings.fileOrder.includes(heading))
@@ -278,6 +301,7 @@ export default class ObsidianAPI extends Component {
       heading,
       position,
       status: ' ',
+      fieldFormat: this.settings.fieldFormat,
       ...dropData,
     }
 
@@ -295,18 +319,7 @@ export default class ObsidianAPI extends Component {
     if (abstractFile && abstractFile instanceof TFile) {
       if (task.page) {
         app.fileManager.processFrontMatter(abstractFile, (frontmatter) => {
-          for (let property of ['due', 'scheduled', 'completion', 'reminder']) {
-            frontmatter[property] = task[property]
-          }
-          if (task.length && task.length.hour + task.length.minute) {
-            frontmatter['length'] = `${task.length.hour}h${task.length.minute}m`
-          }
-          if (task.completion) {
-            frontmatter.completed = true
-          } else frontmatter.completed = false
-          if (task.priority !== TaskPriorities.DEFAULT) {
-            frontmatter.priority = priorityNumberToKey[task.priority]
-          }
+          taskToPage(task, frontmatter)
         })
       } else {
         const fileText = await app.vault.read(abstractFile)

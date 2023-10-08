@@ -51,7 +51,12 @@ export default function Block({
   const dailyNotePath = useAppStore((state) => state.dailyNotePath)
   const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
   const groupedTasks = _.groupBy(sortedTasks, (task) =>
-    parseGroupHeadingFromPath(task.path, dailyNotePath, dailyNoteFormat)
+    parseGroupHeadingFromPath(
+      task.path,
+      task.page,
+      dailyNotePath,
+      dailyNoteFormat
+    )
   )
   const sortedGroups = useAppStore(
     (state) =>

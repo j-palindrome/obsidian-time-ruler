@@ -162,6 +162,7 @@ export default function Search() {
             <Heading
               key={heading}
               path={tasks[0].path}
+              isPage={tasks[0].page}
               idString={`search::${heading}`}
             />
           )}
@@ -172,6 +173,7 @@ export default function Search() {
                 <Heading
                   key={subheading}
                   path={fullSubheadingPath}
+                  isPage={tasks[0].page}
                   idString={`search::${fullSubheadingPath}`}
                 />
               )

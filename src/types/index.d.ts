@@ -42,6 +42,7 @@ declare global {
     heading?: string
     status: string
     blockReference?: string
+    fieldFormat: FieldFormat['main']
 
     // Obsidian Reminder
     reminder?: string
@@ -84,7 +85,7 @@ declare global {
     | ({ dragType: 'group' } & GroupProps)
     | ({ dragType: 'task' } & TaskComponentProps)
     | ({ dragType: 'event' } & EventComponentProps)
-    | { dragType: 'new'; path: string }
+    | { dragType: 'new'; path: string; isPage: boolean }
     | ({ dragType: 'task-length' } & {
         id: string
         start: string

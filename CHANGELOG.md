@@ -1,16 +1,26 @@
 # Roadmap
 
 ## Planned
+- Add support for [ICS Timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/65)
 - Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
-- Add support for [full notes](https://github.com/joshuatazrein/obsidian-time-ruler/issues/10#issuecomment-1655804209)
 
 ## Considering
+- Better Completed Tasks - [Weekly Review](https://github.com/joshuatazrein/obsidian-time-ruler/issues/62?notification_referrer_id=NT_kwDOBQ8O87M3ODg1NjIyNTg3Ojg0ODcyOTQ3#issuecomment-1742924623)
 - [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
 - Add more flexibility for [Tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/46#issuecomment-1708749520) users
 - Optimize [performance](https://github.com/joshuatazrein/obsidian-time-ruler/issues/48)
 
 # Changelog
+
+## 1.5.0 (Upcoming)
+**Added:**
+- Support for [full notes](https://github.com/joshuatazrein/obsidian-time-ruler/issues/10#issuecomment-1655804209) as tasks
+- Support for FullCalendar note events
+
+**Fixed:**
+- [Due date removal on reschedule](https://github.com/joshuatazrein/obsidian-time-ruler/issues/66)
+- Events no longer have leading extra tick
 
 ## 1.4.0 (9/22/2023)
 

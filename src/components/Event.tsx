@@ -136,7 +136,7 @@ export default function Event({
         endISO={endISO}
         blocks={blocks}
         type={type}
-        chopStart={false}
+        chopStart={true}
       />
 
       {thisEvent && (thisEvent.location || thisEvent.notes) && (

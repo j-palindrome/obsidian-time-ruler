@@ -125,7 +125,11 @@ export default function NewTask() {
                 return (
                   <>
                     {searchExp.test(tasks[0].path) && (
-                      <NewTaskHeading key={heading} path={tasks[0].path} />
+                      <NewTaskHeading
+                        key={heading}
+                        path={tasks[0].path}
+                        isPage={tasks[0].page}
+                      />
                     )}
                     {subheadings.map((subheading) => {
                       const fullSubheadingPath =
@@ -135,6 +139,7 @@ export default function NewTask() {
                           <NewTaskHeading
                             key={subheading}
                             path={fullSubheadingPath}
+                            isPage={false}
                           />
                         )
                       )
@@ -150,11 +155,12 @@ export default function NewTask() {
   )
 }
 
-function NewTaskHeading({ path }: { path: string }) {
+function NewTaskHeading({ path, isPage }: { path: string; isPage: boolean }) {
   const dailyNotePath = useAppStore((state) => state.dailyNotePath)
   const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
   const { name, level } = parseHeadingFromPath(
     path,
+    isPage,
     dailyNotePath,
     dailyNoteFormat
   )

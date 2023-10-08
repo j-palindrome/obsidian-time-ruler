@@ -77,6 +77,7 @@ export default function Group({
                 tasks[0].path +
                 (level === 'heading' ? '#' + tasks[0].heading : '')
               }
+              isPage={tasks[0].page}
               idString={`${id}::${name}::${
                 dragData.type
               }::${level}::${dragData.tasks

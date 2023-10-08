@@ -97,6 +97,12 @@ export default function Task({
 
   if (!task) return <></>
 
+  const hasLengthDrag =
+    task.length ||
+    (task.scheduled &&
+      !isDateISO(task.scheduled) &&
+      task.scheduled > (DateTime.now().toISODate() as string))
+
   return (
     <div
       className={`relative rounded-lg py-0.5 transition-colors duration-300 ${
@@ -111,7 +117,14 @@ export default function Task({
           className='cursor-pointer pl-7 text-xs text-accent hover:underline'
           onClick={() => app.workspace.openLinkText(task.path, '')}
         >
-          {parseHeadingFromPath(task.path, dailyNotePath, dailyNoteFormat).name}
+          {
+            parseHeadingFromPath(
+              task.path,
+              task.page,
+              dailyNotePath,
+              dailyNoteFormat
+            ).name
+          }
         </div>
       )}
       <div
@@ -179,24 +192,22 @@ export default function Task({
           )}
         </div>
 
-        {task.scheduled &&
-          !isDateISO(task.scheduled) &&
-          task.scheduled > (DateTime.now().toISODate() as string) && (
-            <div
-              className={`task-length cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent ${
-                !task.length ? 'hidden group-hover:block' : ''
-              }`}
-              ref={setLengthNodeRef}
-              {...lengthAttributes}
-              {...lengthListeners}
-            >
-              {!task.length
-                ? 'length'
-                : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
-                    task.length?.minute ? `${task.length?.minute}m` : ''
-                  }`}
-            </div>
-          )}
+        {hasLengthDrag && (
+          <div
+            className={`task-length cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent ${
+              !task.length ? 'hidden group-hover:block' : ''
+            }`}
+            ref={setLengthNodeRef}
+            {...lengthAttributes}
+            {...lengthListeners}
+          >
+            {!task.length
+              ? 'length'
+              : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
+                  task.length?.minute ? `${task.length?.minute}m` : ''
+                }`}
+          </div>
+        )}
 
         {(isLink || type == 'search') && task.scheduled && (
           <div
