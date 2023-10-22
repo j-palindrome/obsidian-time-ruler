@@ -32,6 +32,9 @@ export function deleteTextAtCaret(chars: number) {
 
 export const isDateISO = (isoString: string) => isoString.length === 10
 
+const NaNtoZero = (numberTest: number) =>
+  isNaN(numberTest) ? 0 : typeof numberTest === 'number' ? numberTest : 0
+
 export const processLength = ([time, items]: BlockData) => {
   const events: EventProps[] = []
   const tasks: TaskProps[] = []
@@ -52,8 +55,8 @@ export const processLength = ([time, items]: BlockData) => {
       : tasksWithLength.reduce(
           ({ hour, minute }, task) => {
             return {
-              hour: hour + task.length.hour,
-              minute: minute + task.length.minute,
+              hour: hour + NaNtoZero(task.length.hour),
+              minute: minute + NaNtoZero(task.length.minute),
             }
           },
           { hour: 0, minute: 0 }

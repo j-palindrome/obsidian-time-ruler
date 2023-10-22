@@ -16,6 +16,7 @@ import Times, { TimeSpanTypes } from './Times'
 import TimeSpan from './TimeSpan'
 import Task from './Task'
 import invariant from 'tiny-invariant'
+import EditWindow from './EditWindow'
 
 export default function Timeline({
   startISO,
@@ -153,11 +154,26 @@ export default function Timeline({
     }
   }, [calendarMode])
 
+  const [showingOptions, setShowingOptions] = useState(false)
+
   return (
     <div className='flex h-full flex-col'>
       <Droppable data={{ scheduled: startISO }} id={startISO + '::timeline'}>
         <div className='group flex w-full flex-none items-center'>
           <div className='ml-6 w-full rounded-lg px-1'>{title || ''}</div>
+
+          <Button
+            className='aspect-square h-full'
+            src={'more-horizontal'}
+            onClick={() => setShowingOptions(!showingOptions)}
+          />
+          {showingOptions && (
+            <EditWindow
+              tasks={tasks}
+              hideThis={() => setShowingOptions(false)}
+            />
+          )}
+
           <Button
             className='aspect-square h-full'
             onClick={() => setExpanded(!expanded)}
@@ -173,7 +189,10 @@ export default function Timeline({
       >
         <div
           className={`relative mt-2 w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
-            calendarMode ? '' : 'max-h-[80%] flex-none'
+            calendarMode
+              ? ''
+              : // @ts-ignore
+                `${app.isMobile ? 'max-h-[40%]' : 'max-h-[80%]'} flex-none`
           } ${!expanded ? 'hidden' : 'block'}`}
           style={{ resize: !calendarMode ? 'vertical' : 'none' }}
           data-auto-scroll={calendarMode ? undefined : 'y'}

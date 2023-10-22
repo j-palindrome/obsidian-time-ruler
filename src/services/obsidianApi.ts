@@ -37,7 +37,7 @@ import { parseHeadingFromPath } from './util'
 let dv: DataviewApi
 
 export default class ObsidianAPI extends Component {
-  previousLoadTasks: any[]
+  loadedFiles: Record<string, TaskProps[]>
   excludePaths?: RegExp
   dailyNotePath: RegExp
   private settings: TimeRulerPlugin['settings']
@@ -63,7 +63,7 @@ export default class ObsidianAPI extends Component {
     sounds.pop.play()
   }
 
-  private getExcludePaths() {
+  getExcludePaths() {
     const excludePaths = app.vault.getConfig('userIgnoreFilters') as
       | string[]
       | undefined
@@ -74,23 +74,45 @@ export default class ObsidianAPI extends Component {
     )
   }
 
-  loadTasks() {
+  loadTasks(path: string) {
     if (!dv.index.initialized) {
-      setTimeout(() => this.loadTasks(), 500)
+      console.log('not initialized')
       return
     }
+
     const dailyNotePath = getters.get('dailyNotePath')
     const dailyNoteFormat = getters.get('dailyNoteFormat')
 
     const now = DateTime.now()
-    const taskTest = new RegExp(
+    const customStatuses = new RegExp(
       `[${escapeRegExp(this.settings.customStatus.statuses)}]`
     )
-    let search: DataArray<STask>
+    let taskSearch: DataArray<STask>
+    let pageSearch: DataArray<Record<string, Literal> & { file: PageMetadata }>
     try {
-      search = dv.pages(this.settings.search)['file'][
-        'tasks'
-      ] as DataArray<STask>
+      let basicSearch = dv.pages(
+        `"${path.replace(/"/g, '\\"')}" and (${this.settings.search ?? 'true'})`
+      ) as DataArray<Record<string, Literal> & { file: PageMetadata }>
+
+      taskSearch = (basicSearch['file']['tasks'] as DataArray<STask>).where(
+        (task) =>
+          !(!this.settings.showCompleted && task.completed) &&
+          customStatuses.test(task.status) ===
+            this.settings.customStatus.include &&
+          !(this.excludePaths && this.excludePaths.test(task.path)) &&
+          !(task.start && DateTime.isDateTime(task.start) && now < task.start)
+      )
+
+      pageSearch = basicSearch.where((page) => {
+        const completed = getProperty(page, 'completed')
+        return (
+          (completed === false ||
+            completed === null ||
+            (this.settings.showCompleted && completed === true)) &&
+          !(this.excludePaths && this.excludePaths.test(page.file.path)) &&
+          !(page.start && DateTime.isDateTime(page.start) && now < page.start)
+        )
+      })
     } catch (e) {
       new Notice(
         'Invalid Dataview query: ' + this.settings.search + '. Please fix.'
@@ -98,15 +120,10 @@ export default class ObsidianAPI extends Component {
       throw e
     }
 
-    const pageSearch = dv.pages().where((page) => {
-      const completed = getProperty(page, 'completed')
-      return completed === false || completed === null
-    }) as DataArray<Record<string, Literal> & { file: PageMetadata }>
-
     if (this.settings.filterFunction) {
       try {
         const filter = eval(this.settings.filterFunction)
-        search = filter(search)
+        taskSearch = filter(taskSearch)
       } catch (err) {
         console.error(err)
         new Notice(
@@ -115,65 +132,31 @@ export default class ObsidianAPI extends Component {
         throw err
       }
     }
+
     if (this.settings.taskSearch) {
-      search = search.filter((item) =>
+      taskSearch = taskSearch.filter((item) =>
         item.text.contains(this.settings.taskSearch)
       )
     }
 
-    const newTasks = search
-      .filter((task) => {
-        return (
-          !(!this.settings.showCompleted && task.completed) &&
-          taskTest.test(task.status) === this.settings.customStatus.include &&
-          !(this.excludePaths && this.excludePaths.test(task.path)) &&
-          !(
-            task.start &&
-            DateTime.isDateTime(task.start) &&
-            now.diff(task.start, 'millisecond').milliseconds < 0
+    const processedTasks: TaskProps[] = pageSearch
+      .map((page) => pageToTask(page, this.settings.fieldFormat))
+      .concat(
+        taskSearch.map((task) =>
+          textToTask(
+            task,
+            dailyNotePath,
+            dailyNoteFormat,
+            this.settings.fieldFormat
           )
-        )
-      })
-      .array()
-
-    const newPages = pageSearch
-      .filter((page) => {
-        return (
-          !(!this.settings.showCompleted && page.completed) &&
-          !(this.excludePaths && this.excludePaths.test(page.file.path)) &&
-          !(
-            page.start &&
-            DateTime.isDateTime(page.start) &&
-            now.diff(page.start, 'millisecond').milliseconds < 0
-          )
-        )
-      })
-      .array()
-
-    const newLoadTasks = newTasks.concat(newPages as any)
-    if (_.isEqual(newLoadTasks, this.previousLoadTasks)) return
-    this.previousLoadTasks = newLoadTasks
-
-    const pages = newPages.flatMap((page) =>
-      pageToTask(page, this.settings.fieldFormat)
-    )
-
-    console.log(pages)
-
-    const tasks = newTasks
-      .flatMap((item) =>
-        textToTask(
-          item,
-          dailyNotePath,
-          dailyNoteFormat,
-          this.settings.fieldFormat
         )
       )
-      .concat(pages)
+      .array()
 
-    const tasksDict = _.fromPairs(tasks.map((task) => [task.id, task]))
+    const tasksDict = _.fromPairs(processedTasks.map((task) => [task.id, task]))
 
     for (let task of _.values(tasksDict)) {
+      // assign children where required
       if (!task.children) continue
       for (let child of task.children) {
         if (!tasksDict[child]) continue
@@ -181,8 +164,10 @@ export default class ObsidianAPI extends Component {
       }
     }
 
+    const updatedTasks = { ...getters.get('tasks') }
+
     const newHeadings = _.uniq(
-      tasks.map(
+      processedTasks.map(
         (task) =>
           parseHeadingFromPath(
             task.path,
@@ -195,18 +180,43 @@ export default class ObsidianAPI extends Component {
       .filter((heading) => !this.settings.fileOrder.includes(heading))
       .sort()
 
-    const newHeadingOrder = [...this.settings.fileOrder]
-    for (let heading of newHeadings) {
-      const afterFile = newHeadingOrder.findIndex(
-        (otherHeading) => otherHeading > heading
-      )
-      if (afterFile === -1) newHeadingOrder.push(heading)
-      else newHeadingOrder.splice(afterFile, 0, heading)
+    if (newHeadings.length > 0) {
+      const newHeadingOrder = [...this.settings.fileOrder]
+      for (let heading of newHeadings) {
+        const afterFile = newHeadingOrder.findIndex(
+          (otherHeading) => otherHeading > heading
+        )
+        if (afterFile === -1) newHeadingOrder.push(heading)
+        else newHeadingOrder.splice(afterFile, 0, heading)
+      }
+      this.settings.fileOrder = newHeadingOrder
+      this.saveSettings()
     }
-    this.settings.fileOrder = newHeadingOrder
-    this.saveSettings()
 
-    setters.set({ tasks: tasksDict, fileOrder: this.settings.fileOrder })
+    let updated = false
+
+    const updatedIds = Object.keys(tasksDict)
+    const pathName = path.replace('.md', '')
+
+    for (let id of Object.keys(updatedTasks).filter(
+      (taskId) => taskId.startsWith(pathName) && !updatedIds.includes(taskId)
+    )) {
+      // clear out all deleted tasks
+      updated = true
+      delete updatedTasks[id]
+    }
+
+    for (let task of processedTasks) {
+      // fill in new tasks
+      if (!_.isEqual(task, updatedTasks[task.id])) {
+        updated = true
+        updatedTasks[task.id] = task
+      }
+    }
+
+    if (!updated) return
+
+    setters.set({ tasks: updatedTasks, fileOrder: this.settings.fileOrder })
   }
 
   updateFileOrder(file: string, before: string) {
@@ -345,17 +355,11 @@ export default class ObsidianAPI extends Component {
       app.metadataCache.on(
         // @ts-ignore
         'dataview:metadata-change',
-        () => {
-          if (dv.index.initialized) {
-            this.loadTasks()
-          }
+        (...args) => {
+          this.loadTasks(args[1].path)
         }
       )
     )
-  }
-
-  reload() {
-    this.getExcludePaths()
   }
 }
 

@@ -43,13 +43,25 @@ import DueDate from './DueDate'
 import invariant from 'tiny-invariant'
 import NewTask from './NewTask'
 import { parseDateFromPath, parseHeadingFromPath } from '../services/util'
+import { getAPI } from 'obsidian-dataview'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const reload = async () => {
-    apis.obsidian.reload()
+    const dv = getAPI()
+    invariant(dv, 'please install Dataview to use Time Ruler.')
+    if (!dv.index.initialized) {
+      // @ts-ignore
+      app.metadataCache.on('dataview:index-ready', () => {
+        reload()
+      })
+      return
+    }
+
+    // reload settings
+    apis.obsidian.getExcludePaths()
     const dailyNoteInfo = await getDailyNoteInfo()
 
     const dayStartEnd = apis.obsidian.getSetting('dayStartEnd')
@@ -68,8 +80,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       muted,
     })
 
-    apis.obsidian.loadTasks()
     apis.calendar.loadEvents()
+    apis.obsidian.loadTasks('')
   }
 
   useEffect(() => {
@@ -268,6 +280,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     }
 
     const timeRuler = document.querySelector('#time-ruler') as HTMLElement
+    if (!timeRuler) return
     const observer = new ResizeObserver(outputSize)
     observer.observe(timeRuler)
     return () => observer.disconnect()
@@ -441,13 +454,10 @@ const Buttons = ({
               onClick={(ev) => setShowingModal(!showingModal)}
             />
             {showingModal && (
-              <div
-                className='absolute left-0 top-full z-50 max-w-[80vw] p-2'
-                ref={modalFrame}
-              >
-                <div className='rounded-lg border border-solid border-faint bg-primary p-2'>
+              <div className='tr-menu' ref={modalFrame}>
+                <div className=''>
                   <div
-                    className='clickable-icon flex items-center !justify-start space-x-2'
+                    className='clickable-icon'
                     onClick={() => {
                       setters.set({ searchStatus: 'all' })
                       setShowingModal(false)
@@ -457,7 +467,7 @@ const Buttons = ({
                     <span className='whitespace-nowrap'>Search</span>
                   </div>
                   <div
-                    className='clickable-icon flex items-center !justify-start space-x-2'
+                    className='clickable-icon'
                     onClick={async () => {
                       setupStore()
                       setShowingModal(false)
@@ -467,7 +477,7 @@ const Buttons = ({
                     <span className='whitespace-nowrap'>Reload</span>
                   </div>
                   <div
-                    className='clickable-icon flex items-center !justify-start space-x-2'
+                    className='clickable-icon'
                     onClick={() => {
                       setters.set({
                         calendarMode: !calendarMode,

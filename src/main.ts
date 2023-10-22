@@ -15,6 +15,9 @@ import { openTaskInRuler } from './services/obsidianApi'
 import { taskToText, textToTask } from './services/parser'
 import { getters, setters } from './app/store'
 
+// comment out for dev
+// import './tests/parser.test'
+
 interface TimeRulerSettings {
   calendars: string[]
   fieldFormat: FieldFormat['main']

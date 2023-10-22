@@ -6,6 +6,8 @@ import App from './components/App'
 import TimeRulerPlugin from './main'
 import CalendarAPI from './services/calendarApi'
 import ObsidianAPI from './services/obsidianApi'
+import { getAPI } from 'obsidian-dataview'
+import invariant from 'tiny-invariant'
 
 export const TIME_RULER_VIEW = 'time-ruler-view'
 

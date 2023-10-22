@@ -103,12 +103,8 @@ export function textToTask(
     let rawLength = item.length as Duration | undefined
     let length: TaskProps['length']
     let scheduled: TaskProps['scheduled']
-    if (rawLength) length = { hour: rawLength.hours, minute: rawLength.minutes }
-    let logLength = false
-    if (length) {
-      console.log('length:', item)
-      logLength = true
-    }
+    if (rawLength && Duration.isDuration(rawLength))
+      length = { hour: rawLength.hours, minute: rawLength.minutes }
 
     let isDate: boolean = true
     if (rawScheduled) {
@@ -231,8 +227,6 @@ export function textToTask(
       ) as string
     }
 
-    if (logLength) console.log(length)
-
     return { scheduled, length }
   }
 
@@ -313,8 +307,6 @@ export function textToTask(
   const repeat = parseRepeat()
   const priority = parsePriority()
   const reminder = parseReminder()
-
-  if (length) console.log('task:', title, length)
 
   return {
     id: parseId(item),

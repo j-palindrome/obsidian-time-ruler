@@ -9,11 +9,17 @@
 - Better Completed Tasks - [Weekly Review](https://github.com/joshuatazrein/obsidian-time-ruler/issues/62?notification_referrer_id=NT_kwDOBQ8O87M3ODg1NjIyNTg3Ojg0ODcyOTQ3#issuecomment-1742924623)
 - [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
 - Add more flexibility for [Tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/46#issuecomment-1708749520) users
-- Optimize [performance](https://github.com/joshuatazrein/obsidian-time-ruler/issues/48)
+
 
 # Changelog
 
-## 1.5.0 (Upcoming)
+## 1.5.1 (10/22)
+- Add bulk edits for task times
+- Fixed [bug with lengths](https://github.com/joshuatazrein/obsidian-time-ruler/issues/68#event-10732474581)
+- Preserve [due times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/66#issuecomment-1753184899)
+- Optimize [performance](https://github.com/joshuatazrein/obsidian-time-ruler/issues/48): now only changed files are loaded in. 
+
+## 1.5.0 (10/08/2023)
 **Added:**
 - Support for [full notes](https://github.com/joshuatazrein/obsidian-time-ruler/issues/10#issuecomment-1655804209) as tasks
 - Support for FullCalendar note events

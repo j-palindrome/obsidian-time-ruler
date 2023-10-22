@@ -12,6 +12,18 @@
   .selectable {
     @apply transition-colors duration-300 mouse:hover:bg-hover;
   }
+
+  .tr-menu {
+    @apply absolute left-0 top-full z-50 max-w-[80vw] p-2 text-sm;
+  }
+
+  .tr-menu > div {
+    @apply rounded-lg border border-solid border-faint bg-primary p-2;
+  }
+
+  .tr-menu > div > div {
+    @apply flex items-center !justify-start space-x-2;
+  }
 }
 
 @layer utilities {
