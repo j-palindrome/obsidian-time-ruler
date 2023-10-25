@@ -267,12 +267,13 @@ export function textToTask(
   }
 
   const parsePriority = (): number => {
-    let priority = item['priority']
+    let priority = item['priority'] as number | string
 
     if (typeof priority === 'number') return priority
-    else if (priority)
+    else if (typeof priority === 'string') {
+      priority = priority.toLowerCase()
       return priorityKeyToNumber[priority] ?? TaskPriorities.DEFAULT
-    else {
+    } else {
       // tasks priority
       for (let emoji of [
         keyToTasksEmoji.highest,
@@ -428,7 +429,8 @@ export function pageToTask(
     path: item.file.path,
     priority:
       typeof item.priority === 'string'
-        ? priorityKeyToNumber[item.priority] ?? TaskPriorities.DEFAULT
+        ? priorityKeyToNumber[item.priority.toLowerCase()] ??
+          TaskPriorities.DEFAULT
         : TaskPriorities.DEFAULT,
     children: [],
     page: true,

@@ -5,8 +5,6 @@ import { Component, Notice, request } from 'obsidian'
 import { setters } from '../app/store'
 import TimeRulerPlugin from '../main'
 
-const WEBCAL = 'webcal'
-
 export default class CalendarAPI extends Component {
   settings: TimeRulerPlugin['settings']
   removeCalendar: (calendar: string) => void
@@ -25,13 +23,13 @@ export default class CalendarAPI extends Component {
     const events = {}
     const now = new Date()
     let i = 0
+
     await Promise.all(
       this.settings.calendars.map(async (calendar) => {
         try {
           const data = await request(calendar)
           const icsEvents = ical.parseICS(data)
           const calendarName = data.match(/CALNAME:(.*)/)?.[1] ?? 'Default'
-
           for (let [id, event] of _.entries(icsEvents)) {
             if (
               !event.start ||
@@ -41,10 +39,13 @@ export default class CalendarAPI extends Component {
             )
               continue
 
+            let start = DateTime.fromJSDate(event.start).setZone('local')
+            let end = DateTime.fromJSDate(event.end).setZone('local')
+
             const startString = (
               event.start['dateOnly']
-                ? DateTime.fromJSDate(event.start).toISODate()
-                : DateTime.fromJSDate(event.start).toISO({
+                ? start.toISODate()
+                : start.toISO({
                     suppressMilliseconds: true,
                     suppressSeconds: true,
                     includeOffset: false,
@@ -52,8 +53,8 @@ export default class CalendarAPI extends Component {
             ) as string
             const endString = (
               event.start['dateOnly']
-                ? DateTime.fromJSDate(event.end).toISODate()
-                : DateTime.fromJSDate(event.end).toISO({
+                ? end.toISODate()
+                : end.toISO({
                     suppressMilliseconds: true,
                     suppressSeconds: true,
                     includeOffset: false,

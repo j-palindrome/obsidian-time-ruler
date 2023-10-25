@@ -1,9 +1,12 @@
 # Roadmap
 
 ## Planned
-- Add support for [ICS Timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/65)
 - Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
+- out how to close window when fullscreen in mobile 
+- no autoscroll in mobile
+- can't click on untitled tasks 
+- make page headings create pages inside
 
 ## Considering
 - Better Completed Tasks - [Weekly Review](https://github.com/joshuatazrein/obsidian-time-ruler/issues/62?notification_referrer_id=NT_kwDOBQ8O87M3ODg1NjIyNTg3Ojg0ODcyOTQ3#issuecomment-1742924623)
@@ -13,11 +16,25 @@
 
 # Changelog
 
-## 1.5.1 (10/22)
+## 1.5.2 (10/25/2023)
+
+**Added:**
+- Support for [ICS Timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/65)
+
+**Fixed:**
+- Error with default Dataview queries being [incorrect](https://github.com/joshuatazrein/obsidian-time-ruler/issues/71)
+
+## 1.5.1 (10/22/2023)
+
+**Added:**
 - Add bulk edits for task times
-- Fixed [bug with lengths](https://github.com/joshuatazrein/obsidian-time-ruler/issues/68#event-10732474581)
+
+**Fixed:**
+- [Bug with lengths](https://github.com/joshuatazrein/obsidian-time-ruler/issues/68#event-10732474581)
 - Preserve [due times](https://github.com/joshuatazrein/obsidian-time-ruler/issues/66#issuecomment-1753184899)
-- Optimize [performance](https://github.com/joshuatazrein/obsidian-time-ruler/issues/48): now only changed files are loaded in. 
+
+**Improved:**
+- Optimized [performance](https://github.com/joshuatazrein/obsidian-time-ruler/issues/48): now only changed files are loaded in. 
 
 ## 1.5.0 (10/08/2023)
 **Added:**

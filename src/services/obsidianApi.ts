@@ -76,7 +76,6 @@ export default class ObsidianAPI extends Component {
 
   loadTasks(path: string) {
     if (!dv.index.initialized) {
-      console.log('not initialized')
       return
     }
 
@@ -91,7 +90,7 @@ export default class ObsidianAPI extends Component {
     let pageSearch: DataArray<Record<string, Literal> & { file: PageMetadata }>
     try {
       let basicSearch = dv.pages(
-        `"${path.replace(/"/g, '\\"')}" and (${this.settings.search ?? 'true'})`
+        `"${path.replace(/"/g, '\\"')}" and (${this.settings.search || '""'})`
       ) as DataArray<Record<string, Literal> & { file: PageMetadata }>
 
       taskSearch = (basicSearch['file']['tasks'] as DataArray<STask>).where(
