@@ -7,8 +7,25 @@
   "author": "Joshua Reinier",
   "license": "MIT",
   "scripts": {
-    "dev": "cd ../../ && npm run dev:tr",
-    "build": "cd ../../ && DIR=time-ruler npm run build",
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -p \"src\" -noEmit -skipLibCheck && MODE=production node esbuild.config.mjs",
     "check": "tsc -noEmit -skipLibCheck"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.0.8",
+    "ical": "^0.8.0",
+    "immer": "^10.0.3",
+    "jquery": "^3.7.1",
+    "lodash": "^4.17.21",
+    "luxon": "^3.4.3",
+    "moment": "^2.29.4",
+    "obsidian": "^1.4.11",
+    "obsidian-dataview": "^0.5.61",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-timer-hook": "^3.0.7",
+    "react-usestateref": "^1.0.8",
+    "tiny-invariant": "^1.3.1",
+    "zustand": "^4.4.4"
   }
 }
