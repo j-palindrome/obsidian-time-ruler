@@ -1,9 +1,12 @@
 # Roadmap
 
 ## Planned
+- Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
+- Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
 - Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - Add support for [task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5#issuecomment-1646958839)
-- out how to close window when fullscreen in mobile 
+- Option to support [Tasks API on click](https://github.com/joshuatazrein/obsidian-time-ruler/issues/74)
+- close window when fullscreen in mobile 
 - no autoscroll in mobile
 - can't click on untitled tasks 
 - make page headings create pages inside
