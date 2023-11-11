@@ -11,6 +11,7 @@ if you want to view the source, please visit the github repository of this plugi
 `
 
 const MODE = process.env.MODE
+const VAULT = process.env.VAULT
 
 let entryPoints = [`src/main.ts`, `src/styles.css`]
 
@@ -24,6 +25,18 @@ const plugins = [
     preserveTimestamps: true,
   }),
 ]
+
+if (VAULT) {
+  plugins.push(
+    esBuildCopyStaticFiles({
+      src: `dist`,
+      dest: `${VAULT}/.obsidian/plugins/time-ruler`,
+      dereference: true,
+      errorOnExist: false,
+      preserveTimestamps: true,
+    })
+  )
+}
 
 const context = await esbuild.context({
   banner: {

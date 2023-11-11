@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Planned
+- Support [aliases](https://github.com/joshuatazrein/obsidian-time-ruler/issues/76)
 - Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
 - Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
 - Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
@@ -18,6 +19,11 @@
 
 
 # Changelog
+
+## 1.5.3 (Upcoming)
+
+**Fixed:**
+- Don't show deadlines before their scheduled date
 
 ## 1.5.2 (10/25/2023)
 

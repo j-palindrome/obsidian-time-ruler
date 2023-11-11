@@ -4,7 +4,6 @@ import { create } from 'zustand'
 import CalendarAPI from '../services/calendarApi'
 import ObsidianAPI from '../services/obsidianApi'
 import { TaskActions } from '../types/enums'
-import { getObsidianAPI } from '../../../link-tree/src/services/store'
 import TimeRulerPlugin from '../main'
 
 export type ViewMode =

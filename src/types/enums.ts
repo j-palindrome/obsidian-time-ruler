@@ -23,8 +23,9 @@ export const priorityKeyToNumber = {
 }
 
 export const simplePriorityToNumber = {
-  '?': TaskPriorities.LOWEST,
-  '!': TaskPriorities.LOW,
+  '...': TaskPriorities.LOWEST,
+  '?': TaskPriorities.LOW,
+  '!': TaskPriorities.MEDIUM,
   '!!': TaskPriorities.HIGH,
   '!!!': TaskPriorities.HIGHEST,
 }

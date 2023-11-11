@@ -59,7 +59,8 @@ export default function Timeline({
         !scheduledForToday &&
         task.due &&
         !task.completion &&
-        (task.due >= startISO || (isToday && task.due < endISO))
+        (task.due >= startISO || (isToday && task.due < endISO)) &&
+        (!task.scheduled || task.scheduled < endISO)
       ) {
         dueTasks.push(task)
       } else if (scheduledForToday) {

@@ -1,14 +1,10 @@
 import _ from 'lodash'
 import { shallow } from 'zustand/shallow'
 import { useAppStore } from '../app/store'
-import Group from './Group'
 import {
-  parseDateFromPath,
-  parseGroupHeadingFromPath,
-  parseHeadingFromPath,
+  parseGroupHeadingFromPath
 } from '../services/util'
-import { useMemo } from 'react'
-import moment from 'moment'
+import Group from './Group'
 
 const UNGROUPED = '__ungrouped'
 export type BlockType = 'child' | 'time' | 'event' | 'default' | 'search'
