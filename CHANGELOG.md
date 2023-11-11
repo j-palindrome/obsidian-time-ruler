@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Planned
+- Support [Task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5)
 - Support [aliases](https://github.com/joshuatazrein/obsidian-time-ruler/issues/76)
 - Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
 - Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
