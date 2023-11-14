@@ -34,6 +34,8 @@ import {
 } from './parser'
 import { parseHeadingFromPath } from './util'
 
+window.onanimationiteration = console.log
+
 let dv: DataviewApi
 
 export default class ObsidianAPI extends Component {
@@ -355,6 +357,7 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:metadata-change',
         (...args) => {
+          console.log(args, 'loading');
           this.loadTasks(args[1].path)
         }
       )

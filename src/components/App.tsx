@@ -49,12 +49,16 @@ import { getAPI } from 'obsidian-dataview'
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
+  console.log('updating app');
+  
   const reload = async () => {
     const dv = getAPI()
     invariant(dv, 'please install Dataview to use Time Ruler.')
     if (!dv.index.initialized) {
       // @ts-ignore
       app.metadataCache.on('dataview:index-ready', () => {
+        console.log('reloading app');
+        
         reload()
       })
       return
@@ -98,12 +102,12 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }, [])
 
   const today = now.startOf('day')
-  const [datesShownState, setDatesShown] = useState(7)
+  const [datesShownState, setDatesShown] = useState(0)
   const nextMonday = DateTime.now()
     .plus({ days: datesShownState })
     .endOf('week')
     .plus({ days: 1 })
-  const datesShown = _.round(nextMonday.diff(DateTime.now()).as('days'))
+  const datesShown = datesShownState === 0 ? 0 : _.round(nextMonday.diff(DateTime.now()).as('days'))
 
   const times: Parameters<typeof Timeline>[0][] = [
     {
@@ -111,11 +115,11 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       endISO: today.plus({ days: 1 }).toISODate() as string,
       type: 'minutes',
     },
-    ..._.range(1, datesShown).map((i) => ({
+    ...(datesShown === 0 ? [] : _.range(1, datesShown).map((i) => ({
       startISO: today.plus({ days: i }).toISODate() as string,
       endISO: today.plus({ days: i + 1 }).toISODate() as string,
       type: 'minutes' as TimeSpanTypes,
-    })),
+    })))
   ]
 
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
@@ -319,6 +323,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const calendarMode = useAppStore((state) => state.calendarMode)
   useEffect(scrollToNow, [])
 
+
   return (
     <DndContext
       onDragStart={onDragStart}
@@ -443,6 +448,7 @@ const Buttons = ({
     }
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [showingModal])
+
 
   return (
     <>

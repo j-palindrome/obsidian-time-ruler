@@ -29,6 +29,7 @@
     "zustand": "^4.4.4"
   },
   "devDependencies": {
+    "@types/react": "^18.2.37",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.19.5",
     "esbuild-copy-static-files": "^0.1.0",
