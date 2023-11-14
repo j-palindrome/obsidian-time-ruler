@@ -5,7 +5,6 @@
     }
   ],
   "settings": {
-    "prettier.configPath": "../../.prettierrc",
     "typewriterScrollMode.enable": false
   }
 }

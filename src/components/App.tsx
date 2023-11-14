@@ -49,16 +49,16 @@ import { getAPI } from 'obsidian-dataview'
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
-  console.log('updating app');
-  
+  console.log('updating app')
+
   const reload = async () => {
     const dv = getAPI()
     invariant(dv, 'please install Dataview to use Time Ruler.')
     if (!dv.index.initialized) {
       // @ts-ignore
       app.metadataCache.on('dataview:index-ready', () => {
-        console.log('reloading app');
-        
+        console.log('reloading app')
+
         reload()
       })
       return
@@ -107,7 +107,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     .plus({ days: datesShownState })
     .endOf('week')
     .plus({ days: 1 })
-  const datesShown = datesShownState === 0 ? 0 : _.round(nextMonday.diff(DateTime.now()).as('days'))
+  const datesShown =
+    datesShownState === 0
+      ? 0
+      : _.round(nextMonday.diff(DateTime.now()).as('days'))
 
   const times: Parameters<typeof Timeline>[0][] = [
     {
@@ -115,11 +118,19 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       endISO: today.plus({ days: 1 }).toISODate() as string,
       type: 'minutes',
     },
-    ...(datesShown === 0 ? [] : _.range(1, datesShown).map((i) => ({
-      startISO: today.plus({ days: i }).toISODate() as string,
-      endISO: today.plus({ days: i + 1 }).toISODate() as string,
-      type: 'minutes' as TimeSpanTypes,
-    })))
+    ...(datesShown === 0
+      ? [
+          {
+            startISO: today.plus({ days: 1 }).toISODate() as string,
+            endISO: today.plus({ days: 2 }).toISODate() as string,
+            type: 'minutes' as TimeSpanTypes,
+          },
+        ]
+      : _.range(1, datesShown).map((i) => ({
+          startISO: today.plus({ days: i }).toISODate() as string,
+          endISO: today.plus({ days: i + 1 }).toISODate() as string,
+          type: 'minutes' as TimeSpanTypes,
+        }))),
   ]
 
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
@@ -323,7 +334,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const calendarMode = useAppStore((state) => state.calendarMode)
   useEffect(scrollToNow, [])
 
-
   return (
     <DndContext
       onDragStart={onDragStart}
@@ -376,7 +386,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           ))}
           <Button
             className={`force-hover rounded-lg ${calendarMode ? '' : '!w-8'}`}
-            onClick={() => setDatesShown(datesShown + 7)}
+            onClick={() => setDatesShown(datesShown === 0 ? 1 : datesShown + 7)}
             src='chevron-right'
           />
         </div>
@@ -404,11 +414,22 @@ const Buttons = ({
   const calendarMode = useAppStore((state) => state.calendarMode)
 
   const nextButton = (
-    <Button
-      className={`${calendarMode ? '!w-full' : ''}`}
-      onClick={() => setDatesShown(datesShownState + 7)}
-      src={'chevron-right'}
-    />
+    <div className='flex'>
+      <Button
+        className={`${calendarMode ? '!w-full' : ''}`}
+        onClick={() =>
+          setDatesShown(datesShown === 0 ? 1 : datesShownState + 7)
+        }
+        src={'chevron-right'}
+      />
+      {datesShownState > 0 && (
+        <Button
+          className={`force-hover rounded-lg ${calendarMode ? '' : '!w-8'}`}
+          onClick={() => setDatesShown(0)}
+          src='chevron-left'
+        />
+      )}
+    </div>
   )
 
   const dayPadding = () => {
@@ -448,7 +469,6 @@ const Buttons = ({
     }
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [showingModal])
-
 
   return (
     <>

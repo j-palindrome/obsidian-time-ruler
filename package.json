@@ -21,6 +21,7 @@
     "moment": "^2.29.4",
     "obsidian": "^1.4.11",
     "obsidian-dataview": "^0.5.61",
+    "postcss": "^8.4.23",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-timer-hook": "^3.0.7",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
+    "autoprefixer": "^10.4.16",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.19.5",
     "esbuild-copy-static-files": "^0.1.0",

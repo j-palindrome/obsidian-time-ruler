@@ -131,47 +131,44 @@ function Time({ time, type, dragContainer }: TimeProps) {
     <div
       className={`group flex h-[16px] items-center justify-end ${selectedClassName}`}
       key={iso}
-      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      ref={(node) => {
+        setNodeRef(node)
+        setDragNodeRef(node)
+      }}
     >
-      <div
-        className='flex h-full w-full items-center'
-        {...attributes}
-        {...listeners}
-        ref={setDragNodeRef}
-      >
-        <div className='grow' />
-        <hr
-          className={`border-t border-faint ${
-            isOver ? '!w-full' : 'active:!w-full'
-          } ${
-            type === 'days'
-              ? day === 1
-                ? date < 7
-                  ? 'w-16'
-                  : 'w-8'
-                : day === 5
-                ? 'w-4'
-                : 'w-1'
-              : type === 'hours'
-              ? hours === 0
+      <hr
+        className={`border-t border-faint ${
+          isOver ? '!w-full' : 'active:!w-full'
+        } ${
+          type === 'days'
+            ? day === 1
+              ? date < 7
                 ? 'w-16'
-                : hours % 6 === 0
-                ? 'w-8'
-                : hours % 3 === 0
-                ? 'w-4'
-                : 'w-1'
-              : minutes === 0
-              ? hours % 12 === 0
-                ? 'w-16'
-                : hours % 3 === 0
-                ? 'w-8'
-                : 'w-4'
-              : minutes % 30 === 0
-              ? 'w-2'
+                : 'w-8'
+              : day === 5
+              ? 'w-4'
               : 'w-1'
-          }`}
-        ></hr>
-      </div>
+            : type === 'hours'
+            ? hours === 0
+              ? 'w-16'
+              : hours % 6 === 0
+              ? 'w-8'
+              : hours % 3 === 0
+              ? 'w-4'
+              : 'w-1'
+            : minutes === 0
+            ? hours % 12 === 0
+              ? 'w-16'
+              : hours % 3 === 0
+              ? 'w-8'
+              : 'w-4'
+            : minutes % 30 === 0
+            ? 'w-2'
+            : 'w-1'
+        }`}
+      ></hr>
 
       <div
         className={`ml-1 flex-none font-menu text-xs text-muted ${
