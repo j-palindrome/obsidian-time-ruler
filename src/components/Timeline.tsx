@@ -8,6 +8,7 @@ import {
   isDateISO,
   insertTextAtCaret,
   removeNestedChildren,
+  isCompleted,
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
@@ -16,7 +17,9 @@ import Times, { TimeSpanTypes } from './Times'
 import TimeSpan from './TimeSpan'
 import Task from './Task'
 import invariant from 'tiny-invariant'
-import EditWindow from './EditWindow'
+import NewTask from './NewTask'
+import { useDroppable } from '@dnd-kit/core'
+import { roundMinutes } from '../services/util'
 
 export default function Timeline({
   startISO,
@@ -51,14 +54,14 @@ export default function Timeline({
     const allDayTasks: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
       const scheduledForToday =
-        !task.completion &&
+        !isCompleted(task) &&
         task.scheduled &&
         task.scheduled < endISO &&
         (isToday || task.scheduled >= startISO)
       if (
         !scheduledForToday &&
         task.due &&
-        !task.completion &&
+        !isCompleted(task) &&
         (task.due >= startISO || (isToday && task.due < endISO)) &&
         (!task.scheduled || task.scheduled < endISO)
       ) {
@@ -72,6 +75,7 @@ export default function Timeline({
         }
       }
     })
+
     const scheduledParents = tasks.map((task) => task.id)
 
     for (let id of scheduledParents) {
@@ -155,31 +159,17 @@ export default function Timeline({
     }
   }, [calendarMode])
 
-  const [showingOptions, setShowingOptions] = useState(false)
-
   return (
-    <div className='flex h-full flex-col'>
+    <div className='flex h-full w-full flex-col'>
       <Droppable data={{ scheduled: startISO }} id={startISO + '::timeline'}>
-        <div className='group flex w-full flex-none items-center'>
-          <div className='ml-6 w-full rounded-lg px-1'>{title || ''}</div>
-
+        <div className='group flex w-full flex-none items-center h-10 pl-1'>
+          <div className='w-full pl-8'>{title || ''}</div>
           <Button
-            className='aspect-square h-full'
-            src={'more-horizontal'}
-            onClick={() => setShowingOptions(!showingOptions)}
-          />
-          {showingOptions && (
-            <EditWindow
-              tasks={tasks}
-              hideThis={() => setShowingOptions(false)}
-            />
-          )}
-
-          <Button
-            className='aspect-square h-full'
+            className='aspect-square h-8'
             onClick={() => setExpanded(!expanded)}
             src={expanded ? 'chevron-up' : 'chevron-down'}
           />
+          <NewTask containerId={title} />
         </div>
       </Droppable>
       <div
@@ -189,7 +179,7 @@ export default function Timeline({
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
         <div
-          className={`relative mt-2 w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
+          className={`relative w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
             calendarMode
               ? ''
               : // @ts-ignore
@@ -235,12 +225,7 @@ export default function Timeline({
           }`}
           data-auto-scroll={calendarMode ? undefined : 'y'}
         >
-          {isToday && (
-            <div className='mt-2 flex w-full items-center px-5'>
-              <div className='w-full border-0 border-b border-solid border-red-800'></div>
-              <div className='h-1 w-1 rounded-full bg-red-800'></div>
-            </div>
-          )}
+          {isToday && <NowTime />}
           {timeSpan}
           <Droppable
             data={{ scheduled: startISO }}
@@ -250,6 +235,30 @@ export default function Timeline({
           </Droppable>
         </div>
       </div>
+    </div>
+  )
+}
+
+function NowTime() {
+  const startISO = roundMinutes(new DateTime(DateTime.now())).toISO({
+    includeOffset: false,
+    suppressMilliseconds: true,
+    suppressSeconds: true,
+  })
+  const { isOver, setNodeRef } = useDroppable({
+    id: startISO + '::scheduled::now',
+    data: { scheduled: startISO } as DropData,
+  })
+
+  return (
+    <div
+      className={`py-2 flex w-full items-center rounded-lg px-5 ${
+        isOver ? 'bg-selection' : ''
+      }`}
+      ref={setNodeRef}
+    >
+      <div className='w-full border-0 border-b border-solid border-red-800'></div>
+      <div className='h-1 w-1 rounded-full bg-red-800'></div>
     </div>
   )
 }

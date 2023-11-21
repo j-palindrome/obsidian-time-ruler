@@ -34,8 +34,6 @@ import {
 } from './parser'
 import { parseHeadingFromPath } from './util'
 
-window.onanimationiteration = console.log
-
 let dv: DataviewApi
 
 export default class ObsidianAPI extends Component {
@@ -357,7 +355,6 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:metadata-change',
         (...args) => {
-          console.log(args, 'loading');
           this.loadTasks(args[1].path)
         }
       )
@@ -369,9 +366,11 @@ export async function getDailyNoteInfo(): Promise<
   Pick<AppState, 'dailyNoteFormat' | 'dailyNotePath'> | undefined
 > {
   try {
-    let { folder, format } = (await app.vault.readConfigJson(
-      'daily-notes'
-    )) as Record<string, string>
+    let { folder, format } = (await app.vault
+      .readConfigJson('daily-notes')
+      .catch(() => {
+        return { folder: undefined, format: undefined }
+      })) as Record<string, string>
     if (!folder) folder = '/'
     if (!folder.endsWith('/')) folder += '/'
     if (!format) format = 'YYYY-MM-DD'
@@ -410,7 +409,9 @@ export async function openTask(task: TaskProps) {
   /**
    * There's a glitch with Obsidian where it doesn't show this when opening a link from Time Ruler.
    */
-  if (Platform.isMobile) app['mobileNavbar'].show()
+  if (Platform.isMobile) {
+    app['mobileNavbar'].show()
+  }
 }
 
 export function openTaskInRuler(line: number, path: string) {

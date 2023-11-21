@@ -94,7 +94,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
   )
 
   useEffect(() => {
-    if (isDraggingTime) {
+    if (isDraggingTime && isOver) {
       setters.set({
         dragData: { ...getters.get('dragData'), end: iso } as DragData,
       })

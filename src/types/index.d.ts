@@ -101,6 +101,10 @@ declare global {
 }
 
 declare module 'obsidian' {
+  interface App {
+    isMobile: boolean
+  }
+
   interface Vault {
     getConfig: (key: string) => string | string[] | undefined
     readConfigJson: (

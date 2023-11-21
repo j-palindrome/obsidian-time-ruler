@@ -81,7 +81,7 @@ export default function Event({
       }`}
     >
       <div
-        className='flex w-full items-center pl-6'
+        className='flex w-full items-center pl-8'
         {...(draggable
           ? { ref: setActivatorNodeRef, ...attributes, ...listeners }
           : undefined)}
@@ -111,7 +111,7 @@ export default function Event({
 
   return (
     <div
-      className={`w-full rounded-lg ${
+      className={`w-full rounded-lg pl-1 ${
         isDragging ? 'bg-gray-500/5 opacity-50' : 'bg-secondary-alt'
       }`}
       style={{

@@ -141,7 +141,7 @@ export const getTasksByHeading = (
   dailyNotePath: string,
   dailyNoteFormat: string,
   fileOrder: string[]
-) => {
+): [string, TaskProps[]][] => {
   return _.sortBy(
     _.entries(
       _.groupBy(tasks, (task) =>
@@ -186,4 +186,8 @@ export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
   for (let child of childrenToRemove.sort().reverse()) {
     taskList.splice(child, 1)
   }
+}
+
+export const isCompleted = (task: TaskProps) => {
+  return task.page ? false : task.completion ? true : false
 }

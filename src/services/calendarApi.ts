@@ -30,17 +30,13 @@ export default class CalendarAPI extends Component {
           const data = await request(calendar)
           const icsEvents = ical.parseICS(data)
           const calendarName = data.match(/CALNAME:(.*)/)?.[1] ?? 'Default'
-          for (let [id, event] of _.entries(icsEvents)) {
-            if (
-              !event.start ||
-              !event.end ||
-              event.type !== 'VEVENT' ||
-              event.end < now
-            )
-              continue
+          for (let [id, event] of _.entries(icsEvents) as [string, any][]) {
+            if (!event.start || !event.end || event.type !== 'VEVENT') continue
+
+            let end = DateTime.fromJSDate(event.end).setZone('local')
+            if (end < now) continue
 
             let start = DateTime.fromJSDate(event.start).setZone('local')
-            let end = DateTime.fromJSDate(event.end).setZone('local')
 
             const startString = (
               event.start['dateOnly']
@@ -80,7 +76,7 @@ export default class CalendarAPI extends Component {
           i++
         } catch (err) {
           new Notice('Time Ruler: failed to load calendar from ' + calendar)
-          this.removeCalendar(calendar)
+          console.error(err)
         }
       })
     )

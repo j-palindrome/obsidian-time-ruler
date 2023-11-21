@@ -1,9 +1,7 @@
 import _ from 'lodash'
 import { shallow } from 'zustand/shallow'
 import { useAppStore } from '../app/store'
-import {
-  parseGroupHeadingFromPath
-} from '../services/util'
+import { parseGroupHeadingFromPath } from '../services/util'
 import Group from './Group'
 
 const UNGROUPED = '__ungrouped'
@@ -68,7 +66,7 @@ export default function Block({
     <div
       id={id}
       data-role='block'
-      className={`w-full ${type === 'event' ? 'pb-2 pl-2' : ''}`}
+      className={`w-full ${type === 'event' ? 'pb-2' : ''}`}
     >
       {sortedGroups.map(([name, tasks]) => (
         <Group

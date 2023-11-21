@@ -44,21 +44,18 @@ import invariant from 'tiny-invariant'
 import NewTask from './NewTask'
 import { parseDateFromPath, parseHeadingFromPath } from '../services/util'
 import { getAPI } from 'obsidian-dataview'
+import { onDragEnd, onDragStart } from 'src/services/dragging'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
 export default function App({ apis }: { apis: Required<AppState['apis']> }) {
-  console.log('updating app')
-
   const reload = async () => {
     const dv = getAPI()
     invariant(dv, 'please install Dataview to use Time Ruler.')
     if (!dv.index.initialized) {
       // @ts-ignore
       app.metadataCache.on('dataview:index-ready', () => {
-        console.log('reloading app')
-
         reload()
       })
       return
@@ -110,7 +107,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const datesShown =
     datesShownState === 0
       ? 0
-      : _.round(nextMonday.diff(DateTime.now()).as('days'))
+      : _.floor(nextMonday.diff(DateTime.now()).as('days'))
 
   const times: Parameters<typeof Timeline>[0][] = [
     {
@@ -136,73 +133,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
 
   useAutoScroll(!!activeDrag)
-
-  const onDragEnd = (ev: DragEndEvent) => {
-    const dropData = ev.over?.data.current as DropData | undefined
-    const dragData = activeDragRef.current
-
-    if (dragData?.dragType === 'new_button' && !dropData) {
-      setters.set({ newTask: { scheduled: undefined } })
-    } else if (dropData && dragData) {
-      if (!isTaskProps(dropData)) {
-        // use case with drag/drop of headings
-        if (dropData.type === 'heading' && dragData.dragType === 'group') {
-          setters.updateFileOrder(dragData.name, dropData.heading)
-        }
-      } else {
-        switch (dragData.dragType) {
-          case 'new_button':
-            setters.set({ newTask: { scheduled: dropData.scheduled } })
-            break
-          case 'time':
-          case 'task-length':
-            if (!dropData.scheduled) return
-            const { hours, minutes } = DateTime.fromISO(dropData.scheduled)
-              .diff(DateTime.fromISO(dragData.start))
-              .shiftTo('hours', 'minutes')
-              .toObject() as { hours: number; minutes: number }
-            if (dragData.dragType === 'task-length') {
-              setters.patchTasks([dragData.id], {
-                length: { hour: hours, minute: minutes },
-              })
-            } else {
-              setters.set({
-                newTask: {
-                  scheduled: dropData.scheduled,
-                  length: { hour: hours, minute: minutes },
-                },
-              })
-            }
-            break
-          case 'new':
-            const [path, heading] = dragData.path.split('#')
-            getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
-            break
-          case 'group':
-          case 'event':
-            setters.patchTasks(
-              dragData.tasks.flatMap((x) =>
-                x.type === 'parent' ? x.children : x.id
-              ),
-              dropData
-            )
-            break
-          case 'task':
-            setters.patchTasks([dragData.id], dropData)
-            break
-          case 'due':
-            setters.patchTasks([dragData.task.id], { due: dropData.scheduled })
-            break
-        }
-      }
-    }
-
-    setters.set({ dragData: null })
-  }
-
-  const onDragStart = (ev: DragStartEvent) => {
-    setters.set({ dragData: ev.active.data.current as DragData })
-  }
 
   const measuringConfig: MeasuringConfiguration = {
     draggable: {
@@ -253,7 +183,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       case 'due':
         return <DueDate {...activeDrag} isDragging />
       case 'new_button':
-        return <NewTask />
+        return <NewTask containerId='activeDrag' />
     }
   }
 
@@ -334,10 +264,13 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const calendarMode = useAppStore((state) => state.calendarMode)
   useEffect(scrollToNow, [])
 
+  const scroller = useRef<HTMLDivElement>(null)
+  const [scrollViews, setScrollViews] = useState([-1, 1])
+
   return (
     <DndContext
       onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      onDragEnd={(ev) => onDragEnd(ev, activeDragRef)}
       onDragCancel={() => setters.set({ dragData: null })}
       collisionDetection={pointerWithin}
       measuring={measuringConfig}
@@ -373,22 +306,28 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           }}
         />
         <Timer />
-        <div className='absolute bottom-6 left-6'>
-          <NewTask />
-        </div>
         <div
           className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childWidth}`}
           id='time-ruler-times'
           data-auto-scroll='x'
+          ref={scroller}
+          onScroll={(ev) => {
+            invariant(scroller.current)
+            const leftLevel = Math.floor(
+              scroller.current.scrollLeft / scroller.current.clientWidth
+            )
+            const rightLevel = leftLevel + 2
+            if (leftLevel !== scrollViews[0])
+              setScrollViews([leftLevel, rightLevel])
+          }}
         >
           {times.map((time, i) => (
-            <Timeline key={time.startISO + '::' + time.type} {...time} />
+            <div className='h-full w-full'>
+              {i >= scrollViews[0] && i <= scrollViews[1] && (
+                <Timeline key={time.startISO + '::' + time.type} {...time} />
+              )}
+            </div>
           ))}
-          <Button
-            className={`force-hover rounded-lg ${calendarMode ? '' : '!w-8'}`}
-            onClick={() => setDatesShown(datesShown === 0 ? 1 : datesShown + 7)}
-            src='chevron-right'
-          />
         </div>
       </div>
     </DndContext>
@@ -545,13 +484,17 @@ const Buttons = ({
                 data={{ scheduled: times.startISO }}
               >
                 <Button className='h-[28px]' onClick={() => scrollToSection(i)}>
-                  {thisDate.toFormat(
-                    calendarMode
-                      ? thisDate.day === 1 || i === 0
-                        ? 'MMM d'
-                        : 'd'
-                      : 'EEE MMM d'
-                  )}
+                  {i === 0
+                    ? 'Today'
+                    : i === 1
+                    ? 'Tomorrow'
+                    : thisDate.toFormat(
+                        calendarMode
+                          ? thisDate.day === 1 || i === 0
+                            ? 'MMM d'
+                            : 'd'
+                          : 'EEE MMM d'
+                      )}
                 </Button>
               </Droppable>
             )

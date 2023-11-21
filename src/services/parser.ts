@@ -11,7 +11,7 @@ import {
   simplePriorityToNumber,
 } from '../types/enums'
 import _ from 'lodash'
-import { isDateISO, parseDateFromPath } from './util'
+import { isCompleted, isDateISO, parseDateFromPath } from './util'
 import { getters } from '../app/store'
 import { startTransition } from 'react'
 import { create } from 'zustand'
@@ -314,7 +314,7 @@ export function textToTask(
     page: false,
     children:
       item.children.flatMap((child) =>
-        child.completion ? [] : parseId(child as STask)
+        isCompleted(child) ? [] : parseId(child as STask)
       ) ?? [],
     type: 'task',
     status: item.status,
@@ -500,7 +500,7 @@ export function taskToText(
   const dailyNoteFormat = getters.get('dailyNoteFormat')
 
   let draft = `- [${
-    task.completion ? 'x' : task.status
+    isCompleted(task) ? 'x' : task.status
   }] ${task.originalTitle.replace(/\s+$/, '')} ${
     task.tags.length > 0 ? task.tags.join(' ') + ' ' : ''
   }`

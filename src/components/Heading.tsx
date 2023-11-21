@@ -47,7 +47,7 @@ export default function Heading({
         <div className='h-2'></div>
       )}
       <div
-        className={`time-ruler-heading selectable flex w-full space-x-4 rounded-lg pl-7 pr-2 font-menu text-xs child:truncate`}
+        className={`time-ruler-heading selectable flex w-full space-x-4 rounded-lg pl-8 pr-2 font-menu text-xs child:truncate`}
       >
         <div
           className={`w-fit flex-none cursor-pointer hover:underline ${

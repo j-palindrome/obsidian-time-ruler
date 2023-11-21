@@ -114,7 +114,7 @@ export default function Task({
     >
       {type === 'deadline' && (
         <div
-          className='cursor-pointer pl-7 text-xs text-accent hover:underline'
+          className='cursor-pointer pl-8 text-xs text-accent hover:underline'
           onClick={() => app.workspace.openLinkText(task.path, '')}
         >
           {
@@ -132,7 +132,7 @@ export default function Task({
           isLink ? 'font-menu text-xs' : 'font-sans'
         }`}
       >
-        <div className='flex h-line w-7 flex-none items-center justify-center'>
+        <div className='flex h-line w-8 flex-none items-center justify-center'>
           <Button
             onPointerDown={() => false}
             onClick={() => completeTask()}
@@ -161,7 +161,7 @@ export default function Task({
           onPointerDown={() => false}
           onClick={() => openTask(task)}
         >
-          {task.title}
+          {task.title || 'Untitled'}
         </div>
         <div
           className='flex h-full min-h-line min-w-[24px] grow cursor-grab flex-wrap items-center justify-end space-x-1 font-menu child:my-1'
@@ -230,7 +230,7 @@ export default function Task({
         )}
       </div>
       {_.keys(task.extraFields).length > 0 && (
-        <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-7 text-xs'>
+        <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-8 text-xs'>
           {_.sortBy(_.entries(task.extraFields), 0).map(([key, value]) => (
             <div className='flex overflow-hidden rounded child:px-1' key={key}>
               {key}: {value}

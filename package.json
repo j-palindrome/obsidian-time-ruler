@@ -30,6 +30,8 @@
     "zustand": "^4.4.4"
   },
   "devDependencies": {
+    "@types/jquery": "^3.5.27",
+    "@types/lodash": "^4.14.201",
     "@types/react": "^18.2.37",
     "autoprefixer": "^10.4.16",
     "builtin-modules": "^3.3.0",
