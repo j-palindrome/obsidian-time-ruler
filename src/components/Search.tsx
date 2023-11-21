@@ -11,12 +11,7 @@ import Droppable from './Droppable'
 import Heading from './Heading'
 import { TaskPriorities, priorityNumberToKey } from '../types/enums'
 import moment from 'moment'
-import {
-  convertSearchToRegExp,
-  getTasksByHeading,
-  parseGroupHeadingFromPath,
-  parseHeadingFromPath,
-} from '../services/util'
+import { convertSearchToRegExp, getTasksByHeading } from '../services/util'
 import Block from './Block'
 
 export default function Search() {
@@ -55,12 +50,17 @@ export default function Search() {
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [searchStatus])
 
-  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
-  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
+  const dailyNoteInfo = useAppStore(
+    ({ dailyNoteFormat, dailyNotePath }) => ({
+      dailyNoteFormat,
+      dailyNotePath,
+    }),
+    shallow
+  )
   const fileOrder = useAppStore((state) => state.fileOrder)
   const tasks = useAppStore((state) => state.tasks)
   const tasksByHeading = useMemo(
-    () => getTasksByHeading(tasks, dailyNotePath, dailyNoteFormat, fileOrder),
+    () => getTasksByHeading(tasks, dailyNoteInfo, fileOrder),
     [tasks]
   )
 
@@ -73,8 +73,6 @@ export default function Search() {
         const searchString =
           'path: ' +
           task.path +
-          ' heading: # ' +
-          task.heading +
           ' title: ' +
           task.title +
           (task.tags.length > 0

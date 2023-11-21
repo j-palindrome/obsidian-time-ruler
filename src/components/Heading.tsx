@@ -4,8 +4,12 @@ import moment from 'moment'
 import { useMemo } from 'react'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
-import { parseDateFromPath, parseHeadingFromPath } from '../services/util'
-import ObsidianAPI from '../services/obsidianApi'
+import {
+  parseDateFromPath,
+  parseHeadingFromPath,
+  parseHeadingTitle,
+} from '../services/util'
+import ObsidianAPI, { getDailyNoteInfo } from '../services/obsidianApi'
 import Droppable from './Droppable'
 
 export type HeadingProps = { path: string }
@@ -20,12 +24,19 @@ export default function Heading({
   dragProps?: any
   idString: string
 }) {
-  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
-  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
-  const { name, level } = useMemo(
-    () => parseHeadingFromPath(path, isPage, dailyNotePath, dailyNoteFormat),
+  const dailyNoteInfo = useAppStore(
+    ({ dailyNoteFormat, dailyNotePath }) => ({
+      dailyNoteFormat,
+      dailyNotePath,
+    }),
+    shallow
+  )
+  const name = useMemo(
+    () => parseHeadingFromPath(path, isPage, dailyNoteInfo),
     [path]
   )
+  const title = useMemo(() => parseHeadingTitle(name), [name])
+
   const searchStatus = useAppStore((state) => state.searchStatus)
 
   const hideHeadings = useAppStore((state) => state.hideHeadings)
@@ -33,7 +44,7 @@ export default function Heading({
 
   return (
     <>
-      {level === 'group' ? (
+      {name.includes('#') ? (
         <Droppable
           data={{
             type: 'heading',
@@ -51,7 +62,7 @@ export default function Heading({
       >
         <div
           className={`w-fit flex-none cursor-pointer hover:underline ${
-            level === 'heading' ? 'text-muted' : 'font-bold text-accent'
+            name.includes('#') ? 'text-muted' : 'font-bold text-accent'
           }`}
           onPointerDown={() => false}
           onClick={
@@ -71,7 +82,7 @@ export default function Heading({
                 }
           }
         >
-          {name}
+          {title}
         </div>
         <div
           className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'

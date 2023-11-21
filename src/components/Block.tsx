@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { shallow } from 'zustand/shallow'
 import { useAppStore } from '../app/store'
-import { parseGroupHeadingFromPath } from '../services/util'
+import { parseHeadingFromPath } from '../services/util'
 import Group from './Group'
 
 const UNGROUPED = '__ungrouped'
@@ -42,16 +42,17 @@ export default function Block({
 
   const sortedTasks = _.sortBy(nestedTasks, ['path', 'position.start.line'])
 
-  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
-  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
-  const groupedTasks = _.groupBy(sortedTasks, (task) =>
-    parseGroupHeadingFromPath(
-      task.path,
-      task.page,
+  const dailyNoteInfo = useAppStore(
+    ({ dailyNoteFormat, dailyNotePath }) => ({
+      dailyNoteFormat,
       dailyNotePath,
-      dailyNoteFormat
-    )
+    }),
+    shallow
   )
+  const groupedTasks = _.groupBy(sortedTasks, (task) =>
+    parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+  )
+
   const sortedGroups = useAppStore(
     (state) =>
       _.sortBy(_.entries(groupedTasks), ([group, _tasks]) =>

@@ -92,8 +92,13 @@ export default function Task({
     data: lengthDragData,
   })
 
-  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
-  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
+  const dailyNoteInfo = useAppStore(
+    ({ dailyNoteFormat, dailyNotePath }) => ({
+      dailyNoteFormat,
+      dailyNotePath,
+    }),
+    shallow
+  )
 
   if (!task) return <></>
 
@@ -117,14 +122,7 @@ export default function Task({
           className='cursor-pointer pl-8 text-xs text-accent hover:underline'
           onClick={() => app.workspace.openLinkText(task.path, '')}
         >
-          {
-            parseHeadingFromPath(
-              task.path,
-              task.page,
-              dailyNotePath,
-              dailyNoteFormat
-            ).name
-          }
+          {parseHeadingFromPath(task.path, task.page, dailyNoteInfo)}
         </div>
       )}
       <div
@@ -251,10 +249,6 @@ export default function Task({
             hidePaths={[task.path]}
             tasks={subtasks.map((subtask) => ({
               ...subtask,
-              heading:
-                subtask.heading && task.heading
-                  ? subtask.heading.replace(task.heading, '')
-                  : undefined,
               type:
                 type === 'search'
                   ? 'task'

@@ -51,19 +51,21 @@ export default function NewTask({ containerId }: { containerId: string }) {
   const [search, setSearch] = useState('')
   const searchExp = convertSearchToRegExp(search)
 
-  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
-  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
+  const dailyNoteInfo = useAppStore(
+    ({ dailyNoteFormat, dailyNotePath }) => ({
+      dailyNoteFormat,
+      dailyNotePath,
+    }),
+    shallow
+  )
   const fileOrder = useAppStore((state) => state.fileOrder)
   const tasksByHeading = useAppStore(
     (state) =>
       !newTask
         ? []
-        : getTasksByHeading(
-            state.tasks,
-            dailyNotePath,
-            dailyNoteFormat,
-            fileOrder
-          ).filter(([heading]) => heading !== 'Daily'),
+        : getTasksByHeading(state.tasks, dailyNoteInfo, fileOrder).filter(
+            ([heading]) => heading !== 'Daily'
+          ),
     shallow
   )
 
@@ -85,7 +87,7 @@ export default function NewTask({ containerId }: { containerId: string }) {
       ? (DateTime.now().toISODate() as string)
       : (DateTime.fromISO(newTask.scheduled).toISODate() as string)
 
-    const path = parsePathFromDate(date, dailyNotePath, dailyNoteFormat)
+    const path = parsePathFromDate(date, dailyNoteInfo)
 
     getters.getObsidianAPI().createTask(path, '', newTask)
 
@@ -174,14 +176,14 @@ export default function NewTask({ containerId }: { containerId: string }) {
 }
 
 function NewTaskHeading({ path }: { path: string }) {
-  const dailyNotePath = useAppStore((state) => state.dailyNotePath)
-  const dailyNoteFormat = useAppStore((state) => state.dailyNoteFormat)
-  const { name, level } = parseHeadingFromPath(
-    path,
-    false,
-    dailyNotePath,
-    dailyNoteFormat
+  const dailyNoteInfo = useAppStore(
+    ({ dailyNoteFormat, dailyNotePath }) => ({
+      dailyNoteFormat,
+      dailyNotePath,
+    }),
+    shallow
   )
+  const name = parseHeadingFromPath(path, false, dailyNoteInfo)
   const newTask = useAppStore((state) => state.newTask)
   invariant(newTask)
 
@@ -195,7 +197,7 @@ function NewTaskHeading({ path }: { path: string }) {
         setTimeout(() => setters.set({ newTask: false }))
       }}
       className={`selectable cursor-pointer rounded-lg px-2 hover:underline ${
-        level === 'heading' ? 'text-muted' : 'font-bold text-accent'
+        name.includes('#') ? 'text-muted' : 'font-bold text-accent'
       }`}
     >
       {name}

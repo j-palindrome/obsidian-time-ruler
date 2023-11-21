@@ -32,7 +32,7 @@ import {
   taskToText,
   textToTask,
 } from './parser'
-import { parseHeadingFromPath } from './util'
+import { parseFileFromPath, parseHeadingFromPath } from './util'
 
 let dv: DataviewApi
 
@@ -79,8 +79,10 @@ export default class ObsidianAPI extends Component {
       return
     }
 
-    const dailyNotePath = getters.get('dailyNotePath')
-    const dailyNoteFormat = getters.get('dailyNoteFormat')
+    const dailyNoteInfo = {
+      dailyNotePath: getters.get('dailyNotePath'),
+      dailyNoteFormat: getters.get('dailyNoteFormat'),
+    }
 
     const now = DateTime.now()
     const customStatuses = new RegExp(
@@ -142,19 +144,15 @@ export default class ObsidianAPI extends Component {
       .map((page) => pageToTask(page, this.settings.fieldFormat))
       .concat(
         taskSearch.map((task) =>
-          textToTask(
-            task,
-            dailyNotePath,
-            dailyNoteFormat,
-            this.settings.fieldFormat
-          )
+          textToTask(task, dailyNoteInfo, this.settings.fieldFormat)
         )
       )
       .array()
 
     const tasksDict = _.fromPairs(processedTasks.map((task) => [task.id, task]))
 
-    for (let task of _.values(tasksDict)) {
+    for (let task of processedTasks) {
+      if (task.page) continue
       // assign children where required
       if (!task.children) continue
       for (let child of task.children) {
@@ -163,17 +161,25 @@ export default class ObsidianAPI extends Component {
       }
     }
 
+    for (let task of processedTasks) {
+      if (!task.page) continue
+      task.children = []
+      for (let child of processedTasks.filter(
+        (child) =>
+          child.id !== task.id &&
+          parseFileFromPath(task.path) === parseFileFromPath(child.path) &&
+          !child.parent
+      )) {
+        child.parent = task.id
+        task.children.push(child.id)
+      }
+    }
+
     const updatedTasks = { ...getters.get('tasks') }
 
     const newHeadings = _.uniq(
-      processedTasks.map(
-        (task) =>
-          parseHeadingFromPath(
-            task.path,
-            task.page,
-            dailyNotePath,
-            dailyNoteFormat
-          ).name
+      processedTasks.map((task) =>
+        parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
       )
     )
       .filter((heading) => !this.settings.fileOrder.includes(heading))
@@ -307,7 +313,6 @@ export default class ObsidianAPI extends Component {
       id: '',
       type: 'task',
       path,
-      heading,
       position,
       status: ' ',
       fieldFormat: this.settings.fieldFormat,

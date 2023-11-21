@@ -4,6 +4,10 @@ import { BlockType } from './Block'
 import Droppable from './Droppable'
 import Heading from './Heading'
 import Task from './Task'
+import { parseHeadingFromPath } from '../services/util'
+import { getDailyNoteInfo } from 'src/services/obsidianApi'
+import { useAppStore } from '../app/store'
+import { shallow } from 'zustand/shallow'
 
 const UNGROUPED = '__ungrouped'
 
@@ -24,14 +28,27 @@ export default function Group({
   type,
   level,
   due,
-  hidePaths: hidePaths,
+  hidePaths,
   id,
   dragContainer,
 }: GroupProps) {
+  const dailyNoteInfo = useAppStore(
+    ({ dailyNoteFormat, dailyNotePath }) => ({
+      dailyNoteFormat,
+      dailyNotePath,
+    }),
+    shallow
+  )
   const groupedHeadings =
     level === 'group'
-      ? _.groupBy(tasks, (task) => task.heading ?? UNGROUPED)
+      ? _.groupBy(tasks, (task) =>
+          task.path.includes('#')
+            ? parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+            : UNGROUPED
+        )
       : []
+  if (name.includes('Notion custom')) console.log(groupedHeadings)
+
   const sortedHeadings =
     level === 'group'
       ? _.sortBy(_.entries(groupedHeadings), [
@@ -54,45 +71,43 @@ export default function Group({
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id: `${id}::${tasks[0].path}${
-        level === 'heading' ? '::' + tasks[0].heading : ''
-      }::${dragContainer}::${type}`,
+      id: `${id}::${tasks[0].path}::${dragContainer}::${type}`,
       data: dragData,
     })
 
   return (
     <div ref={setNodeRef} className={`w-full`}>
-      {type !== 'child' &&
-        name &&
-        name !== UNGROUPED &&
-        !hidePaths.includes(name) && (
-          <>
-            <Heading
-              dragProps={{
-                ...attributes,
-                ...listeners,
-                ref: setActivatorNodeRef,
-              }}
-              path={
-                tasks[0].path +
-                (level === 'heading' ? '#' + tasks[0].heading : '')
-              }
-              isPage={tasks[0].page}
-              idString={`${id}::${name}::${
-                dragData.type
-              }::${level}::${dragData.tasks
-                .map((x) => x.id)
-                .join(':')}::reorder`}
-            />
-          </>
-        )}
+      {name && name !== UNGROUPED && !hidePaths.includes(name) && (
+        <>
+          <Heading
+            dragProps={{
+              ...attributes,
+              ...listeners,
+              ref: setActivatorNodeRef,
+            }}
+            path={name}
+            isPage={tasks[0].page}
+            idString={`${id}::${name}::${
+              dragData.type
+            }::${level}::${dragData.tasks.map((x) => x.id).join(':')}::reorder`}
+          />
+        </>
+      )}
 
       {level === 'group'
-        ? sortedHeadings.map(([name, tasks]) => (
+        ? sortedHeadings.map(([headingName, tasks]) => (
             <Group
               level='heading'
-              key={name}
-              {...{ tasks, name, type, due, hidePaths, id, dragContainer }}
+              key={headingName}
+              {...{
+                tasks,
+                name: headingName,
+                type,
+                due,
+                hidePaths: hidePaths.concat([name]),
+                id,
+                dragContainer,
+              }}
             />
           ))
         : tasks.map((task, i) => (

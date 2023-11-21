@@ -14,12 +14,7 @@ app['__timeRulerTests'] = async (testPath: string, format = 'dataview') => {
 
   for (let testTask of tasks) {
     try {
-      const task = textToTask(
-        testTask,
-        dailyNoteInfo.dailyNotePath,
-        dailyNoteInfo.dailyNoteFormat,
-        'dataview'
-      )
+      const task = textToTask(testTask, dailyNoteInfo, 'dataview')
 
       const expected = JSON.parse(testTask['expect'])
       for (let key of Object.keys(expected)) {

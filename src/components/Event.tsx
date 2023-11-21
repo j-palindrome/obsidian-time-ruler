@@ -131,6 +131,7 @@ export default function Event({
         {...{ tasks, due, scheduled: startISO }}
         dragContainer={startISO}
       />
+
       <TimeSpan
         startISO={startISO}
         endISO={endISO}

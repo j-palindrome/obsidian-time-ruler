@@ -36,10 +36,9 @@ declare global {
     children: string[]
     position: STask['position']
     path: string
+    parent?: string
     extraFields?: Record<string, string>
     length?: { hour: number; minute: number }
-    parent?: string
-    heading?: string
     status: string
     blockReference?: string
     fieldFormat: FieldFormat['main']
@@ -98,6 +97,11 @@ declare global {
   type DropData = Partial<TaskProps> | { type: 'heading'; heading: string }
 
   type BlockData = [string, (EventProps | TaskProps)[]]
+
+  type DailyNoteInfo = {
+    dailyNoteFormat: string
+    dailyNotePath: string
+  }
 }
 
 declare module 'obsidian' {

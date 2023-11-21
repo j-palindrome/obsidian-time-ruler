@@ -14,6 +14,7 @@ import SettingsTab from './plugin/SettingsTab'
 import { openTaskInRuler } from './services/obsidianApi'
 import { taskToText, textToTask } from './services/parser'
 import { getters, setters } from './app/store'
+import invariant from 'tiny-invariant'
 
 // comment out for dev
 // import './tests/parser.test'
@@ -150,6 +151,7 @@ export default class TimeRulerPlugin extends Plugin {
     line: number,
     modification: 'now' | 'unschedule'
   ) {
+    invariant(context.file)
     const id = context.file.path.replace('.md', '') + '::' + line
     let scheduled: TaskProps['scheduled']
     switch (modification) {

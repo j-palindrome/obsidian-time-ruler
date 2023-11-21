@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "tsc -p \"src\" -noEmit -skipLibCheck && MODE=production node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && MODE=production node esbuild.config.mjs",
     "check": "tsc -noEmit -skipLibCheck"
   },
   "dependencies": {

@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { AppState, getters } from '../app/store'
 import moment from 'moment'
 import _ from 'lodash'
+import { getDailyNoteInfo } from './obsidianApi'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
@@ -78,79 +79,68 @@ export const getTodayNote = () => {
   return dailyNote
 }
 
+export const parseFileFromPath = (path: string) =>
+  path.includes('#') ? path.slice(0, path.indexOf('#')) : path
+
 export const parsePathFromDate = (
   date: string,
-  dailyNotePath: string,
-  dailyNoteFormat: string
+  dailyNoteInfo: DailyNoteInfo
 ) => {
-  const formattedDate = moment(date).format(dailyNoteFormat)
-  return dailyNotePath + formattedDate + '.md'
+  const formattedDate = moment(date).format(dailyNoteInfo.dailyNoteFormat)
+  return dailyNoteInfo.dailyNotePath + formattedDate + '.md'
 }
 
 export const parseDateFromPath = (
   path: string,
-  dailyNotePath: string,
-  dailyNoteFormat: string
+  dailyNoteInfo: DailyNoteInfo
 ) => {
   const date = moment(
-    path.replace(dailyNotePath, '').replace('.md', ''),
-    dailyNoteFormat,
+    path.replace(dailyNoteInfo.dailyNotePath, '').replace('.md', ''),
+    dailyNoteInfo.dailyNoteFormat,
     true
   )
   if (!date.isValid()) return false
   return date
 }
 
-export const parseGroupHeadingFromPath = (
-  path: string,
-  isPage: boolean,
-  dailyNotePath: string,
-  dailyNoteFormat: string
-) => {
-  let name: string
-  if (isPage) {
-    // page headings are their containing folder
-    const folder = path.slice(0, path.lastIndexOf('/'))
-    name = folder.includes('/')
-      ? folder.slice(folder.lastIndexOf('/') + 1)
-      : folder
-  } else {
-    name = path.slice(path.lastIndexOf('/') + 1).replace(/\.md$/, '')
-  }
-  if (parseDateFromPath(name, dailyNotePath, dailyNoteFormat)) return 'Daily'
-  return name
-}
-
 export const parseHeadingFromPath = (
   path: string,
   isPage: boolean,
-  dailyNotePath: string,
-  dailyNoteFormat: string
-): { level: 'heading' | 'group'; name: string } => {
-  const level = path.includes('#') ? 'heading' : 'group'
-  let name =
-    level === 'heading'
-      ? path.slice(path.lastIndexOf('#') + 1).replace(/\.md$/, '')
-      : parseGroupHeadingFromPath(path, isPage, dailyNotePath, dailyNoteFormat)
+  dailyNoteInfo: DailyNoteInfo
+): string => {
+  let name = ''
+  let fileName = parseFileFromPath(path)
+  if (isPage) {
+    // page headings are their containing folder
+    const folder = fileName.slice(0, fileName.lastIndexOf('/'))
+    name = folder.includes('/')
+      ? folder.slice(folder.lastIndexOf('/') + 1)
+      : folder
+  } else if (parseDateFromPath(fileName, dailyNoteInfo)) {
+    name =
+      'Daily' + (path.includes('#') ? path.slice(path.indexOf('#' + 1)) : '')
+  } else name = path
 
-  return { level, name }
+  return name
+}
+
+export const parseHeadingTitle = (path: string) => {
+  return path.includes('#')
+    ? path.slice(path.lastIndexOf('#') + 1)
+    : path
+        .slice(path.includes('/') ? path.lastIndexOf('/') + 1 : 0)
+        .replace('.md', '')
 }
 
 export const getTasksByHeading = (
   tasks: AppState['tasks'],
-  dailyNotePath: string,
-  dailyNoteFormat: string,
+  dailyNoteInfo: DailyNoteInfo,
   fileOrder: string[]
 ): [string, TaskProps[]][] => {
   return _.sortBy(
     _.entries(
       _.groupBy(tasks, (task) =>
-        parseGroupHeadingFromPath(
-          task.path,
-          task.page,
-          dailyNotePath,
-          dailyNoteFormat
-        )
+        parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
       )
     ),
     ([heading, _tasks]) => fileOrder.indexOf(heading)

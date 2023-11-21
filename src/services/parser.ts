@@ -37,8 +37,7 @@ const KANBAN_TIME = / ?@@\{(\d{2}:\d{2})\}/
 
 export function textToTask(
   item: any,
-  dailyNotePath: string,
-  dailyNoteFormat: string,
+  dailyNoteInfo: DailyNoteInfo,
   defaultFormat: TimeRulerPlugin['settings']['fieldFormat']
 ): TaskProps {
   const { main: mainFormat } = detectFieldFormat(item.text, defaultFormat)
@@ -147,11 +146,7 @@ export function textToTask(
     if (!rawScheduled && !(typeof item.parent === 'number')) {
       // test note title
       let titleDate = item.date as string | undefined
-      const parsedPathDate = parseDateFromPath(
-        item.path,
-        dailyNotePath,
-        dailyNoteFormat
-      )
+      const parsedPathDate = parseDateFromPath(item.path, dailyNoteInfo)
 
       if (parsedPathDate)
         titleDate = parsedPathDate.toISOString(false).slice(0, 10)
@@ -331,8 +326,7 @@ export function textToTask(
     repeat,
     extraFields: _.keys(extraFields).length > 0 ? extraFields : undefined,
     position: item.position,
-    heading: item.section.subpath,
-    path: item.path,
+    path: item.path + (item.section.subpath ? '#' + item.section.subpath : ''),
     priority,
     completion,
     start,
@@ -496,8 +490,10 @@ export function taskToText(
   task: TaskProps,
   defaultFieldFormat: FieldFormat['main']
 ) {
-  const dailyNotePath = getters.get('dailyNotePath')
-  const dailyNoteFormat = getters.get('dailyNoteFormat')
+  const dailyNoteInfo = {
+    dailyNotePath: getters.get('dailyNotePath'),
+    dailyNoteFormat: getters.get('dailyNoteFormat'),
+  }
 
   let draft = `- [${
     isCompleted(task) ? 'x' : task.status
@@ -531,7 +527,7 @@ export function taskToText(
   switch (main) {
     case 'simple':
       if (task.scheduled) {
-        let date = parseDateFromPath(task.path, dailyNotePath, dailyNoteFormat)
+        let date = parseDateFromPath(task.path, dailyNoteInfo)
         let scheduledDate = task.scheduled.slice(0, 10)
         const includeDate =
           !date || date.toISOString(false).slice(0, 10) !== scheduledDate
