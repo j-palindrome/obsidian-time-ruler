@@ -187,8 +187,24 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     }
   }
 
-  const [childWidth, setChildWidth, childWidthRef] = useStateRef('child:w-full')
-  const [overlayWidth, setOverlayWidth] = useState(1)
+  const [childWidth, setChildWidth, childWidthRef] = useStateRef(1)
+  const childWidthToClass = [
+    '',
+    'child:w-full',
+    'child:w-1/2',
+    'child:w-1/3',
+    'child:w-1/4',
+  ]
+
+  const updateScroll = () => {
+    invariant(scroller.current)
+    const leftLevel = Math.floor(
+      scroller.current.scrollLeft / (scroller.current.clientWidth / childWidth)
+    )
+    const rightLevel = leftLevel + childWidth + 1
+    if (leftLevel !== scrollViews[0] || rightLevel !== scrollViews[1])
+      setScrollViews([leftLevel, rightLevel])
+  }
 
   useEffect(() => {
     function outputSize() {
@@ -199,28 +215,16 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       if (!timeRuler) return
       const width = timeRuler.clientWidth
       const newChildWidth =
-        width < 500
-          ? 'child:w-full'
-          : width < 800
-          ? 'child:w-1/2'
-          : width < 1200
-          ? 'child:w-1/3'
-          : 'child:w-1/4'
-      const overlayWidths = {
-        'child:w-full': 1,
-        'child:w-1/2': 2,
-        'child:w-1/3': 3,
-        'child:w-1/4': 4,
-      }
+        width < 500 ? 1 : width < 800 ? 2 : width < 1200 ? 3 : 4
       if (newChildWidth !== childWidthRef.current) {
         setChildWidth(newChildWidth)
-        setOverlayWidth(overlayWidths[newChildWidth])
       }
     }
+
     outputSize()
 
     if (Platform.isMobile) {
-      setChildWidth('child:w-full')
+      setChildWidth(1)
       return
     }
 
@@ -228,8 +232,14 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     if (!timeRuler) return
     const observer = new ResizeObserver(outputSize)
     observer.observe(timeRuler)
-    return () => observer.disconnect()
+    window.addEventListener('resize', outputSize)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', outputSize)
+    }
   }, [])
+
+  useEffect(updateScroll, [childWidth])
 
   const sensors = useSensors(
     ...(Platform.isMobile
@@ -261,7 +271,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       ?.style?.setProperty('overflow', 'clip', 'important')
   }, [])
 
-  const calendarMode = useAppStore((state) => state.calendarMode)
   useEffect(scrollToNow, [])
 
   const scroller = useRef<HTMLDivElement>(null)
@@ -291,7 +300,9 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       >
         <DragOverlay
           dropAnimation={null}
-          style={{ width: `calc((100% - 48px) / ${overlayWidth})` }}
+          style={{
+            width: `calc((100% - 48px) / ${childWidth})`,
+          }}
         >
           {getDragElement()}
         </DragOverlay>
@@ -307,24 +318,19 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         />
         <Timer />
         <div
-          className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childWidth}`}
+          className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childWidthToClass[childWidth]}`}
           id='time-ruler-times'
           data-auto-scroll='x'
           ref={scroller}
-          onScroll={(ev) => {
-            invariant(scroller.current)
-            const leftLevel = Math.floor(
-              scroller.current.scrollLeft / scroller.current.clientWidth
-            )
-            const rightLevel = leftLevel + 2
-            if (leftLevel !== scrollViews[0])
-              setScrollViews([leftLevel, rightLevel])
-          }}
+          onScroll={updateScroll}
         >
           {times.map((time, i) => (
-            <div className='h-full w-full'>
+            <div
+              className='h-full w-full'
+              key={time.startISO + '::' + time.type}
+            >
               {i >= scrollViews[0] && i <= scrollViews[1] && (
-                <Timeline key={time.startISO + '::' + time.type} {...time} />
+                <Timeline {...time} />
               )}
             </div>
           ))}

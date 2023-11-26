@@ -1,14 +1,12 @@
 # Roadmap
 
 ## Planned
-- Tasks within Pages show up as subtasks
 - Support [Task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5)
 - Support [aliases](https://github.com/joshuatazrein/obsidian-time-ruler/issues/76)
 - Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
 - Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
 - Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - Option to support [Tasks API on click](https://github.com/joshuatazrein/obsidian-time-ruler/issues/74)
-- make page headings create pages inside
 
 ## Considering
 - Better Completed Tasks - [Weekly Review](https://github.com/joshuatazrein/obsidian-time-ruler/issues/62?notification_referrer_id=NT_kwDOBQ8O87M3ODg1NjIyNTg3Ojg0ODcyOTQ3#issuecomment-1742924623)
@@ -17,6 +15,23 @@
 
 
 # Changelog
+
+## 1.6.0 (11/25/2023)
+
+**Fixed:**
+- Issue with not all [dates displaying](https://github.com/joshuatazrein/obsidian-time-ruler/issues/83)
+
+**Added:**
+- Option to collapse/expand subtasks
+
+**Improved:**
+- Subtasks of Page tasks show up as subtasks of that Page
+- Subtasks are also grouped by heading
+
+**Refactored:**
+- Streamlined `dailyNoteInfo` functions
+- Headings now are defined with a string, not an object
+- Easier task nesting
 
 ## 1.5.3 (11/20/2023)
 

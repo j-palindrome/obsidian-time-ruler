@@ -204,7 +204,7 @@ export default function Search() {
       {searching && (
         <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-4'>
           <div
-            className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary'
+            className='h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary max-w-2xl'
             ref={frame}
           >
             <div className='relative px-4 pb-4'>

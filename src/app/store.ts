@@ -1,6 +1,6 @@
 import { produce } from 'immer'
 import { useRef } from 'react'
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 import CalendarAPI from '../services/calendarApi'
 import ObsidianAPI from '../services/obsidianApi'
 import { TaskActions } from '../types/enums'
@@ -33,9 +33,10 @@ export type AppState = {
   hideHeadings: TimeRulerPlugin['settings']['hideHeadings']
   muted: TimeRulerPlugin['settings']['muted']
   twentyFourHourFormat: TimeRulerPlugin['settings']['twentyFourHourFormat']
+  collapsed: Record<string, boolean>
 }
 
-export const useAppStore = create<AppState>(() => ({
+export const useAppStore = createWithEqualityFn<AppState>(() => ({
   tasks: {},
   events: {},
   apis: {},
@@ -52,6 +53,7 @@ export const useAppStore = create<AppState>(() => ({
   newTask: false,
   twentyFourHourFormat: false,
   muted: false,
+  collapsed: {},
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
@@ -77,6 +79,9 @@ export const setters = {
       await obsidianAPI.saveTask(savedTask)
     }
     if (task.completion) obsidianAPI.playComplete()
+  },
+  patchCollapsed: async (id: string, collapsed: boolean) => {
+    modify((state) => ({ collapsed: { ...state.collapsed, [id]: collapsed } }))
   },
   updateFileOrder: (heading: string, beforeHeading: string) => {
     const obsidianAPI = getters.getObsidianAPI()

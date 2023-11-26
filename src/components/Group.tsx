@@ -4,7 +4,7 @@ import { BlockType } from './Block'
 import Droppable from './Droppable'
 import Heading from './Heading'
 import Task from './Task'
-import { parseHeadingFromPath } from '../services/util'
+import { parseFileFromPath, parseHeadingFromPath } from '../services/util'
 import { getDailyNoteInfo } from 'src/services/obsidianApi'
 import { useAppStore } from '../app/store'
 import { shallow } from 'zustand/shallow'
@@ -47,7 +47,6 @@ export default function Group({
             : UNGROUPED
         )
       : []
-  if (name.includes('Notion custom')) console.log(groupedHeadings)
 
   const sortedHeadings =
     level === 'group'
@@ -63,7 +62,7 @@ export default function Group({
     tasks,
     type,
     level,
-    name,
+    name: parseFileFromPath(name),
     hidePaths,
     id,
     dragContainer,

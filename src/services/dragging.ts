@@ -45,8 +45,7 @@ export const onDragEnd = (
           }
           break
         case 'new':
-          const [path, heading] = dragData.path.split('#')
-          getters.getObsidianAPI().createTask(path + '.md', heading, dropData)
+          getters.getObsidianAPI().createTask(dragData.path, dropData)
           break
         case 'group':
         case 'event':

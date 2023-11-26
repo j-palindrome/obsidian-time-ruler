@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { AppState, getters } from '../app/store'
+import { AppState, getters, setters } from '../app/store'
 import moment from 'moment'
 import _ from 'lodash'
 import { getDailyNoteInfo } from './obsidianApi'
@@ -112,7 +112,9 @@ export const parseHeadingFromPath = (
   let fileName = parseFileFromPath(path)
   if (isPage) {
     // page headings are their containing folder
-    const folder = fileName.slice(0, fileName.lastIndexOf('/'))
+    const folder = fileName.includes('/')
+      ? fileName.slice(0, fileName.lastIndexOf('/'))
+      : fileName
     name = folder.includes('/')
       ? folder.slice(folder.lastIndexOf('/') + 1)
       : folder
@@ -145,6 +147,20 @@ export const getTasksByHeading = (
     ),
     ([heading, _tasks]) => fileOrder.indexOf(heading)
   )
+}
+
+export const createInDaily = (
+  task: Partial<TaskProps>,
+  dailyNoteInfo: DailyNoteInfo
+) => {
+  const date = !task.scheduled
+    ? (DateTime.now().toISODate() as string)
+    : (DateTime.fromISO(task.scheduled).toISODate() as string)
+
+  const path = parsePathFromDate(date, dailyNoteInfo)
+
+  getters.getObsidianAPI().createTask(path, task)
+  setters.set({ newTask: false })
 }
 
 export const convertSearchToRegExp = (search: string) =>

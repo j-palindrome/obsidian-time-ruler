@@ -1,20 +1,17 @@
 import { useDraggable } from '@dnd-kit/core'
 import Button from './Button'
 import { getters, setters, useAppStore, AppState } from '../app/store'
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import moment from 'moment'
 import {
-  convertSearchToRegExp,
-  getTodayNote,
   getTasksByHeading,
-  parseDateFromPath,
   parseHeadingFromPath,
-  parsePathFromDate,
+  createInDaily,
+  parseHeadingTitle,
+  parseFileFromPath,
 } from '../services/util'
 import { shallow } from 'zustand/shallow'
-import { DateTime } from 'luxon'
-import { TaskPriorities } from '../types/enums'
 import _ from 'lodash'
 
 export default function NewTask({ containerId }: { containerId: string }) {
@@ -49,7 +46,6 @@ export default function NewTask({ containerId }: { containerId: string }) {
   }, [!!newTask])
 
   const [search, setSearch] = useState('')
-  const searchExp = convertSearchToRegExp(search)
 
   const dailyNoteInfo = useAppStore(
     ({ dailyNoteFormat, dailyNotePath }) => ({
@@ -69,46 +65,28 @@ export default function NewTask({ containerId }: { containerId: string }) {
     shallow
   )
 
-  const allHeadings: string[] = ['Daily']
-    .concat(
-      tasksByHeading.flatMap(([_name, tasks]) => {
-        const subheadings = _.uniq(_.map(tasks, 'heading')).flatMap(
-          (heading: string) => (heading ? tasks[0].path + '#' + heading : [])
-        )
-        return [tasks[0].path].concat(subheadings)
-      })
+  const allHeadings = _.uniq(
+    tasksByHeading.flatMap((heading) =>
+      heading[0].includes('#')
+        ? [heading[0], parseFileFromPath(heading[0])]
+        : heading[0]
     )
-    .filter((heading) => searchExp.test(heading))
-
-  const createInDaily = () => {
-    invariant(newTask)
-
-    const date = !newTask.scheduled
-      ? (DateTime.now().toISODate() as string)
-      : (DateTime.fromISO(newTask.scheduled).toISODate() as string)
-
-    const path = parsePathFromDate(date, dailyNoteInfo)
-
-    getters.getObsidianAPI().createTask(path, '', newTask)
-
-    setTimeout(() => setters.set({ newTask: false }))
-  }
+  ).sort()
 
   const createNewTask = () => {
     invariant(newTask)
     const selectedHeading = allHeadings[0]
     if (!allHeadings) {
-      createInDaily()
+      createInDaily(newTask, dailyNoteInfo)
     } else {
-      const [filePath, splitHeading] = selectedHeading.split('#')
-      getters.getObsidianAPI().createTask(filePath, splitHeading, newTask)
+      getters.getObsidianAPI().createTask(selectedHeading, newTask)
     }
   }
 
   return (
     <>
       <div
-        className='relative z-[100] h-10 w-10 flex-none'
+        className='relative z-30 h-10 w-10 flex-none'
         {...attributes}
         {...listeners}
         ref={setNodeRef}
@@ -121,7 +99,7 @@ export default function NewTask({ containerId }: { containerId: string }) {
       {newTask && (
         <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-8 space-y-2'>
           <div
-            className='flex h-full max-h-[50vh] w-full flex-col space-y-1 overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary p-2'
+            className='flex h-full max-h-[50vh] w-full flex-col space-y-1 overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary p-2 max-w-2xl'
             ref={frame}
           >
             <div className='pl-2 font-menu text-lg font-bold text-center'>
@@ -138,9 +116,14 @@ export default function NewTask({ containerId }: { containerId: string }) {
                     newTask: { ...newTask, originalTitle: ev.target.value },
                   })
                 }
-                onKeyDown={(ev) => ev.key === 'Enter' && createInDaily()}
+                onKeyDown={(ev) =>
+                  ev.key === 'Enter' && createInDaily(newTask, dailyNoteInfo)
+                }
               ></input>
-              <Button src='check' onClick={() => createInDaily()} />
+              <Button
+                src='check'
+                onClick={() => createInDaily(newTask, dailyNoteInfo)}
+              />
             </div>
             <input
               placeholder='search files...'
@@ -154,19 +137,9 @@ export default function NewTask({ containerId }: { containerId: string }) {
               }}
             ></input>
             <div className='h-0 w-full grow space-y-1 overflow-y-auto text-sm'>
-              {allHeadings.map((path) =>
-                path === 'Daily' ? (
-                  <div
-                    className='selectable cursor-pointer rounded-lg px-2 font-bold text-accent hover:underline'
-                    onClick={() => createInDaily()}
-                    key='Daily'
-                  >
-                    Daily
-                  </div>
-                ) : (
-                  <NewTaskHeading key={path} path={path} />
-                )
-              )}
+              {allHeadings.map((path) => (
+                <NewTaskHeading key={path} path={path} />
+              ))}
             </div>
           </div>
         </div>
@@ -183,7 +156,11 @@ function NewTaskHeading({ path }: { path: string }) {
     }),
     shallow
   )
-  const name = parseHeadingFromPath(path, false, dailyNoteInfo)
+  const name = useMemo(
+    () => parseHeadingFromPath(path, false, dailyNoteInfo),
+    [path]
+  )
+  const title = useMemo(() => parseHeadingTitle(name), [name])
   const newTask = useAppStore((state) => state.newTask)
   invariant(newTask)
 
@@ -191,16 +168,17 @@ function NewTaskHeading({ path }: { path: string }) {
     <div
       key={path}
       onMouseDown={() => {
-        const [filePath, splitHeading] = path.split('#')
-        getters.getObsidianAPI().createTask(filePath, splitHeading, newTask)
-
+        if (path === 'Daily') createInDaily(newTask, dailyNoteInfo)
+        else {
+          getters.getObsidianAPI().createTask(path, newTask)
+        }
         setTimeout(() => setters.set({ newTask: false }))
       }}
       className={`selectable cursor-pointer rounded-lg px-2 hover:underline ${
         name.includes('#') ? 'text-muted' : 'font-bold text-accent'
       }`}
     >
-      {name}
+      {title}
     </div>
   )
 }

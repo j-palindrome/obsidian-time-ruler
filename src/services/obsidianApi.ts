@@ -179,7 +179,9 @@ export default class ObsidianAPI extends Component {
 
     const newHeadings = _.uniq(
       processedTasks.map((task) =>
-        parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+        parseFileFromPath(
+          parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+        )
       )
     )
       .filter((heading) => !this.settings.fileOrder.includes(heading))
@@ -236,24 +238,21 @@ export default class ObsidianAPI extends Component {
     setters.set({ fileOrder: newFileOrder })
   }
 
-  async createTask(
-    path: string,
-    heading: string | undefined,
-    dropData: Partial<TaskProps>
-  ) {
-    if (!path.endsWith('.md')) path += '.md'
+  async createTask(path: string, dropData: Partial<TaskProps>) {
+    let [fileName, heading] = path.split('#')
+    if (!fileName.endsWith('.md')) fileName += '.md'
 
     let position = {
       start: { col: 0, line: 0, offset: 0 },
       end: { col: 0, line: 0, offset: 0 },
     }
 
-    let file = app.vault.getAbstractFileByPath(path)
+    let file = app.vault.getAbstractFileByPath(fileName)
     if (!(file instanceof TFile)) {
-      file = await app.vault.create(path, '')
+      file = await app.vault.create(fileName, '')
     }
     if (!(file instanceof TFile)) {
-      new Notice(`Time Ruler: failed to create file ${path}`)
+      new Notice(`Time Ruler: failed to create file ${fileName}`)
       return
     }
 
@@ -312,7 +311,7 @@ export default class ObsidianAPI extends Component {
       priority: TaskPriorities.DEFAULT,
       id: '',
       type: 'task',
-      path,
+      path: fileName,
       position,
       status: ' ',
       fieldFormat: this.settings.fieldFormat,
@@ -324,10 +323,14 @@ export default class ObsidianAPI extends Component {
   }
 
   async saveTask(task: TaskProps, newTask?: boolean) {
-    var abstractFile = app.vault.getAbstractFileByPath(task.path)
+    var abstractFile = app.vault.getAbstractFileByPath(
+      parseFileFromPath(task.path)
+    )
     if (!abstractFile || !(abstractFile instanceof TFile)) {
-      await app.vault.create(task.path, '')
-      abstractFile = app.vault.getAbstractFileByPath(task.path)
+      await app.vault.create(parseFileFromPath(task.path), '')
+      abstractFile = app.vault.getAbstractFileByPath(
+        parseFileFromPath(task.path)
+      )
     }
 
     if (abstractFile && abstractFile instanceof TFile) {

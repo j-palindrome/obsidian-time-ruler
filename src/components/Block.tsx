@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { shallow } from 'zustand/shallow'
 import { useAppStore } from '../app/store'
-import { parseHeadingFromPath } from '../services/util'
+import { parseFileFromPath, parseHeadingFromPath } from '../services/util'
 import Group from './Group'
 
 const UNGROUPED = '__ungrouped'
@@ -56,7 +56,7 @@ export default function Block({
   const sortedGroups = useAppStore(
     (state) =>
       _.sortBy(_.entries(groupedTasks), ([group, _tasks]) =>
-        state.fileOrder.indexOf(group)
+        state.fileOrder.indexOf(parseFileFromPath(group))
       ),
     shallow
   )

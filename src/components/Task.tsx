@@ -12,7 +12,7 @@ import {
 import { TaskPriorities } from '../types/enums'
 import Block from './Block'
 import Button from './Button'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import moment from 'moment'
 import Logo from './Logo'
 import DueDate from './DueDate'
@@ -65,6 +65,8 @@ export default function Task({
     subtask.scheduled &&
     subtask.scheduled !== task.scheduled &&
     !hasSameDate(subtask)
+
+  const collapsed = useAppStore((state) => state.collapsed[id] ?? false)
 
   const subtasks = useAppStore((state) => {
     if (!task || type === 'deadline') return []
@@ -237,33 +239,40 @@ export default function Task({
         </div>
       )}
       {!isLink && task.notes && (
-        <div className='task-description break-words pl-7 pr-2 text-xs text-faint'>
+        <div className='task-description break-words pl-8 pr-2 text-xs text-faint'>
           {task.notes}
         </div>
       )}
-
-      <div className='pl-6'>
-        {subtasks.length > 0 && (
-          <Block
-            dragContainer={dragContainer + id}
-            hidePaths={[task.path]}
-            tasks={subtasks.map((subtask) => ({
-              ...subtask,
-              type:
-                type === 'search'
-                  ? 'task'
-                  : type === 'parent'
-                  ? subtask.type
-                  : type === 'deadline'
-                  ? 'link'
-                  : type === 'link' || differentScheduled(subtask)
-                  ? 'link'
-                  : 'task',
-            }))}
-            type='child'
-          ></Block>
-        )}
-      </div>
+      {subtasks.length > 0 && (
+        <div className='flex pl-2'>
+          <div
+            className='min-w-[16px] grow hover:bg-selection transition-colors duration-500 min-h-[20px] rounded-lg'
+            onClick={() => setters.patchCollapsed(id, !collapsed)}
+          >
+            {collapsed && <div className='pl-7 text-muted'>...</div>}
+          </div>
+          {!collapsed && (
+            <Block
+              dragContainer={dragContainer + id}
+              hidePaths={[task.path]}
+              tasks={subtasks.map((subtask) => ({
+                ...subtask,
+                type:
+                  type === 'search'
+                    ? 'task'
+                    : type === 'parent'
+                    ? subtask.type
+                    : type === 'deadline'
+                    ? 'link'
+                    : type === 'link' || differentScheduled(subtask)
+                    ? 'link'
+                    : 'task',
+              }))}
+              type='child'
+            ></Block>
+          )}
+        </div>
+      )}
     </div>
   )
 }
