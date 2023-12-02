@@ -323,7 +323,7 @@ export default class ObsidianAPI extends Component {
   }
 
   async saveTask(task: TaskProps, newTask?: boolean) {
-    var abstractFile = app.vault.getAbstractFileByPath(
+    let abstractFile = app.vault.getAbstractFileByPath(
       parseFileFromPath(task.path)
     )
     if (!abstractFile || !(abstractFile instanceof TFile)) {
@@ -399,7 +399,7 @@ export async function openTask(task: TaskProps) {
   const mdView = app.workspace.getActiveViewOfType(MarkdownView)
   if (!mdView) return
 
-  var cmEditor = mdView.editor
+  let cmEditor = mdView.editor
 
   cmEditor.setSelection(
     {
