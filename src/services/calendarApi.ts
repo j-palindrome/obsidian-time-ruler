@@ -24,7 +24,7 @@ export default class CalendarAPI extends Component {
       return
     }
     const events = {}
-    const now = new Date()
+    const now = DateTime.now()
     let i = 0
 
     const calendarLoads = this.settings.calendars.map(async (calendar) => {

@@ -18,6 +18,8 @@ export default function TimeSpan({
   startWithHours = false,
   chopStart = false,
   hideTimes = false,
+  dragContainer = '',
+  noExtension = false,
 }: {
   startISO: string
   endISO: string
@@ -26,6 +28,8 @@ export default function TimeSpan({
   startWithHours?: boolean
   chopStart?: boolean
   hideTimes?: boolean
+  dragContainer?: string
+  noExtension?: boolean
 }) {
   const formattedBlocks: {
     startISO: string
@@ -35,7 +39,8 @@ export default function TimeSpan({
     blocks: BlockData[]
   }[] = []
 
-  const dayStartEnd = useAppStore((state) => state.dayStartEnd)
+  const dayStartEnd = useAppStore((state) => state.settings.dayStartEnd)
+  const extendBlocks = useAppStore((state) => state.settings.extendBlocks)
   const testStart = DateTime.fromISO(startISO)
   const maxStart = DateTime.max(
     testStart,
@@ -50,24 +55,29 @@ export default function TimeSpan({
   for (let i = 0; i < blocks.length; i++) {
     const [startISO, _tasks] = blocks[i]
 
-    let { events, tasks, endISO } = processLength(blocks[i])
+    let { events, tasks, endISO: endBlockISO } = processLength(blocks[i])
 
     const includeNextBlocks = blocks
       .slice(i + 1)
-      .filter(([time, _items]) => time < endISO)
+      .filter(([time, _items]) => time < endBlockISO)
     i += includeNextBlocks.length
 
     const lastChildBlock = includeNextBlocks.last()
     if (lastChildBlock) {
       const { endISO: lastEndISO } = processLength(lastChildBlock)
-      if (lastEndISO > endISO) {
-        endISO = lastEndISO
-      }
+      if (lastEndISO > endBlockISO) endBlockISO = lastEndISO
+      else endBlockISO = endISO
+    }
+
+    if (endBlockISO === startISO && extendBlocks) {
+      const nextBlock = blocks[i + 1]
+      if (nextBlock) endBlockISO = nextBlock[0]
+      else endBlockISO = endISO
     }
 
     formattedBlocks.push({
       startISO,
-      endISO,
+      endISO: endBlockISO,
       tasks,
       events,
       blocks: includeNextBlocks,
@@ -75,15 +85,16 @@ export default function TimeSpan({
   }
 
   return (
-    <div className='pb-1'>
+    <div className={`pb-1 ${hideTimes ? 'space-y-2' : ''}`}>
       {!hideTimes && (
         <Times
-          dragContainer={startISO}
+          dragContainer={dragContainer + '::' + startISO}
           type={startWithHours ? 'hours' : type}
           startISO={maxStart}
           endISO={blocks[0]?.[0] ?? minEnd}
           chopStart={chopStart}
           chopEnd
+          noExtension={noExtension}
         />
       )}
 
@@ -112,16 +123,18 @@ export default function TimeSpan({
                 id={thisEvents[0]?.id}
                 type={type}
                 blocks={thisBlocks}
+                dragContainer={dragContainer}
               />
 
               {!hideTimes && (
                 <Times
-                  dragContainer={startISO}
+                  dragContainer={dragContainer + '::' + startISO}
                   type={type}
                   startISO={_.max([maxStart, thisEndISO]) as string}
                   endISO={formattedBlocks[i + 1]?.startISO ?? minEnd}
                   chopEnd
                   chopStart={thisStartISO === thisEndISO}
+                  noExtension={noExtension}
                 />
               )}
             </Fragment>

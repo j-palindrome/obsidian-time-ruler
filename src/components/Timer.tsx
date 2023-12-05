@@ -15,7 +15,7 @@ import { sounds } from '../assets/assets'
 export function Timer() {
   const pauseExpiration = useRef(true)
   const [negative, setNegative] = useState(false)
-  const muted = useAppStore((state) => state.muted)
+  const muted = useAppStore((state) => state.settings.muted)
 
   const timer = useTimer({
     expiryTimestamp: new Date(),
@@ -34,23 +34,21 @@ export function Timer() {
     autoStart: false,
   })
 
+  const stopwatch = useStopwatch({ autoStart: false })
+
   useEffect(() => {
     pauseExpiration.current = false
   }, [])
-  const stopwatch = useStopwatch({ autoStart: false })
 
   const [expanded, setExpanded] = useState(false)
-
   const [input, setInput] = useState('')
   const [maxSeconds, setMaxSeconds] = useState<number | null>(null)
   const seconds = maxSeconds ? timer.seconds : stopwatch.seconds
   const minutes = maxSeconds ? timer.minutes : stopwatch.minutes
   const hours = maxSeconds ? timer.hours : stopwatch.hours
-  const days = maxSeconds ? timer.days : stopwatch.days
   const playing = timer.isRunning || stopwatch.isRunning
 
-  const currentTime =
-    seconds + minutes * 60 + hours * 60 * 60 + days * 60 * 60 * 24
+  const currentTime = maxSeconds ? timer.totalSeconds : stopwatch.totalSeconds
 
   const start = () => {
     setNegative(false)
@@ -138,14 +136,14 @@ export function Timer() {
     <div
       className={`${
         expanded
-          ? 'fixed left-0 top-0 z-30 flex h-full w-full flex-col bg-primary p-4'
+          ? 'fixed left-0 top-0 z-40 flex h-full w-full flex-col bg-primary p-4'
           : 'w-full'
       }`}
     >
       <div
-        className={`relative my-1 flex h-6 w-full items-center justify-center rounded-icon bg-primary-alt py-1 font-menu text-sm child:relative child:h-full ${
+        className={`relative my-1 flex w-full items-center justify-center rounded-icon bg-primary-alt font-menu text-sm child:relative child:h-full py-0.5 ${
           negative ? 'bg-red-800/50' : ''
-        }`}
+        } ${expanded ? 'h-12' : 'h-6'}`}
       >
         <div
           className={`!absolute left-0 top-0 h-full flex-none rounded-icon ${
@@ -193,10 +191,17 @@ export function Timer() {
         />
       </div>
       {expanded && (
-        <div className='h-full w-full space-y-2 overflow-y-auto py-2 text-base'>
+        <div className='relative h-full w-full space-y-2 overflow-y-auto py-2 text-base child:max-w-xl flex items-center justify-center'>
           <Timeline
+            dragContainer='timer'
             startISO={DateTime.now().toISODate() as string}
-            endISO={DateTime.now().plus({ day: 1 }).toISODate() as string}
+            endISO={
+              DateTime.now().toISO({
+                suppressMilliseconds: true,
+                suppressSeconds: true,
+                includeOffset: false,
+              }) as string
+            }
             hideTimes
             type='minutes'
           />

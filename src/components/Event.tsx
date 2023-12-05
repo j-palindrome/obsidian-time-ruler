@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
 import { setters, useAppStore } from '../app/store'
-import { isDateISO } from '../services/util'
+import { isDateISO, useCollapseAll } from '../services/util'
 import Block from './Block'
 import Droppable from './Droppable'
 import Times, { TimeSpanTypes } from './Times'
@@ -9,6 +9,8 @@ import TimeSpan from './TimeSpan'
 import Logo from './Logo'
 import Button from './Button'
 import $ from 'jquery'
+import { useEffect, useState } from 'react'
+import useStateRef from 'react-usestateref'
 
 export type EventComponentProps = {
   id?: string
@@ -28,10 +30,14 @@ export default function Event({
   type = 'minutes',
   draggable = true,
   isDragging = false,
+  dragContainer = '',
+  noExtension = false,
 }: EventComponentProps & {
   draggable?: boolean
   due?: boolean
   isDragging?: boolean
+  dragContainer?: string
+  noExtension?: boolean
 }) {
   if (tasks.length === 0) draggable = false
   const thisEvent = useAppStore((state) => (id ? state.events[id] : undefined))
@@ -47,25 +53,19 @@ export default function Event({
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id: `${id}::${startISO}::${type}`,
+      id: `${id}::${startISO}::${type}::${dragContainer}`,
       data: dragData,
     })
 
   const twentyFourHourFormat = useAppStore(
-    (state) => state.twentyFourHourFormat
+    (state) => state.settings.twentyFourHourFormat
   )
-  const today = DateTime.now().toISODate() as string
+
   const formatStart = (date: string) => {
     const isDate = isDateISO(date)
-    return DateTime.fromISO(date).toFormat(
-      isDate
-        ? 'EEE MMM d'
-        : date < today
-        ? 'EEE MMM d t'
-        : twentyFourHourFormat
-        ? 'T'
-        : 't'
-    )
+    return isDate
+      ? 'all day'
+      : DateTime.fromISO(date).toFormat(twentyFourHourFormat ? 'T' : 't')
   }
 
   const data = due ? { due: startISO } : { scheduled: startISO }
@@ -74,14 +74,23 @@ export default function Event({
     ? $('#time-ruler-times').children()[0]?.getBoundingClientRect().width - 16
     : undefined
 
+  const { lastCollapseAll, setLastCollapseAll, collapseAll } = useCollapseAll()
+
+  const calendarMode = useAppStore((state) => state.calendarMode)
+
   const titleBar = (
     <div
-      className={`time-ruler-block group flex h-6 w-full flex-none items-center rounded-lg pr-2 font-menu text-xs ${
+      className={`time-ruler-block group flex h-6 w-full flex-none items-center rounded-lg pr-2 font-menu text-xs group ${
         draggable ? 'selectable cursor-grab' : ''
       }`}
     >
+      <Button
+        className='opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-6 h-4 mx-1 py-0.5 flex-none'
+        src={lastCollapseAll ? 'chevron-right' : 'chevron-down'}
+        onClick={() => setLastCollapseAll(!lastCollapseAll)}
+      />
       <div
-        className='flex w-full items-center pl-8'
+        className='flex w-full items-center'
         {...(draggable
           ? { ref: setActivatorNodeRef, ...attributes, ...listeners }
           : undefined)}
@@ -97,14 +106,16 @@ export default function Event({
         <hr className='my-0 w-full border-t border-faint'></hr>
 
         <span className='ml-2 whitespace-nowrap'>{formatStart(startISO)}</span>
-        {!DateTime.fromISO(startISO).diff(DateTime.fromISO(endISO)) && (
-          <>
-            <span className='ml-2 text-faint'>&gt;</span>
-            <span className='ml-2 whitespace-nowrap text-muted'>
-              {formatStart(endISO)}
-            </span>
-          </>
-        )}
+        {calendarMode &&
+          !isDateISO(startISO) &&
+          DateTime.fromISO(startISO).diff(DateTime.fromISO(endISO)) && (
+            <>
+              <span className='ml-2 text-faint'>&gt;</span>
+              <span className='ml-2 whitespace-nowrap text-muted'>
+                {formatStart(endISO)}
+              </span>
+            </>
+          )}
       </div>
     </div>
   )
@@ -128,17 +139,21 @@ export default function Event({
 
       <Block
         type='event'
-        {...{ tasks, due, scheduled: startISO }}
-        dragContainer={startISO}
+        {...{ tasks, startISO, collapseAll }}
+        dragContainer={dragContainer + '::' + startISO}
       />
 
-      <TimeSpan
-        startISO={startISO}
-        endISO={endISO}
-        blocks={blocks}
-        type={type}
-        chopStart={true}
-      />
+      {!calendarMode && (
+        <TimeSpan
+          startISO={startISO}
+          endISO={endISO}
+          blocks={blocks}
+          type={type}
+          chopStart={true}
+          dragContainer={dragContainer + '::' + startISO}
+          noExtension={noExtension}
+        />
+      )}
 
       {thisEvent && (thisEvent.location || thisEvent.notes) && (
         <div className='flex space-x-4 py-2 pl-6 text-xs'>

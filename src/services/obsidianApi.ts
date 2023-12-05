@@ -1,16 +1,7 @@
 import $ from 'jquery'
 import _, { escapeRegExp } from 'lodash'
 import { DateTime } from 'luxon'
-import moment from 'moment'
-import {
-  App,
-  Component,
-  MarkdownView,
-  Notice,
-  Platform,
-  TFile,
-  normalizePath,
-} from 'obsidian'
+import { App, Component, MarkdownView, Notice, Platform, TFile } from 'obsidian'
 import {
   DataArray,
   DataviewApi,
@@ -22,12 +13,10 @@ import {
 import { AppState, getters, setters } from '../app/store'
 import { sounds } from '../assets/assets'
 import TimeRulerPlugin from '../main'
-import { TaskPriorities, priorityNumberToKey } from '../types/enums'
+import { TaskPriorities } from '../types/enums'
 import {
   getProperty,
   pageToTask,
-  propertyIndex,
-  setProperty,
   taskToPage,
   taskToText,
   textToTask,
@@ -74,16 +63,12 @@ export default class ObsidianAPI extends Component {
     )
   }
 
-  loadTasks(path: string) {
-    if (!dv.index.initialized) {
-      return
-    }
-
-    const dailyNoteInfo = {
-      dailyNotePath: getters.get('dailyNotePath'),
-      dailyNoteFormat: getters.get('dailyNoteFormat'),
-    }
-
+  searchTasks(
+    path: string,
+    dailyNoteInfo: DailyNoteInfo,
+    completed = false,
+    dateBounds: [string, string]
+  ) {
     const now = DateTime.now()
     const customStatuses = new RegExp(
       `[${escapeRegExp(this.settings.customStatus.statuses)}]`
@@ -95,23 +80,51 @@ export default class ObsidianAPI extends Component {
         `"${path.replace(/"/g, '\\"')}" and (${this.settings.search || '""'})`
       ) as DataArray<Record<string, Literal> & { file: PageMetadata }>
 
+      const testDateBounds = (task: Record<string, Literal>) => {
+        const taskDate = task.scheduled ?? task.due ?? task.completion
+        // don't want to show unscheduled completed tasks (overloading system)
+        if (!DateTime.isDateTime(taskDate))
+          return !task.completion || this.settings.showCompleted
+        const dateString = taskDate.toISO({
+          suppressMilliseconds: true,
+          suppressSeconds: true,
+          includeOffset: false,
+        })
+        if (!dateString) return true
+
+        return dateString >= dateBounds[0] && dateString <= dateBounds[1]
+      }
+
       taskSearch = (basicSearch['file']['tasks'] as DataArray<STask>).where(
         (task) =>
-          !(!this.settings.showCompleted && task.completed) &&
+          ((completed && task.completed) ||
+            ((!completed || !this.settings.showCompleted) &&
+              !task.completed)) &&
           customStatuses.test(task.status) ===
             this.settings.customStatus.include &&
           !(this.excludePaths && this.excludePaths.test(task.path)) &&
-          !(task.start && DateTime.isDateTime(task.start) && now < task.start)
+          !(
+            task.start &&
+            DateTime.isDateTime(task.start) &&
+            now < task.start
+          ) &&
+          testDateBounds(task)
       )
 
       pageSearch = basicSearch.where((page) => {
-        const completed = getProperty(page, 'completed')
+        const pageCompleted = getProperty(page, 'completed')
         return (
-          (completed === false ||
-            completed === null ||
-            (this.settings.showCompleted && completed === true)) &&
+          (pageCompleted === false ||
+            pageCompleted === null ||
+            ((completed || this.settings.showCompleted) &&
+              pageCompleted === true)) &&
           !(this.excludePaths && this.excludePaths.test(page.file.path)) &&
-          !(page.start && DateTime.isDateTime(page.start) && now < page.start)
+          !(
+            page.start &&
+            DateTime.isDateTime(page.start) &&
+            now < page.start
+          ) &&
+          testDateBounds(page)
         )
       })
     } catch (e) {
@@ -175,7 +188,42 @@ export default class ObsidianAPI extends Component {
       }
     }
 
-    const updatedTasks = { ...getters.get('tasks') }
+    return processedTasks
+  }
+
+  loadTasks(path: string) {
+    if (!dv.index.initialized) {
+      return
+    }
+
+    const dailyNoteInfo = {
+      dailyNotePath: getters.get('dailyNotePath'),
+      dailyNoteFormat: getters.get('dailyNoteFormat'),
+    }
+
+    const searchWithinWeeks = getters.get('searchWithinWeeks')
+    const dateBounds: [string, string] = [
+      DateTime.now().plus({ weeks: searchWithinWeeks[0] }).toISODate(),
+      DateTime.now().plus({ weeks: searchWithinWeeks[1] }).toISODate(),
+    ]
+    const tasks = this.searchTasks(path, dailyNoteInfo, false, dateBounds)
+    const completedTasks = this.searchTasks(
+      path,
+      dailyNoteInfo,
+      true,
+      dateBounds
+    )
+    this.updateTasks([...tasks, ...completedTasks], path, dailyNoteInfo)
+  }
+
+  updateTasks(
+    processedTasks: TaskProps[],
+    path: string,
+    dailyNoteInfo: DailyNoteInfo
+  ) {
+    const updatedTasks = {
+      ...getters.get('tasks'),
+    }
 
     const newHeadings = _.uniq(
       processedTasks.map((task) =>
@@ -202,7 +250,7 @@ export default class ObsidianAPI extends Component {
 
     let updated = false
 
-    const updatedIds = Object.keys(tasksDict)
+    const updatedIds = processedTasks.map((task) => task.id)
     const pathName = path.replace('.md', '')
 
     for (let id of Object.keys(updatedTasks).filter(
@@ -315,6 +363,7 @@ export default class ObsidianAPI extends Component {
       position,
       status: ' ',
       fieldFormat: this.settings.fieldFormat,
+      completed: false,
       ...dropData,
     }
 
@@ -322,38 +371,58 @@ export default class ObsidianAPI extends Component {
     openTask(defaultTask)
   }
 
-  async saveTask(task: TaskProps, newTask?: boolean) {
-    let abstractFile = app.vault.getAbstractFileByPath(
-      parseFileFromPath(task.path)
-    )
+  private async getFile(path: string) {
+    let abstractFile = app.vault.getAbstractFileByPath(parseFileFromPath(path))
     if (!abstractFile || !(abstractFile instanceof TFile)) {
-      await app.vault.create(parseFileFromPath(task.path), '')
-      abstractFile = app.vault.getAbstractFileByPath(
-        parseFileFromPath(task.path)
-      )
+      await app.vault.create(parseFileFromPath(path), '')
+      abstractFile = app.vault.getAbstractFileByPath(parseFileFromPath(path))
     }
 
-    if (abstractFile && abstractFile instanceof TFile) {
-      if (task.page) {
-        app.fileManager.processFrontMatter(abstractFile, (frontmatter) => {
-          taskToPage(task, frontmatter)
-        })
+    if (abstractFile && abstractFile instanceof TFile) return abstractFile
+    else return undefined
+  }
+
+  async deleteTask(id: string) {
+    const task = getters.getTask(id)
+    const file = await this.getFile(task.path)
+    console.log(file)
+
+    if (!file) return
+    const fileText = await app.vault.read(file)
+    const lines = fileText.split('\n')
+
+    lines.splice(
+      task.position.start.line,
+      task.position.end.line + 1 - task.position.start.line
+    )
+
+    console.log(lines)
+
+    await app.vault.modify(file, lines.join('\n'))
+  }
+
+  async saveTask(task: TaskProps, newTask?: boolean) {
+    const file = await this.getFile(task.path)
+    if (!file) return
+    if (task.page) {
+      app.fileManager.processFrontMatter(file, (frontmatter) => {
+        taskToPage(task, frontmatter)
+      })
+    } else {
+      const fileText = await app.vault.read(file)
+      const lines = fileText.split('\n')
+
+      let thisLine = lines[task.position.start.line] ?? ''
+      const newText =
+        (thisLine.match(/^\s*/)?.[0] ?? '') +
+        taskToText(task, this.settings.fieldFormat)
+      if (newTask) {
+        lines.splice(task.position.start.line, 0, newText)
       } else {
-        const fileText = await app.vault.read(abstractFile)
-        const lines = fileText.split('\n')
-
-        let thisLine = lines[task.position.start.line] ?? ''
-        const newText =
-          (thisLine.match(/^\s*/)?.[0] ?? '') +
-          taskToText(task, this.settings.fieldFormat)
-        if (newTask) {
-          lines.splice(task.position.start.line, 0, newText)
-        } else {
-          lines[task.position.start.line] = newText
-        }
-
-        await app.vault.modify(abstractFile, lines.join('\n'))
+        lines[task.position.start.line] = newText
       }
+
+      await app.vault.modify(file, lines.join('\n'))
     }
   }
 
@@ -394,7 +463,7 @@ export async function getDailyNoteInfo(): Promise<
 }
 
 export async function openTask(task: TaskProps) {
-  await app.workspace.openLinkText(task.path, '')
+  await app.workspace.openLinkText(parseFileFromPath(task.path), '')
 
   const mdView = app.workspace.getActiveViewOfType(MarkdownView)
   if (!mdView) return

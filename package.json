@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@dnd-kit/core": "^6.0.8",
+    "@types/luxon": "^3.3.6",
     "ical": "^0.8.0",
     "immer": "^10.0.3",
     "jquery": "^3.7.1",

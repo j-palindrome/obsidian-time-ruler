@@ -7,7 +7,7 @@ import Button from './Button'
 import Droppable from './Droppable'
 import { useEffect } from 'react'
 
-export type TimeSpanTypes = 'minutes' | 'hours' | 'days'
+export type TimeSpanTypes = 'minutes' | 'hours'
 export default function Times({
   startISO,
   endISO,
@@ -15,6 +15,7 @@ export default function Times({
   chopEnd,
   chopStart,
   dragContainer,
+  noExtension,
 }: {
   startISO: string
   endISO: string
@@ -22,15 +23,27 @@ export default function Times({
   chopEnd?: boolean
   chopStart?: boolean
   dragContainer: string
+  noExtension?: boolean
 }) {
   const times: DateTime[] = []
   const givenStart = DateTime.fromISO(startISO)
-  let start = roundMinutes(DateTime.max(givenStart, DateTime.now()))
-  let end = roundMinutes(DateTime.fromISO(endISO))
+  const givenEnd = DateTime.fromISO(endISO)
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
+
+  let start = roundMinutes(
+    showingPastDates || noExtension
+      ? givenStart
+      : DateTime.max(givenStart, DateTime.now())
+  )
+  let end = roundMinutes(
+    !showingPastDates || noExtension
+      ? givenEnd
+      : DateTime.min(givenEnd, DateTime.now())
+  )
+
   const modifier: { [K in TimeSpanTypes]: Parameters<DateTime['plus']>[0] } = {
     minutes: { minutes: 15 },
     hours: { hours: 1 },
-    days: { days: 1 },
   }
   if (chopStart) start = start.plus(modifier[type])
   if (chopEnd) end = end.minus(modifier[type])
@@ -60,6 +73,7 @@ export type TimeProps = {
   type: TimeSpanTypes
   dragContainer: string
 }
+
 function Time({ time, type, dragContainer }: TimeProps) {
   const minutes = time.minute
   const hours = time.hour
@@ -72,7 +86,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
   }) as string
 
   const { isOver, setNodeRef } = useDroppable({
-    id: iso + '::scheduled',
+    id: dragContainer + '::' + iso + '::scheduled',
     data: { scheduled: iso } as DropData,
   })
 
@@ -80,6 +94,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
     dragType: 'time',
     start: iso,
   }
+
   const {
     setNodeRef: setDragNodeRef,
     attributes,
@@ -118,7 +133,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
   })
 
   const twentyFourHourFormat = useAppStore(
-    (state) => state.twentyFourHourFormat
+    (state) => state.settings.twentyFourHourFormat
   )
 
   const hourDisplay = twentyFourHourFormat
@@ -142,15 +157,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
         className={`border-t border-faint ${
           isOver ? '!w-full' : 'active:!w-full'
         } ${
-          type === 'days'
-            ? day === 1
-              ? date < 7
-                ? 'w-16'
-                : 'w-8'
-              : day === 5
-              ? 'w-4'
-              : 'w-1'
-            : type === 'hours'
+          type === 'hours'
             ? hours === 0
               ? 'w-16'
               : hours % 6 === 0
@@ -170,11 +177,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
         }`}
       ></hr>
 
-      <div
-        className={`ml-1 flex-none font-menu text-xs text-muted ${
-          type === 'days' ? 'w-8' : 'w-4'
-        }`}
-      >
+      <div className={`ml-1 flex-none font-menu text-xs text-muted w-4`}>
         {(type === 'minutes' && minutes === 0) ||
         (type === 'hours' && hours % 3 === 0)
           ? hourDisplay

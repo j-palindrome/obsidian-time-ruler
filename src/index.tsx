@@ -8,6 +8,7 @@ import CalendarAPI from './services/calendarApi'
 import ObsidianAPI from './services/obsidianApi'
 import { getAPI } from 'obsidian-dataview'
 import invariant from 'tiny-invariant'
+import { getters } from './app/store'
 
 export const TIME_RULER_VIEW = 'time-ruler-view'
 
@@ -45,6 +46,7 @@ export default class TimeRulerView extends ItemView {
     this.calendarLinkAPI.load()
 
     this.root = createRoot(this.containerEl.children[1])
+
     this.root.render(
       <React.StrictMode>
         <App

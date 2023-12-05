@@ -3,6 +3,8 @@ import { AppState, getters, setters } from '../app/store'
 import moment from 'moment'
 import _ from 'lodash'
 import { getDailyNoteInfo } from './obsidianApi'
+import NewTask from 'src/components/NewTask'
+import { useEffect, useState } from 'react'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
@@ -120,7 +122,8 @@ export const parseHeadingFromPath = (
       : folder
   } else if (parseDateFromPath(fileName, dailyNoteInfo)) {
     name =
-      'Daily' + (path.includes('#') ? path.slice(path.indexOf('#' + 1)) : '')
+      'Daily' +
+      (path.includes('#') ? '#' + path.slice(path.indexOf('#') + 1) : '')
   } else name = path
 
   return name
@@ -141,8 +144,9 @@ export const getTasksByHeading = (
 ): [string, TaskProps[]][] => {
   return _.sortBy(
     _.entries(
-      _.groupBy(tasks, (task) =>
-        parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+      _.groupBy(
+        _.filter(tasks, (task) => !task.completed),
+        (task) => parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
       )
     ),
     ([heading, _tasks]) => fileOrder.indexOf(heading)
@@ -166,9 +170,9 @@ export const createInDaily = (
 export const convertSearchToRegExp = (search: string) =>
   new RegExp(
     search
-      .split(' ')
-      .map((word) => _.escapeRegExp(word))
-      .join('.*'),
+      .split('')
+      .map((letter) => _.escapeRegExp(letter))
+      .join('.*?'),
     'i'
   )
 
@@ -194,6 +198,19 @@ export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
   }
 }
 
-export const isCompleted = (task: TaskProps) => {
-  return task.page ? false : task.completion ? true : false
+export const useCollapseAll = () => {
+  const [lastCollapseAll, setLastCollapseAll] = useState(false)
+  const [collapseAll, setCollapseAll] = useState<boolean | null>(null)
+  useEffect(() => {
+    setCollapseAll(lastCollapseAll)
+  }, [lastCollapseAll])
+  /** On every state change, reset collapseAll to null (it is passed to subcomponents) */
+  useEffect(() => {
+    if (collapseAll !== null) setCollapseAll(null)
+  }, [collapseAll])
+
+  return { lastCollapseAll, setLastCollapseAll, collapseAll }
 }
+
+export const parseTaskDate = (task: TaskProps): string | undefined =>
+  task.scheduled || task.due || task.completion
