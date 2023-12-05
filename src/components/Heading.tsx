@@ -13,18 +13,24 @@ import {
 import ObsidianAPI, { getDailyNoteInfo } from '../services/obsidianApi'
 import Droppable from './Droppable'
 import { parseFileFromPath } from '../services/util'
+import Logo from './Logo'
+import Button from './Button'
 
 export type HeadingProps = { path: string }
 export default function Heading({
   path,
   isPage,
   dragProps,
-  idString,
+  dragContainer,
+  collapsed,
+  setCollapsed,
 }: {
   path: string
   isPage: boolean
   dragProps?: any
-  idString: string
+  dragContainer: string
+  collapsed: boolean
+  setCollapsed?: (collapsed: boolean) => void
 }) {
   const dailyNoteInfo = useAppStore(
     ({ dailyNoteFormat, dailyNotePath }) => ({
@@ -44,42 +50,56 @@ export default function Heading({
     return headingName.split('#')
   }, [name])
 
-  const searchStatus = useAppStore((state) => state.searchStatus)
+  const hideHeadings = useAppStore((state) => state.settings.hideHeadings)
 
-  const hideHeadings = useAppStore((state) => state.hideHeadings)
+  const dragging = useAppStore(
+    (state) =>
+      state.dragData &&
+      state.dragData.dragType === 'group' &&
+      parseFileFromPath(state.dragData.name) !== fileName
+  )
   if (hideHeadings) return <></>
 
+  const topDiv = <div className='h-2 w-full rounded-lg'></div>
   return (
     <>
-      <Droppable
-        data={{
-          type: 'heading',
-          heading: parseFileFromPath(name),
-        }}
-        id={idString}
-      >
-        <div className='h-2 w-full rounded-lg'></div>
-      </Droppable>
-      <div
-        className={`time-ruler-heading selectable flex w-full space-x-4 rounded-lg pl-8 pr-2 font-menu text-xs child:truncate`}
-      >
-        <div
-          className={`w-fit flex-none cursor-pointer hover:underline`}
-          onPointerDown={() => false}
-          onClick={() => {
-            if (!searchStatus || typeof searchStatus === 'string') {
-              app.workspace.openLinkText(
-                path === 'Daily'
-                  ? parsePathFromDate(DateTime.now().toISODate(), dailyNoteInfo)
-                  : path,
-                ''
-              )
-            }
-            return false
+      {dragging ? (
+        <Droppable
+          data={{
+            type: 'heading',
+            heading: parseFileFromPath(name),
           }}
+          id={`${dragContainer}::${path}`}
         >
-          <span className='text-accent'>{fileName}</span>
-          {heading && <span className='text-normal pl-1'>{heading}</span>}
+          {topDiv}
+        </Droppable>
+      ) : (
+        topDiv
+      )}
+      <div
+        className={`time-ruler-heading selectable flex w-full rounded-lg pr-2 font-menu text-xs child:truncate group`}
+      >
+        {setCollapsed && (
+          <Button
+            className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 w-6 h-4 mx-1 py-0.5 flex-none'
+            src={collapsed ? 'chevron-right' : 'chevron-down'}
+            onClick={() => {
+              setCollapsed(!collapsed)
+              return false
+            }}
+            onPointerDown={() => false}
+          />
+        )}
+        <div
+          className={`w-fit flex-none cursor-grab`}
+          onPointerDown={() => false}
+          onClick={() => false}
+        >
+          {heading ? (
+            <span className='text-normal'>{heading}</span>
+          ) : (
+            <span className='text-accent'>{fileName}</span>
+          )}
         </div>
         <div
           className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'

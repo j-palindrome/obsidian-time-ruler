@@ -4,20 +4,37 @@ import { isTaskProps } from 'src/types/enums'
 import { DateTime } from 'luxon'
 import { useAppStoreRef } from '../app/store'
 
-export const onDragEnd = (
+export const onDragEnd = async (
   ev: DragEndEvent,
   activeDragRef: React.RefObject<DragData | null>
 ) => {
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
 
+  console.log(dropData, dragData)
+
   if (dragData?.dragType === 'new_button' && !dropData) {
     setters.set({ newTask: { scheduled: undefined } })
   } else if (dropData && dragData) {
     if (!isTaskProps(dropData)) {
-      // use case with drag/drop of headings
-      if (dropData.type === 'heading' && dragData.dragType === 'group') {
-        setters.updateFileOrder(dragData.name, dropData.heading)
+      switch (dropData.type) {
+        case 'heading':
+          if (dragData.dragType !== 'group') return
+          setters.updateFileOrder(dragData.name, dropData.heading)
+          break
+        case 'delete':
+          if (dragData.dragType !== 'task') return
+          if (dragData.children) {
+            if (!confirm('Delete task and children?')) return
+          }
+          // start from latest task and work backwards
+          if (dragData.children) {
+            for (let child of dragData.children.reverse()) {
+              await getters.getObsidianAPI().deleteTask(child)
+            }
+          }
+          await getters.getObsidianAPI().deleteTask(dragData.id)
+          break
       }
     } else {
       switch (dragData.dragType) {
@@ -38,14 +55,11 @@ export const onDragEnd = (
           } else {
             setters.set({
               newTask: {
-                scheduled: dropData.scheduled,
+                scheduled: dragData.start,
                 length: { hour: hours, minute: minutes },
               },
             })
           }
-          break
-        case 'new':
-          getters.getObsidianAPI().createTask(dragData.path, dropData)
           break
         case 'group':
         case 'event':
@@ -57,7 +71,12 @@ export const onDragEnd = (
           )
           break
         case 'task':
-          setters.patchTasks([dragData.id], dropData)
+          setters.patchTasks(
+            dragData.type === 'parent'
+              ? dragData.children ?? []
+              : [dragData.id],
+            dropData
+          )
           break
         case 'due':
           setters.patchTasks([dragData.task.id], { due: dropData.scheduled })

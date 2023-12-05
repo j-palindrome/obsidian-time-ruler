@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Planned
+- Fix [wrong date bug](https://github.com/joshuatazrein/obsidian-time-ruler/issues/85)
 - Support [Task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5)
 - Support [aliases](https://github.com/joshuatazrein/obsidian-time-ruler/issues/76)
 - Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
@@ -9,12 +10,28 @@
 - Option to support [Tasks API on click](https://github.com/joshuatazrein/obsidian-time-ruler/issues/74)
 
 ## Considering
-- Better Completed Tasks - [Weekly Review](https://github.com/joshuatazrein/obsidian-time-ruler/issues/62?notification_referrer_id=NT_kwDOBQ8O87M3ODg1NjIyNTg3Ojg0ODcyOTQ3#issuecomment-1742924623)
 - [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
 - Add more flexibility for [Tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/46#issuecomment-1708749520) users
 
 
 # Changelog
+
+## 1.7.0 (Upcoming)
+
+**Added:**
+- Drag target to delete tasks & their children
+- Collapse headings and events
+- Support [| based link text](https://github.com/joshuatazrein/obsidian-time-ruler/issues/81)
+- Option to extend blocks until next for easier time-blocking
+- [Show past dates](https://github.com/joshuatazrein/obsidian-time-ruler/issues/62?notification_referrer_id=NT_kwDOBQ8O87M3ODg1NjIyNTg3Ojg0ODcyOTQ3#issuecomment-1742924623)
+- Show completed tasks in Search
+- Calendar [grid view](https://github.com/joshuatazrein/obsidian-time-ruler/issues/84)
+
+**Improved:**
+- Timer View has simpler UI
+
+**Refactored:**
+- Moved settings in `AppStore` to consolidated object
 
 ## 1.6.0 (11/25/2023)
 

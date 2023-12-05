@@ -16,7 +16,7 @@ import $ from 'jquery'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
 import { Platform } from 'obsidian'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import useStateRef from 'react-usestateref'
 import {
   AppState,
@@ -65,20 +65,19 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     apis.obsidian.getExcludePaths()
     const dailyNoteInfo = await getDailyNoteInfo()
 
-    const dayStartEnd = apis.obsidian.getSetting('dayStartEnd')
-    const hideHeadings = apis.obsidian.getSetting('hideHeadings')
-    const twentyFourHourFormat = apis.obsidian.getSetting(
-      'twentyFourHourFormat'
-    )
-    const muted = apis.obsidian.getSetting('muted')
+    const settings: AppState['settings'] = {
+      muted: apis.obsidian.getSetting('muted'),
+      twentyFourHourFormat: apis.obsidian.getSetting('twentyFourHourFormat'),
+      hideHeadings: apis.obsidian.getSetting('hideHeadings'),
+      dayStartEnd: apis.obsidian.getSetting('dayStartEnd'),
+      showCompleted: apis.obsidian.getSetting('showCompleted'),
+      extendBlocks: apis.obsidian.getSetting('extendBlocks'),
+    }
 
     setters.set({
       apis,
       ...dailyNoteInfo,
-      dayStartEnd,
-      hideHeadings,
-      twentyFourHourFormat,
-      muted,
+      settings,
     })
 
     apis.calendar.loadEvents()
@@ -98,37 +97,57 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     return () => window.clearInterval(interval)
   }, [])
 
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
+
   const today = now.startOf('day')
-  const [datesShownState, setDatesShown] = useState(0)
-  const nextMonday = DateTime.now()
-    .plus({ days: datesShownState })
-    .endOf('week')
-    .plus({ days: 1 })
-  const datesShown =
-    datesShownState === 0
-      ? 0
-      : _.floor(nextMonday.diff(DateTime.now()).as('days'))
+  const [weeksShownState, setWeeksShown] = useState(1)
+
+  const nextMonday = showingPastDates
+    ? DateTime.now().minus({ weeks: weeksShownState }).startOf('week')
+    : DateTime.now()
+        .plus({ weeks: weeksShownState })
+        .startOf('week')
+        .plus({ days: 1 })
+  const datesShown = _.floor(nextMonday.diff(DateTime.now()).as('days'))
 
   const times: Parameters<typeof Timeline>[0][] = [
     {
       startISO: today.toISODate() as string,
-      endISO: today.plus({ days: 1 }).toISODate() as string,
+      endISO: showingPastDates
+        ? DateTime.now().toISO({
+            suppressMilliseconds: true,
+            suppressSeconds: true,
+            includeOffset: false,
+          })
+        : (today.plus({ days: 1 }).toISODate() as string),
       type: 'minutes',
     },
-    ...(datesShown === 0
-      ? [
-          {
-            startISO: today.plus({ days: 1 }).toISODate() as string,
-            endISO: today.plus({ days: 2 }).toISODate() as string,
-            type: 'minutes' as TimeSpanTypes,
-          },
-        ]
-      : _.range(1, datesShown).map((i) => ({
-          startISO: today.plus({ days: i }).toISODate() as string,
-          endISO: today.plus({ days: i + 1 }).toISODate() as string,
-          type: 'minutes' as TimeSpanTypes,
-        }))),
+    ..._.range(showingPastDates ? -1 : 1, datesShown).map((i) => ({
+      startISO: today.plus({ days: i }).toISODate() as string,
+      endISO: today.plus({ days: i + 1 }).toISODate() as string,
+      type: 'minutes' as TimeSpanTypes,
+    })),
   ]
+  if (showingPastDates) times.reverse()
+
+  const searchWithinWeeks = useAppStore((state) => state.searchWithinWeeks)
+
+  useEffect(() => {
+    getters.getObsidianAPI()?.loadTasks('')
+  }, [searchWithinWeeks])
+
+  useEffect(() => {
+    if (showingPastDates && -weeksShownState < searchWithinWeeks[0]) {
+      setters.set({
+        searchWithinWeeks: [-weeksShownState, searchWithinWeeks[1]],
+      })
+    }
+    if (!showingPastDates && weeksShownState > searchWithinWeeks[1]) {
+      setters.set({
+        searchWithinWeeks: [searchWithinWeeks[0], weeksShownState],
+      })
+    }
+  }, [showingPastDates, weeksShownState])
 
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
 
@@ -176,14 +195,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return <Group {...activeDrag} />
       case 'event':
         return <Event {...activeDrag} isDragging={true} />
-      case 'new':
-        return (
-          <Heading {...activeDrag} idString={`newTask::${activeDrag.path}`} />
-        )
       case 'due':
         return <DueDate {...activeDrag} isDragging />
       case 'new_button':
-        return <NewTask containerId='activeDrag' />
+        return <NewTask dragContainer='activeDrag' />
     }
   }
 
@@ -196,38 +211,37 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     'child:w-1/4',
   ]
 
-  const updateScroll = () => {
-    invariant(scroller.current)
-    const leftLevel = Math.floor(
-      scroller.current.scrollLeft / (scroller.current.clientWidth / childWidth)
-    )
-    const rightLevel = leftLevel + childWidth + 1
-    if (leftLevel !== scrollViews[0] || rightLevel !== scrollViews[1])
-      setScrollViews([leftLevel, rightLevel])
-  }
+  const scroller = useRef<HTMLDivElement>(null)
+  const [scrollViews, setScrollViews] = useState([-1, 1])
 
-  useEffect(() => {
-    function outputSize() {
-      if (Platform.isMobile) {
-        return
-      }
-      const timeRuler = document.querySelector('#time-ruler') as HTMLElement
-      if (!timeRuler) return
-      const width = timeRuler.clientWidth
-      const newChildWidth =
-        width < 500 ? 1 : width < 800 ? 2 : width < 1200 ? 3 : 4
-      if (newChildWidth !== childWidthRef.current) {
-        setChildWidth(newChildWidth)
-      }
-    }
+  const container = useRef<HTMLDivElement>(null)
 
-    outputSize()
+  const [calendarMode, calendarModeRef] = useAppStoreRef(
+    (state) => state.calendarMode
+  )
 
+  function outputSize() {
     if (Platform.isMobile) {
       setChildWidth(1)
       return
     }
+    const timeRuler = container.current as HTMLDivElement
+    const width = timeRuler.clientWidth
+    const newChildWidth =
+      width < 500
+        ? 1
+        : width < 800
+        ? 2
+        : width < 1200 && !calendarModeRef.current
+        ? 3
+        : 4
+    if (newChildWidth !== childWidthRef.current) {
+      setChildWidth(newChildWidth)
+    }
+  }
 
+  useEffect(() => {
+    outputSize()
     const timeRuler = document.querySelector('#time-ruler') as HTMLElement
     if (!timeRuler) return
     const observer = new ResizeObserver(outputSize)
@@ -239,7 +253,37 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     }
   }, [])
 
+  const updateScroll = () => {
+    invariant(scroller.current)
+    const scrollWidth = scroller.current.getBoundingClientRect().width
+    if (scrollWidth === 0) return
+    const leftLevel = Math.floor(
+      scroller.current.scrollLeft / (scrollWidth / childWidth)
+    )
+    const rightLevel = leftLevel + childWidth + 1
+    if (leftLevel !== scrollViews[0] || rightLevel !== scrollViews[1])
+      setScrollViews([leftLevel, rightLevel])
+  }
   useEffect(updateScroll, [childWidth])
+
+  useEffect(() => {
+    outputSize()
+    updateScroll()
+  }, [calendarMode])
+
+  const scrollToNow = () => {
+    setTimeout(() => {
+      const targetChild = showingPastDates
+        ? $('#time-ruler-times').children().last()
+        : $('#time-ruler-times').children().first()
+
+      targetChild?.[0].scrollIntoView({
+        inline: showingPastDates ? 'end' : 'start',
+      })
+    }, 250)
+  }
+
+  useEffect(() => scrollToNow(), [calendarMode, showingPastDates])
 
   const sensors = useSensors(
     ...(Platform.isMobile
@@ -254,27 +298,11 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       : [useSensor(PointerSensor), useSensor(MouseSensor)])
   )
 
-  const scrollToNow = () => {
-    setTimeout(
-      () =>
-        $('#time-ruler-times').children()[0]?.scrollIntoView({
-          inline: 'start',
-          behavior: 'smooth',
-        }),
-      250
-    )
-  }
-
   useEffect(() => {
     $('#time-ruler')
       .parent()[0]
       ?.style?.setProperty('overflow', 'clip', 'important')
   }, [])
-
-  useEffect(scrollToNow, [])
-
-  const scroller = useRef<HTMLDivElement>(null)
-  const [scrollViews, setScrollViews] = useState([-1, 1])
 
   return (
     <DndContext
@@ -288,6 +316,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     >
       <div
         id='time-ruler'
+        ref={container}
         style={{
           height: '100%',
           width: '100%',
@@ -311,29 +340,59 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           {...{
             times,
             datesShown,
-            setDatesShown,
-            datesShownState,
+            setWeeksShown,
+            weeksShownState,
             setupStore: reload,
+            showingPastDates,
           }}
         />
-        <Timer />
+        <div className='w-full flex items-center h-5 flex-none space-x-2 mb-2 mt-1 relative'>
+          <Timer />
+          <div className='absolute right-0 top-full flex space-x-2 pt-3 pr-3'>
+            {activeDrag && activeDrag.dragType === 'task' && (
+              <Droppable id={`delete-task`} data={{ type: 'delete' }}>
+                <Button src='x' className='!rounded-full h-8 w-8 bg-red-900' />
+              </Droppable>
+            )}
+            <NewTask dragContainer='main' />
+          </div>
+        </div>
         <div
-          className={`flex h-full w-full snap-x snap-mandatory !overflow-x-auto overflow-y-clip rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childWidthToClass[childWidth]}`}
+          className={`flex h-full w-full snap-mandatory  rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${
+            childWidthToClass[childWidth]
+          } ${
+            calendarMode
+              ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
+              : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
+          }`}
           id='time-ruler-times'
-          data-auto-scroll='x'
+          data-auto-scroll={calendarMode ? 'y' : 'x'}
           ref={scroller}
           onScroll={updateScroll}
         >
-          {times.map((time, i) => (
-            <div
-              className='h-full w-full'
-              key={time.startISO + '::' + time.type}
-            >
-              {i >= scrollViews[0] && i <= scrollViews[1] && (
-                <Timeline {...time} />
-              )}
-            </div>
-          ))}
+          {times.map((time, i) => {
+            const isShowing =
+              calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
+
+            return (
+              <Fragment key={time.startISO + '::' + time.type}>
+                {calendarMode && i === 0 && (
+                  <>
+                    {_.range(1, DateTime.fromISO(time.startISO).weekday).map(
+                      (day) => (
+                        <div key={day} className='!h-0' />
+                      )
+                    )}
+                  </>
+                )}
+                <div>{isShowing && <Timeline {...time} />}</div>
+                {calendarMode &&
+                DateTime.fromISO(time.startISO).weekday === 7 ? (
+                  <div className='!h-0 !w-1'></div>
+                ) : null}
+              </Fragment>
+            )
+          })}
         </div>
       </div>
     </DndContext>
@@ -343,9 +402,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 const Buttons = ({
   times,
   datesShown,
-  datesShownState,
-  setDatesShown,
+  weeksShownState,
+  setWeeksShown,
   setupStore,
+  showingPastDates,
 }) => {
   const now = DateTime.now()
 
@@ -362,15 +422,13 @@ const Buttons = ({
     <div className='flex'>
       <Button
         className={`${calendarMode ? '!w-full' : ''}`}
-        onClick={() =>
-          setDatesShown(datesShown === 0 ? 1 : datesShownState + 7)
-        }
+        onClick={() => setWeeksShown(weeksShownState + 1)}
         src={'chevron-right'}
       />
-      {datesShownState > 0 && (
+      {weeksShownState > 0 && (
         <Button
           className={`force-hover rounded-lg ${calendarMode ? '' : '!w-8'}`}
-          onClick={() => setDatesShown(0)}
+          onClick={() => setWeeksShown(weeksShownState - 1)}
           src='chevron-left'
         />
       )}
@@ -415,6 +473,9 @@ const Buttons = ({
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [showingModal])
 
+  const today = now.toISODate()
+  const yesterday = now.minus({ days: 1 }).toISODate()
+  const tomorrow = now.plus({ days: 1 }).toISODate()
   return (
     <>
       <div className={`flex w-full items-center space-x-1`}>
@@ -436,6 +497,21 @@ const Buttons = ({
                   >
                     <Logo src={'search'} className='w-6 flex-none' />
                     <span className='whitespace-nowrap'>Search</span>
+                  </div>
+                  <div
+                    className='clickable-icon'
+                    onClick={() => {
+                      setters.set({ showingPastDates: !showingPastDates })
+                      setShowingModal(false)
+                    }}
+                  >
+                    <Logo
+                      src={showingPastDates ? 'chevron-right' : 'chevron-left'}
+                      className='w-6 flex-none'
+                    />
+                    <span className='whitespace-nowrap'>
+                      {showingPastDates ? 'Future' : 'Past'}
+                    </span>
                   </div>
                   <div
                     className='clickable-icon'
@@ -490,9 +566,11 @@ const Buttons = ({
                 data={{ scheduled: times.startISO }}
               >
                 <Button className='h-[28px]' onClick={() => scrollToSection(i)}>
-                  {i === 0
+                  {times.startISO === today
                     ? 'Today'
-                    : i === 1
+                    : times.startISO === yesterday
+                    ? 'Yesterday'
+                    : times.startISO === tomorrow
                     ? 'Tomorrow'
                     : thisDate.toFormat(
                         calendarMode

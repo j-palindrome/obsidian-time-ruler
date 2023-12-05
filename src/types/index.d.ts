@@ -42,6 +42,7 @@ declare global {
     status: string
     blockReference?: string
     fieldFormat: FieldFormat['main']
+    completed: boolean
 
     // Obsidian Reminder
     reminder?: string
@@ -84,7 +85,6 @@ declare global {
     | ({ dragType: 'group' } & GroupProps)
     | ({ dragType: 'task' } & TaskComponentProps)
     | ({ dragType: 'event' } & EventComponentProps)
-    | { dragType: 'new'; path: string; isPage: boolean }
     | ({ dragType: 'task-length' } & {
         id: string
         start: string
@@ -94,7 +94,10 @@ declare global {
     | ({ dragType: 'due' } & DueDateComponentProps)
     | { dragType: 'new_button' }
 
-  type DropData = Partial<TaskProps> | { type: 'heading'; heading: string }
+  type DropData =
+    | Partial<TaskProps>
+    | { type: 'heading'; heading: string }
+    | { type: 'delete' }
 
   type BlockData = [string, (EventProps | TaskProps)[]]
 

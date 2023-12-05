@@ -179,6 +179,18 @@ export default class SettingsTab extends PluginSettingTab {
     })
 
     new Setting(containerEl)
+      .setName('Extend Blocks to Next')
+      .setDesc(
+        'Extend blocks without defined length to the start of the next block.'
+      )
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.extendBlocks).onChange((value) => {
+          this.plugin.settings.extendBlocks = value
+          this.plugin.saveSettings()
+        })
+      )
+
+    new Setting(containerEl)
       .setName('Custom Filter')
       .setDesc(
         `Enable a custom Dataview filter to filter tasks (at the document level) which is passed to dv.pages('<custom filter>')`

@@ -4,7 +4,10 @@ import { createWithEqualityFn } from 'zustand/traditional'
 import CalendarAPI from '../services/calendarApi'
 import ObsidianAPI from '../services/obsidianApi'
 import { TaskActions } from '../types/enums'
-import TimeRulerPlugin from '../main'
+import TimeRulerPlugin, { DEFAULT_SETTINGS } from '../main'
+import { DateTime } from 'luxon'
+import _ from 'lodash'
+import { parseFileFromPath } from '../services/util'
 
 export type ViewMode =
   | 'all'
@@ -12,7 +15,7 @@ export type ViewMode =
   | 'due'
   | 'unscheduled'
   | 'priority'
-  | 'headings'
+  | 'completed'
 export type AppState = {
   tasks: Record<string, TaskProps>
   events: Record<string, EventProps>
@@ -29,11 +32,18 @@ export type AppState = {
   dailyNotePath: string
   fileOrder: string[]
   newTask: false | Partial<TaskProps>
-  dayStartEnd: TimeRulerPlugin['settings']['dayStartEnd']
-  hideHeadings: TimeRulerPlugin['settings']['hideHeadings']
-  muted: TimeRulerPlugin['settings']['muted']
-  twentyFourHourFormat: TimeRulerPlugin['settings']['twentyFourHourFormat']
+  settings: Pick<
+    TimeRulerPlugin['settings'],
+    | 'dayStartEnd'
+    | 'hideHeadings'
+    | 'muted'
+    | 'twentyFourHourFormat'
+    | 'showCompleted'
+    | 'extendBlocks'
+  >
   collapsed: Record<string, boolean>
+  showingPastDates: boolean
+  searchWithinWeeks: [number, number]
 }
 
 export const useAppStore = createWithEqualityFn<AppState>(() => ({
@@ -48,12 +58,18 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
   fileOrder: [],
   dailyNoteFormat: 'YYYY-MM-DD',
   dailyNotePath: '',
-  dayStartEnd: [0, 24],
-  hideHeadings: false,
   newTask: false,
-  twentyFourHourFormat: false,
-  muted: false,
   collapsed: {},
+  settings: {
+    dayStartEnd: [0, 24],
+    hideHeadings: false,
+    muted: false,
+    twentyFourHourFormat: false,
+    showCompleted: false,
+    extendBlocks: false,
+  },
+  showingPastDates: false,
+  searchWithinWeeks: [-1, 1],
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
@@ -85,7 +101,10 @@ export const setters = {
   },
   updateFileOrder: (heading: string, beforeHeading: string) => {
     const obsidianAPI = getters.getObsidianAPI()
-    obsidianAPI.updateFileOrder(heading, beforeHeading)
+    obsidianAPI.updateFileOrder(
+      parseFileFromPath(heading),
+      parseFileFromPath(beforeHeading)
+    )
   },
 }
 

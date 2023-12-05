@@ -1,18 +1,20 @@
-import { useDraggable } from '@dnd-kit/core'
-import _, { head } from 'lodash'
+import _ from 'lodash'
+import { DateTime } from 'luxon'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
-import { shallow } from 'zustand/shallow'
 import { ViewMode, getters, setters, useAppStore } from '../app/store'
+import { convertSearchToRegExp, useCollapseAll } from '../services/util'
+import {
+  TaskPriorities,
+  priorityNumberToKey,
+  priorityNumberToSimplePriority,
+} from '../types/enums'
+import Block, { UNGROUPED } from './Block'
 import Button from './Button'
-import Toggle from './Toggle'
+import Scroller from './Scroller'
 import Task from './Task'
-import Droppable from './Droppable'
-import Heading from './Heading'
-import { TaskPriorities, priorityNumberToKey } from '../types/enums'
-import moment from 'moment'
-import { convertSearchToRegExp, getTasksByHeading } from '../services/util'
-import Block from './Block'
+import useStateRef from 'react-usestateref'
+import Group from './Group'
 
 export default function Search() {
   const searchStatus = useAppStore((state) => state.searchStatus)
@@ -50,28 +52,14 @@ export default function Search() {
     return () => window.removeEventListener('mousedown', checkShowing)
   }, [searchStatus])
 
-  const dailyNoteInfo = useAppStore(
-    ({ dailyNoteFormat, dailyNotePath }) => ({
-      dailyNoteFormat,
-      dailyNotePath,
-    }),
-    shallow
-  )
-  const fileOrder = useAppStore((state) => state.fileOrder)
-  const tasks = useAppStore((state) => state.tasks)
-  const tasksByHeading = useMemo(
-    () => getTasksByHeading(tasks, dailyNoteInfo, fileOrder),
-    [tasks]
-  )
-
+  const tasks = useAppStore((state) => _.values(state.tasks))
   const searchExp = convertSearchToRegExp(search)
 
   const searchTasks = useMemo(() => {
     const searchTasks: Record<string, string> = {}
-    for (let [_heading, tasks] of tasksByHeading) {
-      for (let task of tasks) {
-        const searchString =
-          'path: ' +
+    for (let task of tasks) {
+      const searchString =
+        'path: ' +
           task.path +
           ' title: ' +
           task.title +
@@ -79,125 +67,161 @@ export default function Search() {
             ? ' tag: ' + task.tags.map((tag) => '#' + tag).join(', ')
             : '') +
           ' priority: ' +
-          priorityNumberToKey[task.priority]
-        searchTasks[task.id] = searchString
-      }
+          priorityNumberToKey[task.priority] +
+          ' completion: ' +
+          task.completion ?? ''
+      searchTasks[task.id] = searchString
     }
     return searchTasks
-  }, [tasksByHeading])
+  }, [tasks])
+
+  const [showCompletionWithinWeeks, setShowCompletionWithinWeeks] = useState<
+    [number, number]
+  >([-1, 0])
+
+  useEffect(() => {
+    const searchWithinWeeks = getters.get('searchWithinWeeks')
+    if (showCompletionWithinWeeks[0] < searchWithinWeeks[0]) {
+      setters.set({
+        searchWithinWeeks: [showCompletionWithinWeeks[0], searchWithinWeeks[1]],
+      })
+      getters.getObsidianAPI().loadTasks('')
+    }
+  }, [showCompletionWithinWeeks])
+
+  const showCompleted = useAppStore((state) => state.settings.showCompleted)
+  const isCurrent = showCompletionWithinWeeks[1] === 0
+  const testTask = (task: TaskProps) => {
+    if (task.completed && !showCompleted && searchStatus !== 'completed')
+      return false
+    const startDate = DateTime.now()
+      .plus({ weeks: showCompletionWithinWeeks[0] })
+      .startOf('week')
+      .toISODate()
+    const endDate = DateTime.fromISO(startDate)
+      .plus({ weeks: 1 })
+      .toISODate() as string
+    switch (searchStatus) {
+      case 'all':
+        return true
+      case 'due':
+        return task.due
+      case 'scheduled':
+        return task.scheduled
+      case 'priority':
+        return task.priority !== TaskPriorities.DEFAULT
+      case 'unscheduled':
+        return !task.scheduled
+      case 'completed':
+        const dateKey = task.completion ?? task.scheduled ?? task.due
+        return (
+          task.completed &&
+          (dateKey ? dateKey >= startDate && dateKey <= endDate : isCurrent)
+        )
+    }
+  }
+
+  const filteredTasks = tasks.filter(
+    (task) => searchExp.test(searchTasks[task.id]) && testTask(task)
+  )
 
   const [status, setStatus] = useState<string | null>(null)
 
   const allStatuses = useMemo(() => {
-    return [
-      ...new Set(
-        _.map(tasksByHeading, '1')
-          .flat()
-          .map((task) => task.status)
-      ),
-    ].sort()
-  }, [tasksByHeading])
+    return [...new Set(tasks.map((task) => task.status))].sort()
+  }, [tasks])
 
   const searching = !!searchStatus
 
-  const filterTask = (task: TaskProps) =>
-    !(status && task.status !== status) &&
-    !(searchStatus === 'unscheduled' && task.scheduled) &&
-    searchExp.test(searchTasks[task.id])
+  const { lastCollapseAll, setLastCollapseAll, collapseAll } = useCollapseAll()
 
-  const sortByHeading = () => {
-    return tasksByHeading.map(([heading, tasks]) => {
-      const matchingTasks = _.filter(tasks, (task) => filterTask(task))
-
-      return (
-        <div key={heading}>
-          {matchingTasks.length > 0 && (
-            <Block
-              tasks={matchingTasks}
-              type='search'
-              id={`search::${heading}`}
-              dragContainer='search'
-            />
-          )}
-        </div>
-      )
-    })
+  const sortByHeading = (unscheduled?: boolean) => {
+    return (
+      <Block
+        tasks={
+          unscheduled
+            ? filteredTasks.filter((task) => !task.scheduled)
+            : filteredTasks
+        }
+        type='search'
+        id={`search`}
+        dragContainer='search'
+        startISO={undefined}
+        collapseAll={collapseAll}
+      />
+    )
   }
 
-  const sortTasksBy = (type: 'due' | 'scheduled') => (
-    <>
-      {_.sortBy(
-        _.filter(tasks, (task) => filterTask(task) && !!task[type]),
-        type
-      ).map((task) => (
-        <Task type='search' id={task.id} dragContainer='search' key={task.id} />
-      ))}
-    </>
-  )
+  const sortTasksBy = (
+    type: 'due' | 'scheduled' | 'priority' | 'completion'
+  ) => {
+    const sort = _.sortBy(
+      _.entries(
+        _.groupBy(filteredTasks, (task) =>
+          type === 'priority'
+            ? task.priority
+            : (type === 'completion'
+                ? task.completion ?? task.scheduled ?? task.due
+                : task[type]
+              )?.slice(0, 10) ?? UNGROUPED
+        )
+      ),
+      0
+    )
 
-  const tasksByPriority = () => (
-    <>
-      {_.sortBy(
-        _.filter(
-          tasks,
-          (task) => filterTask(task) && task.priority !== TaskPriorities.DEFAULT
-        ),
-        'priority'
-      ).map((task) => (
-        <Task type='search' id={task.id} dragContainer='search' key={task.id} />
-      ))}
-    </>
-  )
-
-  const sortedHeadings = () => {
-    return tasksByHeading.map(([heading, tasks]) => {
-      const subheadings = _.uniq(_.map(tasks, 'heading')).filter(
-        (heading) => heading
-      )
-      return (
-        <>
-          {searchExp.test(tasks[0].path) && (
-            <Heading
-              key={heading}
-              path={tasks[0].path}
-              isPage={tasks[0].page}
-              idString={`search::${heading}`}
+    if (type === 'completion') sort.reverse()
+    return (
+      <>
+        {sort.map(([title, tasks]) => (
+          <Fragment key={title}>
+            <div className='pl-8 mt-2'>
+              {title === UNGROUPED
+                ? 'Ungrouped'
+                : type === 'priority'
+                ? priorityNumberToSimplePriority[title]
+                : DateTime.fromISO(title).toFormat('EEE, MMM d')}
+            </div>
+            <hr className='border-t border-t-selection ml-8 mr-2 mt-1 mb-0 h-0'></hr>
+            <Block
+              collapseAll={collapseAll}
+              startISO={undefined}
+              dragContainer='search'
+              type='search'
+              hidePaths={[]}
+              {...{ tasks }}
             />
-          )}
-          {subheadings.map((subheading) => {
-            const fullSubheadingPath = tasks[0].path + '#' + subheading
-            return (
-              searchExp.test(fullSubheadingPath) && (
-                <Heading
-                  key={subheading}
-                  path={fullSubheadingPath}
-                  isPage={tasks[0].page}
-                  idString={`search::${fullSubheadingPath}`}
-                />
-              )
-            )
-          })}
-        </>
-      )
-    })
+          </Fragment>
+        ))}
+      </>
+    )
   }
 
   const displayTasks = () => {
     invariant(searchStatus)
     switch (searchStatus) {
-      case 'headings':
-        return sortedHeadings()
       case 'all':
-      case 'unscheduled':
         return sortByHeading()
+      case 'unscheduled':
+        return sortByHeading(true)
       case 'due':
         return sortTasksBy('due')
       case 'scheduled':
         return sortTasksBy('scheduled')
       case 'priority':
-        return tasksByPriority()
+        return sortTasksBy('priority')
+      case 'completed':
+        return sortTasksBy('completion')
     }
   }
+
+  const viewModes: ViewMode[] = [
+    'all',
+    'unscheduled',
+    'scheduled',
+    'due',
+    'priority',
+    'completed',
+  ]
 
   return (
     <>
@@ -217,9 +241,7 @@ export default function Search() {
                     onChange={(ev) => setSearch(ev.target.value)}
                     onKeyDown={(ev) => {
                       if (ev.key === 'Enter') {
-                        const firstHeading = tasksByHeading.find(
-                          ([heading, _tasks]) => searchExp.test(heading)
-                        )?.[0]
+                        const firstHeading = filteredTasks[0]?.path
                         if (!firstHeading) return
                         if (typeof searchStatus === 'string') {
                           ev.preventDefault()
@@ -262,14 +284,7 @@ export default function Search() {
                 <div className='space-1 -mt-1 flex flex-wrap'>
                   <div className='grow'></div>
                   <div className='mt-1 flex flex-wrap items-center pl-2'>
-                    {[
-                      'headings',
-                      'all',
-                      'unscheduled',
-                      'scheduled',
-                      'due',
-                      'priority',
-                    ].map((mode: ViewMode) => (
+                    {viewModes.map((mode: ViewMode) => (
                       <Button
                         key={mode}
                         onClick={() => setters.set({ searchStatus: mode })}
@@ -284,6 +299,21 @@ export default function Search() {
                     ))}
                   </div>
                 </div>
+                {searchStatus === 'completed' && (
+                  <div className='flex'>
+                    <Scroller
+                      items={_.range(1, 12).map((x) => `${x}`)}
+                      onSelect={(item) => {
+                        const weeks = parseInt(item)
+                        setShowCompletionWithinWeeks([
+                          weeks * -1,
+                          weeks * -1 + 1,
+                        ])
+                      }}
+                    />
+                    <span>weeks</span>
+                  </div>
+                )}
               </div>
               {displayTasks()}
             </div>

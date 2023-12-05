@@ -11,7 +11,7 @@ import {
   simplePriorityToNumber,
 } from '../types/enums'
 import _ from 'lodash'
-import { isCompleted, isDateISO, parseDateFromPath } from './util'
+import { isDateISO, parseDateFromPath } from './util'
 import { getters } from '../app/store'
 import { startTransition } from 'react'
 import { create } from 'zustand'
@@ -43,6 +43,7 @@ export function textToTask(
   const { main: mainFormat } = detectFieldFormat(item.text, defaultFormat)
   const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */g
   const TAG_SEARCH = /#[\p{Letter}\/\d_-]+/gu
+  const MD_LINK_LINE_SEARCH = /\[\[.*?\|(.*?)\]\]/g
   const MD_LINK_SEARCH = /\[\[(.*?)\]\]/g
   const LINK_SEARCH = /\[(.*?)\]\(.*?\)/g
   const REMINDER_MATCH = new RegExp(
@@ -77,6 +78,7 @@ export function textToTask(
   }
 
   let title: string = originalTitle
+    .replace(MD_LINK_LINE_SEARCH, '$1')
     .replace(MD_LINK_SEARCH, '$1')
     .replace(LINK_SEARCH, '$1')
 
@@ -229,7 +231,13 @@ export function textToTask(
     let date = item[key]
 
     if (DateTime.isDateTime(date)) {
-      date = item[key].toISODate() as string
+      date = date.equals(date.startOf('day'))
+        ? (item[key].toISODate() as string)
+        : date.toISO({
+            suppressMilliseconds: true,
+            suppressSeconds: true,
+            includeOffset: false,
+          })
     }
     if (!date) {
       // test tasks
@@ -293,11 +301,9 @@ export function textToTask(
     return item['repeat'] ?? titleLine.match(TASKS_REPEAT_SEARCH)?.[1]
   }
 
-  const { length, scheduled } = item.completion
-    ? { length: undefined, scheduled: undefined }
-    : parseScheduledAndLength()
-  const due = item.completion ? undefined : parseDateKey('due')
-  const completion = parseDateKey('completion')
+  const { length, scheduled } = parseScheduledAndLength()
+  const due = parseDateKey('due')
+  const completion = item.completed ? parseDateKey('completion') : undefined
   const start = parseDateKey('start')
   const created = parseDateKey('created')
   const repeat = parseRepeat()
@@ -308,8 +314,8 @@ export function textToTask(
     id: parseId(item),
     page: false,
     children:
-      item.children.flatMap((child) =>
-        isCompleted(child) ? [] : parseId(child as STask)
+      item.children.flatMap((child: STask) =>
+        child.completed ? [] : parseId(child)
       ) ?? [],
     type: 'task',
     status: item.status,
@@ -332,6 +338,7 @@ export function textToTask(
     start,
     created,
     blockReference: titleLine.match(BLOCK_REFERENCE)?.[0],
+    completed: item.completed,
   }
 }
 
@@ -419,6 +426,7 @@ export function pageToTask(
 
   return {
     id: item.file.path,
+    completed: item.completed ? true : false,
     originalText: item.file.name as any,
     path: item.file.path,
     priority:
@@ -429,7 +437,7 @@ export function pageToTask(
     children: [],
     page: true,
     type: 'task',
-    status: ' ',
+    status: item.completed ? 'x' : ' ',
     reminder: testDateTime(item.reminder),
     due: testDateTime(item.due),
     scheduled,
@@ -444,7 +452,9 @@ export function pageToTask(
       start: { line: 0, col: 0, offset: 0 },
       end: { line: 0, col: 0, offset: 0 },
     },
-    completion: testDateTime(item.completion),
+    completion: item.completed
+      ? testDateTime(item.completion) ?? (item.file.mtime.toISODate() as string)
+      : undefined,
     start: testDateTime(item.start),
     created: testDateTime(item.created),
     blockReference: undefined,
@@ -496,7 +506,7 @@ export function taskToText(
   }
 
   let draft = `- [${
-    isCompleted(task) ? 'x' : task.status
+    task.completed ? 'x' : task.status
   }] ${task.originalTitle.replace(/\s+$/, '')} ${
     task.tags.length > 0 ? task.tags.join(' ') + ' ' : ''
   }`

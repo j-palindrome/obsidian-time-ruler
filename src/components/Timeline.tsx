@@ -2,13 +2,13 @@ import _ from 'lodash'
 import { DateTime } from 'luxon'
 import { Fragment, useEffect, useState, useMemo, useRef } from 'react'
 import { shallow } from 'zustand/shallow'
-import { setters, useAppStore } from '../app/store'
+import { getters, setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
 import {
   isDateISO,
   insertTextAtCaret,
   removeNestedChildren,
-  isCompleted,
+  parseTaskDate,
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
@@ -26,49 +26,61 @@ export default function Timeline({
   endISO,
   type,
   hideTimes = false,
+  dragContainer = '',
 }: {
   startISO: string
   endISO: string
   type: TimeSpanTypes
   hideTimes?: boolean
+  dragContainer?: string
 }) {
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
+
+  dragContainer = dragContainer || startISO
   const now = DateTime.now().toISO() as string
   const events = useAppStore((state) => {
     return _.filter(
       state.events,
       (event) =>
-        !(
-          event.endISO <= startISO ||
-          event.startISO >= endISO ||
-          event.endISO <= now
-        )
+        event.endISO > startISO &&
+        event.startISO < endISO &&
+        (showingPastDates ? event.startISO <= now : event.endISO >= now)
     )
   }, shallow)
 
   const isToday =
     startISO.slice(0, 10) === (DateTime.now().toISODate() as string)
+  const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
   const [tasks, dueTasks, allDayTasks] = useAppStore((state) => {
     const tasks: TaskProps[] = []
     const dueTasks: TaskProps[] = []
     const allDayTasks: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
+      const isShown = !task.completed || showingPastDates || showCompleted
+      if (!isShown) return
+      // for viewing past tasks correctly
+      const scheduledDate = parseTaskDate(task)
+
       const scheduledForToday =
-        !isCompleted(task) &&
-        task.scheduled &&
-        task.scheduled < endISO &&
-        (isToday || task.scheduled >= startISO)
-      if (
-        !scheduledForToday &&
+        scheduledDate &&
+        scheduledDate < endISO &&
+        ((isToday && !showingPastDates) || scheduledDate >= startISO) &&
+        !(
+          !task.completed &&
+          isToday &&
+          showingPastDates &&
+          task.scheduled === startISO
+        )
+      const dueToday =
         task.due &&
-        !isCompleted(task) &&
-        (task.due >= startISO || (isToday && task.due < endISO)) &&
-        (!task.scheduled || task.scheduled < endISO)
-      ) {
+        task.due < endISO &&
+        (task.due >= startISO || (isToday && !showingPastDates))
+      if (!scheduledForToday && dueToday) {
         dueTasks.push(task)
       } else if (scheduledForToday) {
-        invariant(task.scheduled)
-        if (task.scheduled > startISO) {
+        invariant(scheduledDate)
+        if (scheduledDate > startISO) {
           tasks.push(task)
         } else {
           allDayTasks.push(task)
@@ -97,28 +109,41 @@ export default function Timeline({
   )
 
   const blocks = _.groupBy(allTimeObjects, (object) =>
-    object.type === 'event' ? object.startISO : object.scheduled
+    object.type === 'event' ? object.startISO : parseTaskDate(object)
   )
   const sortedBlocks = _.sortBy(_.entries(blocks), 0)
   const timeBlocks = sortedBlocks.filter(([time, _tasks]) => time > startISO)
 
-  const title = DateTime.fromISO(startISO || endISO).toFormat(
-    type === 'days' ? 'MMMM' : 'EEE, MMM d'
-  )
-
   const calendarMode = useAppStore((state) => state.calendarMode)
+  let title =
+    dragContainer === 'timer'
+      ? 'Now'
+      : DateTime.fromISO(startISO || endISO).toFormat(
+          calendarMode ? 'EEE d' : 'EEE, MMM d'
+        )
 
   const hidingTimes = hideTimes || calendarMode
 
   const timeSpan = (
     <TimeSpan
-      {...{ startISO, endISO, type, blocks: timeBlocks }}
-      startWithHours={startISO !== DateTime.now().toISODate()}
+      {...{
+        startISO,
+        endISO,
+        type,
+        blocks: timeBlocks,
+        dragContainer,
+      }}
+      startWithHours={!isToday || showingPastDates}
       hideTimes={hidingTimes}
     />
   )
 
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(
+    dragContainer === 'timer' && !calendarMode ? false : true
+  )
+  useEffect(() => {
+    if (calendarMode) setExpanded(true)
+  }, [calendarMode])
 
   const foundTaskInAllDay = useAppStore((state) => {
     return state.findingTask &&
@@ -143,49 +168,73 @@ export default function Timeline({
   useEffect(expandIfFound, [foundTaskInAllDay])
 
   const allDayFrame = useRef<HTMLDivElement>(null)
+  const [allDayHeight, setAllDayHeight] = useState<string | undefined>()
   useEffect(() => {
-    if (!expanded) return
-    const frame = allDayFrame.current
-    invariant(frame)
-    if (!calendarMode) {
+    const resizeHeight = () => {
+      if (!expanded || calendarMode) return
+      const frame = allDayFrame.current
+      invariant(frame)
+
       const parentFrame = frame.parentElement
       invariant(parentFrame)
       const parentHeight = parentFrame.getBoundingClientRect().height
       const frameHeight = frame.getBoundingClientRect().height
-      if (frameHeight > parentHeight / 2)
-        frame.style.setProperty('height', `${_.round(parentHeight / 2)}px`)
-    } else {
-      frame.style.setProperty('height', '')
+      if (frameHeight === parentHeight) {
+        setTimeout(resizeHeight, 250)
+        return
+      }
+      if (frameHeight > parentHeight / 2 && frameHeight !== parentHeight) {
+        console.log(frameHeight, parentHeight, startISO)
+        setAllDayHeight('50%')
+      }
     }
+    resizeHeight()
   }, [calendarMode])
 
   return (
-    <div className='flex h-full w-full flex-col'>
-      <Droppable data={{ scheduled: startISO }} id={startISO + '::timeline'}>
-        <div className='group flex w-full flex-none items-center h-10 pl-1'>
-          <div className='w-full pl-8'>{title || ''}</div>
+    <div
+      className={`flex w-full flex-col ${
+        calendarMode ? 'max-h-full' : 'h-full'
+      }`}
+    >
+      <div className='flex items-center space-x-1 group'>
+        {allDayEvents.length + allDayTasks.length ? (
           <Button
-            className='aspect-square h-8'
+            className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
             onClick={() => setExpanded(!expanded)}
-            src={expanded ? 'chevron-up' : 'chevron-down'}
+            src={expanded ? 'chevron-down' : 'chevron-right'}
           />
-          <NewTask containerId={title} />
-        </div>
-      </Droppable>
+        ) : (
+          <div className='w-6' />
+        )}
+
+        <Droppable
+          data={{ scheduled: startISO }}
+          id={dragContainer + startISO + '::timeline'}
+        >
+          <div className='font-menu flex grow px-1'>{title || ''}</div>
+        </Droppable>
+      </div>
+
       <div
-        className={`flex h-0 grow flex-col space-y-2 ${
-          calendarMode ? 'overflow-y-auto' : ''
+        className={`space-y-2 rounded-lg ${
+          calendarMode ? 'overflow-y-auto' : 'h-0 grow flex flex-col'
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
         <div
-          className={`relative w-full space-y-2 overflow-y-auto overflow-x-hidden rounded-lg ${
+          className={`relative w-full space-y-2 overflow-x-hidden rounded-lg ${
             calendarMode
-              ? ''
+              ? 'h-fit'
               : // @ts-ignore
-                `${app.isMobile ? 'max-h-[40%]' : 'max-h-[80%]'} flex-none`
+                `${
+                  app.isMobile ? 'max-h-[40%]' : 'max-h-[80%]'
+                } flex-none overflow-y-auto`
           } ${!expanded ? 'hidden' : 'block'}`}
-          style={{ resize: !calendarMode ? 'vertical' : 'none' }}
+          style={{
+            resize: !calendarMode ? 'vertical' : 'none',
+            height: allDayHeight,
+          }}
           data-auto-scroll={calendarMode ? undefined : 'y'}
           ref={allDayFrame}
         >
@@ -195,7 +244,7 @@ export default function Timeline({
                 key={task.id}
                 id={task.id}
                 type='deadline'
-                dragContainer={startISO}
+                dragContainer={dragContainer}
               />
             ))}
           </div>
@@ -206,7 +255,9 @@ export default function Timeline({
               tasks={[]}
               blocks={[]}
               startISO={startISO}
-              endISO={event.startISO}
+              endISO={startISO}
+              dragContainer={dragContainer}
+              noExtension
             />
           ))}
           {allDayTasks.length > 0 && (
@@ -215,21 +266,28 @@ export default function Timeline({
               blocks={[]}
               startISO={startISO}
               endISO={startISO}
+              dragContainer={dragContainer}
+              noExtension
             />
           )}
         </div>
 
         <div
-          className={`flex h-0 w-full grow flex-col overflow-x-hidden rounded-lg ${
-            calendarMode ? '' : 'overflow-y-auto'
+          className={`flex w-full flex-col overflow-x-hidden rounded-lg ${
+            calendarMode ? 'h-fit' : 'h-0 grow overflow-y-auto'
           }`}
           data-auto-scroll={calendarMode ? undefined : 'y'}
         >
-          {isToday && <NowTime />}
+          {isToday && !calendarMode && !showingPastDates && (
+            <NowTime dragContainer={dragContainer} />
+          )}
           {timeSpan}
+          {isToday && !calendarMode && showingPastDates && (
+            <NowTime dragContainer={dragContainer} />
+          )}
           <Droppable
             data={{ scheduled: startISO }}
-            id={startISO + '::timeline::end'}
+            id={`${dragContainer}::timeline::end`}
           >
             <div className='h-0 grow'></div>
           </Droppable>
@@ -239,14 +297,14 @@ export default function Timeline({
   )
 }
 
-function NowTime() {
-  const startISO = roundMinutes(new DateTime(DateTime.now())).toISO({
+function NowTime({ dragContainer }: { dragContainer?: string }) {
+  const startISO = roundMinutes(DateTime.now()).toISO({
     includeOffset: false,
     suppressMilliseconds: true,
     suppressSeconds: true,
   })
   const { isOver, setNodeRef } = useDroppable({
-    id: startISO + '::scheduled::now',
+    id: dragContainer + '::' + startISO + '::scheduled::now',
     data: { scheduled: startISO } as DropData,
   })
 

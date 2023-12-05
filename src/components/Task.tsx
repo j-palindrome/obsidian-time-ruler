@@ -9,13 +9,14 @@ import {
   parseDateFromPath,
   parseHeadingFromPath,
 } from '../services/util'
-import { TaskPriorities } from '../types/enums'
+import { TaskPriorities, priorityNumberToSimplePriority } from '../types/enums'
 import Block from './Block'
 import Button from './Button'
 import { useMemo, useState } from 'react'
 import moment from 'moment'
 import Logo from './Logo'
 import DueDate from './DueDate'
+import { roundMinutes } from '../services/util'
 
 export type TaskComponentProps = {
   id: string
@@ -29,11 +30,16 @@ export default function Task({
   children,
   type,
   dragContainer,
-  highlight,
-}: TaskComponentProps & { highlight?: boolean }) {
+  startISO,
+}: TaskComponentProps & { startISO?: string }) {
   const completeTask = () => {
     setters.patchTasks([id], {
-      completion: DateTime.now().toISODate() as string,
+      completion: roundMinutes(DateTime.now()).toISO({
+        suppressMilliseconds: true,
+        suppressSeconds: true,
+        includeOffset: false,
+      }) as string,
+      completed: true,
     })
   }
 
@@ -53,20 +59,20 @@ export default function Task({
   const isLink = ['parent', 'link', 'deadline'].includes(type)
 
   let task = useAppStore((state) => state.tasks[id])
+  if (!startISO) startISO = task.scheduled
+
+  const collapsed = useAppStore((state) => state.collapsed[id] ?? false)
 
   const hasSameDate = (subtask: TaskProps) =>
-    task.scheduled &&
-    subtask.scheduled &&
-    !isDateISO(task.scheduled) &&
-    isDateISO(subtask.scheduled) &&
-    subtask.scheduled === task.scheduled.slice(0, 10)
+    startISO && subtask.scheduled && subtask.scheduled === startISO.slice(0, 10)
   const differentScheduled = (subtask: TaskProps) =>
     type === 'task' &&
     subtask.scheduled &&
-    subtask.scheduled !== task.scheduled &&
+    subtask.scheduled !== (startISO ?? task.scheduled) &&
     !hasSameDate(subtask)
 
-  const collapsed = useAppStore((state) => state.collapsed[id] ?? false)
+  const showCompleted = useAppStore((state) => state.settings.showCompleted)
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
 
   const subtasks = useAppStore((state) => {
     if (!task || type === 'deadline') return []
@@ -74,7 +80,11 @@ export default function Task({
       const subtask = state.tasks[child]
       if (!subtask) return []
 
-      if (differentScheduled(subtask)) return []
+      if (
+        differentScheduled(subtask) ||
+        (!showCompleted && !showingPastDates && subtask.completed)
+      )
+        return []
       return subtask
     })
   }, shallow)
@@ -90,7 +100,7 @@ export default function Task({
     attributes: lengthAttributes,
     listeners: lengthListeners,
   } = useDraggable({
-    id: id + '::' + type + '::length',
+    id: `${id}::${type}::${length}::${dragContainer}`,
     data: lengthDragData,
   })
 
@@ -105,10 +115,7 @@ export default function Task({
   if (!task) return <></>
 
   const hasLengthDrag =
-    task.length ||
-    (task.scheduled &&
-      !isDateISO(task.scheduled) &&
-      task.scheduled > (DateTime.now().toISODate() as string))
+    task.length || (task.scheduled && !isDateISO(task.scheduled))
 
   return (
     <div
@@ -136,12 +143,12 @@ export default function Task({
           <Button
             onPointerDown={() => false}
             onClick={() => completeTask()}
-            className={`task-list-item-checkbox selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint bg-transparent p-0 text-xs shadow-none hover:border-normal ${
+            className={`task-list-item-checkbox selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint p-0 text-xs shadow-none hover:border-normal ${
               isLink ? 'h-2 w-2' : 'h-4 w-4'
-            }`}
+            } ${task.completed ? 'bg-faint' : 'bg-transparent'}`}
             data-task={task.status === ' ' ? '' : task.status}
           >
-            {task.status}
+            {task.status === 'x' ? <></> : task.status}
           </Button>
         </div>
         <div
@@ -157,7 +164,7 @@ export default function Task({
                 task.status === 'x'
               ? 'text-faint'
               : ''
-          } ${task.status === 'x' ? 'line-through' : ''}`}
+          }`}
           onPointerDown={() => false}
           onClick={() => openTask(task)}
         >
@@ -179,15 +186,7 @@ export default function Task({
           ))}
           {task.priority !== TaskPriorities.DEFAULT && (
             <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
-              {
-                {
-                  [TaskPriorities.HIGHEST]: '!!!',
-                  [TaskPriorities.HIGH]: '!!',
-                  [TaskPriorities.MEDIUM]: '!',
-                  [TaskPriorities.LOW]: '?',
-                  [TaskPriorities.LOWEST]: '...',
-                }[task.priority]
-              }
+              {priorityNumberToSimplePriority[task.priority]}
             </div>
           )}
         </div>
@@ -209,7 +208,7 @@ export default function Task({
           </div>
         )}
 
-        {(isLink || type == 'search') && task.scheduled && (
+        {!task.completed && (isLink || type == 'search') && task.scheduled && (
           <div
             className='task-scheduled ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-normal'
             onClick={() => openTaskInRuler(task.position.start.line, task.path)}
@@ -218,9 +217,14 @@ export default function Task({
           </div>
         )}
 
-        <DueDate task={task} dragId={`${id}::${type}::${dragContainer}`} />
+        {!task.completed && (
+          <DueDate
+            task={task}
+            dragContainer={`${id}::${type}::${dragContainer}`}
+          />
+        )}
 
-        {task.reminder && (
+        {!task.completed && task.reminder && (
           <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
             <Logo src='alarm-clock' className='mr-1' />
             <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
@@ -246,15 +250,22 @@ export default function Task({
       {subtasks.length > 0 && (
         <div className='flex pl-2'>
           <div
-            className='min-w-[16px] grow hover:bg-selection transition-colors duration-500 min-h-[20px] rounded-lg'
+            className='group min-w-[16px] grow hover:bg-selection transition-colors duration-500 min-h-[20px] rounded-lg'
             onClick={() => setters.patchCollapsed(id, !collapsed)}
           >
-            {collapsed && <div className='pl-7 text-muted'>...</div>}
+            <Button
+              src={collapsed ? 'chevron-right' : 'chevron-down'}
+              className='h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-1'
+            />
           </div>
           {!collapsed && (
             <Block
+              collapseAll={null}
               dragContainer={dragContainer + id}
-              hidePaths={[task.path]}
+              hidePaths={[
+                parseHeadingFromPath(task.path, false, dailyNoteInfo),
+              ]}
+              startISO={startISO}
               tasks={subtasks.map((subtask) => ({
                 ...subtask,
                 type:

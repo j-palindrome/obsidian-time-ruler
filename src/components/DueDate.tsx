@@ -6,21 +6,21 @@ import invariant from 'tiny-invariant'
 
 export type DueDateComponentProps = {
   task: TaskProps
-  dragId: string
+  dragContainer: string
   isDragging?: boolean
 }
 export default function DueDate({
   task,
-  dragId,
+  dragContainer,
   isDragging = false,
 }: DueDateComponentProps) {
   const dragData: DragData = {
     dragType: 'due',
     task,
-    dragId,
+    dragContainer: dragContainer,
   }
   const { setNodeRef, attributes, listeners } = useDraggable({
-    id: `${dragId}::due`,
+    id: `${dragContainer}::due`,
     data: dragData,
   })
 

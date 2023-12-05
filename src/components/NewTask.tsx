@@ -10,16 +10,17 @@ import {
   createInDaily,
   parseHeadingTitle,
   parseFileFromPath,
+  convertSearchToRegExp,
 } from '../services/util'
 import { shallow } from 'zustand/shallow'
 import _ from 'lodash'
 
-export default function NewTask({ containerId }: { containerId: string }) {
+export default function NewTask({ dragContainer }: { dragContainer: string }) {
   const data: DragData = {
     dragType: 'new_button',
   }
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: `new_task_button::${containerId}`,
+    id: `new_task_button::${dragContainer}`,
     data,
   })
 
@@ -55,28 +56,31 @@ export default function NewTask({ containerId }: { containerId: string }) {
     shallow
   )
   const fileOrder = useAppStore((state) => state.fileOrder)
-  const tasksByHeading = useAppStore(
+  const allHeadings = useAppStore(
     (state) =>
       !newTask
         ? []
-        : getTasksByHeading(state.tasks, dailyNoteInfo, fileOrder).filter(
-            ([heading]) => heading !== 'Daily'
+        : _.map(
+            getTasksByHeading(state.tasks, dailyNoteInfo, fileOrder).filter(
+              ([heading]) => heading !== 'Daily'
+            ),
+            0
           ),
     shallow
   )
 
-  const allHeadings = _.uniq(
-    tasksByHeading.flatMap((heading) =>
-      heading[0].includes('#')
-        ? [heading[0], parseFileFromPath(heading[0])]
-        : heading[0]
-    )
-  ).sort()
+  const searchExp = convertSearchToRegExp(search)
+  const filteredHeadings = _.uniq(
+    allHeadings.flatMap((heading) => [heading, parseFileFromPath(heading)])
+  )
+    .filter((heading) => searchExp.test(parseHeadingTitle(heading)))
+    .sort()
 
   const createNewTask = () => {
     invariant(newTask)
-    const selectedHeading = allHeadings[0]
-    if (!allHeadings) {
+    const selectedHeading = filteredHeadings[0]
+
+    if (!selectedHeading) {
       createInDaily(newTask, dailyNoteInfo)
     } else {
       getters.getObsidianAPI().createTask(selectedHeading, newTask)
@@ -86,7 +90,7 @@ export default function NewTask({ containerId }: { containerId: string }) {
   return (
     <>
       <div
-        className='relative z-30 h-10 w-10 flex-none'
+        className='relative z-30 h-8 w-8 flex-none'
         {...attributes}
         {...listeners}
         ref={setNodeRef}
@@ -137,7 +141,7 @@ export default function NewTask({ containerId }: { containerId: string }) {
               }}
             ></input>
             <div className='h-0 w-full grow space-y-1 overflow-y-auto text-sm'>
-              {allHeadings.map((path) => (
+              {filteredHeadings.map((path) => (
                 <NewTaskHeading key={path} path={path} />
               ))}
             </div>

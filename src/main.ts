@@ -19,7 +19,7 @@ import invariant from 'tiny-invariant'
 // comment out for dev
 // import './tests/parser.test'
 
-interface TimeRulerSettings {
+type TimeRulerSettings = {
   calendars: string[]
   fieldFormat: FieldFormat['main']
   muted: boolean
@@ -31,12 +31,14 @@ interface TimeRulerSettings {
     include: boolean
     statuses: string
   }
+  viewingPastDates: boolean
   showCompleted: boolean
-  hideHeadings: boolean
   dayStartEnd: [number, number]
+  hideHeadings: boolean
   twentyFourHourFormat: boolean
   filterFunction: string
   addTaskToEnd: boolean
+  extendBlocks: boolean
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -57,6 +59,8 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   twentyFourHourFormat: false,
   filterFunction: '',
   addTaskToEnd: false,
+  extendBlocks: false,
+  viewingPastDates: false,
 }
 
 export default class TimeRulerPlugin extends Plugin {

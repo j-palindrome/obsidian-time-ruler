@@ -4,7 +4,7 @@ import { useAppStore } from '../app/store'
 import { parseFileFromPath, parseHeadingFromPath } from '../services/util'
 import Group from './Group'
 
-const UNGROUPED = '__ungrouped'
+export const UNGROUPED = '__ungrouped'
 export type BlockType = 'child' | 'time' | 'event' | 'default' | 'search'
 export default function Block({
   hidePaths = [],
@@ -12,18 +12,24 @@ export default function Block({
   type,
   id,
   dragContainer,
+  startISO,
+  collapseAll,
 }: {
   hidePaths?: string[]
   tasks: TaskProps[]
   type: BlockType
   id?: string
   dragContainer: string
+  startISO: string | undefined
+  collapseAll: boolean | null
 }) {
   const tasksByParent = ['parent', 'child'].includes(type)
     ? { undefined: tasks }
     : _.groupBy(tasks, 'parent')
 
-  const taskIds = _.map(tasks, 'id')
+  const taskIds = _.flatMap(tasks, (task) => [task.id, ...task.children])
+
+  // add in parent tasks which aren't included (to be "parent" type dummy tasks of children)
   const nestedTasks = useAppStore((state) =>
     _.entries(tasksByParent).flatMap(([parentID, children]) => {
       if (parentID === 'undefined') return children
@@ -40,7 +46,11 @@ export default function Block({
     })
   )
 
-  const sortedTasks = _.sortBy(nestedTasks, ['path', 'position.start.line'])
+  const sortedTasks = _.sortBy(nestedTasks, [
+    'priority',
+    'path',
+    'position.start.line',
+  ])
 
   const dailyNoteInfo = useAppStore(
     ({ dailyNoteFormat, dailyNotePath }) => ({
@@ -49,9 +59,12 @@ export default function Block({
     }),
     shallow
   )
-  const groupedTasks = _.groupBy(sortedTasks, (task) =>
-    parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
-  )
+  const groupedTasks = _.groupBy(sortedTasks, (task) => {
+    const heading = parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+
+    if (hidePaths.includes(heading)) return UNGROUPED
+    return heading
+  })
 
   const sortedGroups = useAppStore(
     (state) =>
@@ -73,7 +86,16 @@ export default function Block({
         <Group
           key={tasks[0].id}
           level='group'
-          {...{ name, tasks, type, hidePaths, id: blockId, dragContainer }}
+          {...{
+            name,
+            tasks,
+            type,
+            hidePaths,
+            id: blockId,
+            dragContainer,
+            startISO,
+            collapseAll,
+          }}
         />
       ))}
     </div>
