@@ -11,6 +11,7 @@ import {
   parseHeadingTitle,
   parseFileFromPath,
   convertSearchToRegExp,
+  parseFolderFromPath,
 } from '../services/util'
 import { shallow } from 'zustand/shallow'
 import _ from 'lodash'
@@ -55,26 +56,26 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     }),
     shallow
   )
-  const fileOrder = useAppStore((state) => state.fileOrder)
-  const allHeadings = useAppStore(
-    (state) =>
-      !newTask
-        ? []
-        : _.map(
-            getTasksByHeading(state.tasks, dailyNoteInfo, fileOrder).filter(
-              ([heading]) => heading !== 'Daily'
-            ),
-            0
-          ),
-    shallow
-  )
+  const allHeadings: string[] = useAppStore((state) => {
+    if (!newTask) return []
+    return _.uniq(
+      _.flatMap(state.tasks, (task) => {
+        const heading = parseHeadingFromPath(
+          task.path,
+          task.page,
+          dailyNoteInfo
+        )
+        return heading.includes('#')
+          ? [heading, parseFileFromPath(heading)]
+          : heading
+      })
+    ).sort()
+  }, shallow)
 
   const searchExp = convertSearchToRegExp(search)
-  const filteredHeadings = _.uniq(
-    allHeadings.flatMap((heading) => [heading, parseFileFromPath(heading)])
+  const filteredHeadings = allHeadings.filter((heading) =>
+    searchExp.test(heading)
   )
-    .filter((heading) => searchExp.test(parseHeadingTitle(heading)))
-    .sort()
 
   const createNewTask = () => {
     invariant(newTask)
@@ -178,11 +179,14 @@ function NewTaskHeading({ path }: { path: string }) {
         }
         setTimeout(() => setters.set({ newTask: false }))
       }}
-      className={`selectable cursor-pointer rounded-lg px-2 hover:underline ${
-        name.includes('#') ? 'text-muted' : 'font-bold text-accent'
+      className={`flex items-center w-full selectable cursor-pointer rounded-lg px-2 hover:underline ${
+        name.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
       }`}
     >
-      {title}
+      <div className='grow'>{title}</div>
+      {!path.includes('#') && (
+        <div className='text-faint text-xs'>{parseFolderFromPath(path)}</div>
+      )}
     </div>
   )
 }

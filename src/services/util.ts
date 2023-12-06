@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { AppState, getters, setters } from '../app/store'
+import { AppState, getters, setters, useAppStore } from '../app/store'
 import moment from 'moment'
 import _ from 'lodash'
 import { getDailyNoteInfo } from './obsidianApi'
@@ -65,11 +65,7 @@ export const processLength = ([time, items]: BlockData) => {
           { hour: 0, minute: 0 }
         )
 
-  const endTime = DateTime.fromISO(time).plus(totalLength).toISO({
-    includeOffset: false,
-    suppressMilliseconds: true,
-    suppressSeconds: true,
-  }) as string
+  const endTime = toISO(DateTime.fromISO(time).plus(totalLength))
 
   return { events, tasks, endISO: endTime }
 }
@@ -79,6 +75,11 @@ export const getTodayNote = () => {
   const dailyFormat = getters.get('dailyNoteFormat')
   const dailyNote = dailyPath + moment().format(dailyFormat) + '.md'
   return dailyNote
+}
+
+export const parseFolderFromPath = (path: string) => {
+  if (path.endsWith('/')) path = path.slice(0, path.length - 1)
+  return path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
 }
 
 export const parseFileFromPath = (path: string) =>
@@ -114,12 +115,7 @@ export const parseHeadingFromPath = (
   let fileName = parseFileFromPath(path)
   if (isPage) {
     // page headings are their containing folder
-    const folder = fileName.includes('/')
-      ? fileName.slice(0, fileName.lastIndexOf('/'))
-      : fileName
-    name = folder.includes('/')
-      ? folder.slice(folder.lastIndexOf('/') + 1)
-      : folder
+    name = parseFolderFromPath(fileName)
   } else if (parseDateFromPath(fileName, dailyNoteInfo)) {
     name =
       'Daily' +
@@ -198,19 +194,46 @@ export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
   }
 }
 
-export const useCollapseAll = () => {
-  const [lastCollapseAll, setLastCollapseAll] = useState(false)
-  const [collapseAll, setCollapseAll] = useState<boolean | null>(null)
-  useEffect(() => {
-    setCollapseAll(lastCollapseAll)
-  }, [lastCollapseAll])
-  /** On every state change, reset collapseAll to null (it is passed to subcomponents) */
-  useEffect(() => {
-    if (collapseAll !== null) setCollapseAll(null)
-  }, [collapseAll])
-
-  return { lastCollapseAll, setLastCollapseAll, collapseAll }
-}
-
 export const parseTaskDate = (task: TaskProps): string | undefined =>
   task.scheduled || task.due || task.completion
+
+export const useCollapsed = (tasks: TaskProps[]) => {
+  const dailyNoteInfo = useAppStore((state) => ({
+    dailyNoteFormat: state.dailyNoteFormat,
+    dailyNotePath: state.dailyNotePath,
+  }))
+  const allHeadings = _.uniq(
+    tasks.map((task) =>
+      parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+    )
+  )
+  const collapsed = useAppStore(
+    (state) =>
+      !allHeadings
+        .map((heading) => state.collapsed[heading] ?? false)
+        .includes(false)
+  )
+
+  return { collapsed, allHeadings }
+}
+
+export const toISO = (date: DateTime) =>
+  date.toISO({
+    suppressMilliseconds: true,
+    suppressSeconds: true,
+    includeOffset: false,
+  }) as string
+
+export const useHourDisplay = (hours: number) => {
+  const twentyFourHourFormat = useAppStore(
+    (state) => state.settings.twentyFourHourFormat
+  )
+
+  const hourDisplay = twentyFourHourFormat
+    ? hours
+    : [12, 0].includes(hours)
+    ? '12'
+    : hours % 12
+
+  return hourDisplay
+}

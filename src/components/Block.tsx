@@ -13,7 +13,6 @@ export default function Block({
   id,
   dragContainer,
   startISO,
-  collapseAll,
 }: {
   hidePaths?: string[]
   tasks: TaskProps[]
@@ -21,7 +20,6 @@ export default function Block({
   id?: string
   dragContainer: string
   startISO: string | undefined
-  collapseAll: boolean | null
 }) {
   const tasksByParent = ['parent', 'child'].includes(type)
     ? { undefined: tasks }
@@ -87,14 +85,13 @@ export default function Block({
           key={tasks[0].id}
           level='group'
           {...{
-            name,
+            path: name,
             tasks,
             type,
             hidePaths,
             id: blockId,
             dragContainer,
             startISO,
-            collapseAll,
           }}
         />
       ))}

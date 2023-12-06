@@ -1,6 +1,11 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
-import { isLengthType, roundMinutes } from '../services/util'
+import {
+  isLengthType,
+  roundMinutes,
+  toISO,
+  useHourDisplay,
+} from '../services/util'
 import ObsidianAPI from '../services/obsidianApi'
 import { getters, setters, useAppStore } from '../app/store'
 import Button from './Button'
@@ -79,11 +84,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
   const hours = time.hour
   const day = time.weekday
   const date = time.day
-  const iso = time.toISO({
-    includeOffset: false,
-    suppressMilliseconds: true,
-    suppressSeconds: true,
-  }) as string
+  const iso = toISO(time)
 
   const { isOver, setNodeRef } = useDroppable({
     id: dragContainer + '::' + iso + '::scheduled',
@@ -132,15 +133,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
     }`
   })
 
-  const twentyFourHourFormat = useAppStore(
-    (state) => state.settings.twentyFourHourFormat
-  )
-
-  const hourDisplay = twentyFourHourFormat
-    ? hours
-    : [12, 0].includes(hours)
-    ? '12'
-    : hours % 12
+  const hourDisplay = useHourDisplay(hours)
 
   return (
     <div

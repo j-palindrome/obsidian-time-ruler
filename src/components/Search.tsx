@@ -3,7 +3,7 @@ import { DateTime } from 'luxon'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { ViewMode, getters, setters, useAppStore } from '../app/store'
-import { convertSearchToRegExp, useCollapseAll } from '../services/util'
+import { convertSearchToRegExp } from '../services/util'
 import {
   TaskPriorities,
   priorityNumberToKey,
@@ -133,8 +133,6 @@ export default function Search() {
 
   const searching = !!searchStatus
 
-  const { lastCollapseAll, setLastCollapseAll, collapseAll } = useCollapseAll()
-
   const sortByHeading = (unscheduled?: boolean) => {
     return (
       <Block
@@ -147,7 +145,6 @@ export default function Search() {
         id={`search`}
         dragContainer='search'
         startISO={undefined}
-        collapseAll={collapseAll}
       />
     )
   }
@@ -183,7 +180,6 @@ export default function Search() {
             </div>
             <hr className='border-t border-t-selection ml-8 mr-2 mt-1 mb-0 h-0'></hr>
             <Block
-              collapseAll={collapseAll}
               startISO={undefined}
               dragContainer='search'
               type='search'

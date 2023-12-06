@@ -55,29 +55,28 @@ export default function TimeSpan({
   for (let i = 0; i < blocks.length; i++) {
     const [startISO, _tasks] = blocks[i]
 
-    let { events, tasks, endISO: endBlockISO } = processLength(blocks[i])
+    let { events, tasks, endISO: blockEndISO } = processLength(blocks[i])
 
     const includeNextBlocks = blocks
       .slice(i + 1)
-      .filter(([time, _items]) => time < endBlockISO)
+      .filter(([time, _items]) => time < blockEndISO)
     i += includeNextBlocks.length
 
     const lastChildBlock = includeNextBlocks.last()
     if (lastChildBlock) {
-      const { endISO: lastEndISO } = processLength(lastChildBlock)
-      if (lastEndISO > endBlockISO) endBlockISO = lastEndISO
-      else endBlockISO = endISO
+      const { endISO: lastChildEndISO } = processLength(lastChildBlock)
+      blockEndISO = [lastChildEndISO, endISO].sort()[0]
     }
 
-    if (endBlockISO === startISO && extendBlocks) {
+    if (blockEndISO === startISO && extendBlocks) {
       const nextBlock = blocks[i + 1]
-      if (nextBlock) endBlockISO = nextBlock[0]
-      else endBlockISO = endISO
+      if (nextBlock) blockEndISO = nextBlock[0]
+      else blockEndISO = endISO
     }
 
     formattedBlocks.push({
       startISO,
-      endISO: endBlockISO,
+      endISO: blockEndISO,
       tasks,
       events,
       blocks: includeNextBlocks,
@@ -110,12 +109,7 @@ export default function TimeSpan({
           i
         ) => {
           return (
-            <Fragment
-              key={thisTasks
-                .map((x) => x.id)
-                .concat(thisEvents.map((x) => x.id))
-                .join('')}
-            >
+            <Fragment key={`${thisStartISO}::${thisEvents[0]?.id}`}>
               <Event
                 startISO={thisStartISO}
                 endISO={thisEndISO}

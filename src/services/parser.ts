@@ -11,11 +11,12 @@ import {
   simplePriorityToNumber,
 } from '../types/enums'
 import _ from 'lodash'
-import { isDateISO, parseDateFromPath } from './util'
+import { isDateISO, parseDateFromPath, parseFileFromPath, toISO } from './util'
 import { getters } from '../app/store'
 import { startTransition } from 'react'
 import { create } from 'zustand'
 import TimeRulerPlugin from '../main'
+import moment from 'moment'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
@@ -80,11 +81,12 @@ export function textToTask(
   let title: string = originalTitle
     .replace(MD_LINK_LINE_SEARCH, '$1')
     .replace(MD_LINK_SEARCH, '$1')
-    .replace(LINK_SEARCH, '$1')
+    .replace(LINK_SEARCH, '[$1]')
 
-  const notes = item.text.includes('\n')
+  let notes = item.text.includes('\n')
     ? item.text.match(/\n((.|\n)*$)/)?.[1]
     : undefined
+  if (notes) notes = notes.replace(LINK_SEARCH, '[$1]')
 
   const extraFields = _.mapValues(_.omit(item, RESERVED_FIELDS), (x) =>
     x.toString()
@@ -214,13 +216,7 @@ export function textToTask(
     if (!DateTime.isDateTime(rawScheduled)) scheduled = undefined
     else {
       scheduled = (
-        isDate
-          ? rawScheduled.toISODate()
-          : rawScheduled.toISO({
-              includeOffset: false,
-              suppressMilliseconds: true,
-              suppressSeconds: true,
-            })
+        isDate ? rawScheduled.toISODate() : toISO(rawScheduled)
       ) as string
     }
 
@@ -233,11 +229,7 @@ export function textToTask(
     if (DateTime.isDateTime(date)) {
       date = date.equals(date.startOf('day'))
         ? (item[key].toISODate() as string)
-        : date.toISO({
-            suppressMilliseconds: true,
-            suppressSeconds: true,
-            includeOffset: false,
-          })
+        : toISO(date)
     }
     if (!date) {
       // test tasks
@@ -348,13 +340,9 @@ export function pageToTask(
 ): TaskProps {
   const testDateTime = (prop) =>
     DateTime.isDateTime(prop)
-      ? ((!prop.minute && !prop.hour
-          ? prop.toISODate()
-          : prop.toISO({
-              suppressMilliseconds: true,
-              suppressSeconds: true,
-              includeOffset: false,
-            })) as string)
+      ? !prop.minute && !prop.hour
+        ? prop.toISODate()
+        : toISO(prop)
       : undefined
   const testDuration = (prop) =>
     Duration.isDuration(prop)
@@ -405,11 +393,7 @@ export function pageToTask(
               hour: durationLength.hours,
               minute: durationLength.minutes,
             }
-            scheduled = startTime.toISO({
-              includeOffset: false,
-              suppressMilliseconds: true,
-              suppressSeconds: true,
-            }) as string
+            scheduled = toISO(startTime)
           }
         }
       }
@@ -537,10 +521,14 @@ export function taskToText(
   switch (main) {
     case 'simple':
       if (task.scheduled) {
-        let date = parseDateFromPath(task.path, dailyNoteInfo)
+        let date = parseDateFromPath(
+          parseFileFromPath(task.path),
+          dailyNoteInfo
+        )
         let scheduledDate = task.scheduled.slice(0, 10)
         const includeDate =
           !date || date.toISOString(false).slice(0, 10) !== scheduledDate
+
         let scheduledTime = task.scheduled.slice(11, 16).replace(/^0/, '')
         if (task.length && task.length.hour + task.length.minute > 0) {
           const end = DateTime.fromISO(task.scheduled).plus(task.length)
@@ -695,13 +683,7 @@ export function taskToPage(task: TaskProps, frontmatter: Record<string, any>) {
         frontmatter.startTime = task.scheduled.slice(11, 16)
         if (task.length) {
           const endTime = DateTime.fromISO(task.scheduled).plus(task.length)
-          frontmatter.endTime = (
-            endTime.toISO({
-              suppressMilliseconds: true,
-              suppressSeconds: true,
-              includeOffset: false,
-            }) as string
-          ).slice(11, 16)
+          frontmatter.endTime = toISO(endTime).slice(11, 16)
         }
       }
     } else {

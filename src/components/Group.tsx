@@ -8,13 +8,13 @@ import { parseFileFromPath, parseHeadingFromPath } from '../services/util'
 import { getDailyNoteInfo } from 'src/services/obsidianApi'
 import { useAppStore } from '../app/store'
 import { shallow } from 'zustand/shallow'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 
 const UNGROUPED = '__ungrouped'
 
 export type GroupProps = {
   hidePaths: string[]
-  name: string
+  path: string
   tasks: TaskProps[]
   type: BlockType
   level: 'group' | 'heading'
@@ -22,11 +22,10 @@ export type GroupProps = {
   id: string
   dragContainer: string
   startISO: string | undefined
-  collapseAll: boolean | null
 }
 
 export default function Group({
-  name,
+  path,
   tasks,
   type,
   level,
@@ -35,7 +34,6 @@ export default function Group({
   id,
   dragContainer,
   startISO,
-  collapseAll,
 }: GroupProps) {
   const dailyNoteInfo = useAppStore(
     ({ dailyNoteFormat, dailyNotePath }) => ({
@@ -62,25 +60,17 @@ export default function Group({
         ])
       : []
 
-  const [collapsed, setCollapsed] = useState(
-    collapseAll === null ? false : collapseAll
-  )
-  useEffect(() => {
-    if (collapseAll !== null) {
-      setCollapsed(collapseAll)
-    }
-  }, [collapseAll])
+  const collapsed = useAppStore((state) => state.collapsed[path] ?? false)
 
   const dragData: DragData = {
     dragType: 'group',
     tasks,
     type,
     level,
-    name,
+    path: path,
     hidePaths,
     id,
     dragContainer,
-    collapseAll: collapsed,
     startISO,
   }
 
@@ -92,20 +82,19 @@ export default function Group({
 
   return (
     <div ref={setNodeRef} className={`w-full`}>
-      {name && name !== UNGROUPED && !hidePaths.includes(name) && (
+      {path && path !== UNGROUPED && !hidePaths.includes(path) && (
         <Heading
-          collapsed={collapsed}
-          setCollapsed={setCollapsed}
           dragProps={{
             ...attributes,
             ...listeners,
             ref: setActivatorNodeRef,
           }}
-          path={name}
+          path={path}
           isPage={tasks[0].page}
-          dragContainer={`${id}::${name}::${
+          dragContainer={`${id}::${path}::${
             dragData.type
           }::${level}::${dragData.tasks.map((x) => x.id).join(':')}::reorder`}
+          hidePaths={hidePaths}
         />
       )}
 
@@ -118,14 +107,13 @@ export default function Group({
                   key={headingName}
                   {...{
                     tasks,
-                    name: headingName,
+                    path: headingName,
                     type,
                     due,
-                    hidePaths: hidePaths.concat([name]),
+                    hidePaths: hidePaths.concat([path]),
                     id,
                     dragContainer,
                     startISO,
-                    collapseAll,
                   }}
                 />
               ))

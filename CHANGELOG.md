@@ -16,7 +16,12 @@
 
 # Changelog
 
-## 1.7.0 (Upcoming)
+## 1.7.1 (Upcoming)
+
+**Fixed:**
+- Parsing error with daily notes
+
+## 1.7.0 (12/5/2023)
 
 **Added:**
 - Drag target to delete tasks & their children

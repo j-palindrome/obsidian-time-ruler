@@ -21,7 +21,7 @@ import {
   taskToText,
   textToTask,
 } from './parser'
-import { parseFileFromPath, parseHeadingFromPath } from './util'
+import { parseFileFromPath, parseHeadingFromPath, toISO } from './util'
 
 let dv: DataviewApi
 
@@ -85,11 +85,7 @@ export default class ObsidianAPI extends Component {
         // don't want to show unscheduled completed tasks (overloading system)
         if (!DateTime.isDateTime(taskDate))
           return !task.completion || this.settings.showCompleted
-        const dateString = taskDate.toISO({
-          suppressMilliseconds: true,
-          suppressSeconds: true,
-          includeOffset: false,
-        })
+        const dateString = toISO(taskDate)
         if (!dateString) return true
 
         return dateString >= dateBounds[0] && dateString <= dateBounds[1]
@@ -385,7 +381,6 @@ export default class ObsidianAPI extends Component {
   async deleteTask(id: string) {
     const task = getters.getTask(id)
     const file = await this.getFile(task.path)
-    console.log(file)
 
     if (!file) return
     const fileText = await app.vault.read(file)
@@ -395,8 +390,6 @@ export default class ObsidianAPI extends Component {
       task.position.start.line,
       task.position.end.line + 1 - task.position.start.line
     )
-
-    console.log(lines)
 
     await app.vault.modify(file, lines.join('\n'))
   }

@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
 import { setters, useAppStore } from '../app/store'
-import { isDateISO, useCollapseAll } from '../services/util'
+import { isDateISO, parseHeadingFromPath, useCollapsed } from '../services/util'
 import Block from './Block'
 import Droppable from './Droppable'
 import Times, { TimeSpanTypes } from './Times'
@@ -9,8 +9,9 @@ import TimeSpan from './TimeSpan'
 import Logo from './Logo'
 import Button from './Button'
 import $ from 'jquery'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import useStateRef from 'react-usestateref'
+import _ from 'lodash'
 
 export type EventComponentProps = {
   id?: string
@@ -20,7 +21,11 @@ export type EventComponentProps = {
   endISO: string
   blocks: BlockData[]
 }
-export default function Event({
+
+const Event = memo(_Event, _.isEqual)
+export default Event
+
+function _Event({
   id,
   tasks,
   startISO,
@@ -74,9 +79,9 @@ export default function Event({
     ? $('#time-ruler-times').children()[0]?.getBoundingClientRect().width - 16
     : undefined
 
-  const { lastCollapseAll, setLastCollapseAll, collapseAll } = useCollapseAll()
-
   const calendarMode = useAppStore((state) => state.calendarMode)
+
+  const { collapsed, allHeadings } = useCollapsed(tasks)
 
   const titleBar = (
     <div
@@ -86,8 +91,10 @@ export default function Event({
     >
       <Button
         className='opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-6 h-4 mx-1 py-0.5 flex-none'
-        src={lastCollapseAll ? 'chevron-right' : 'chevron-down'}
-        onClick={() => setLastCollapseAll(!lastCollapseAll)}
+        src={collapsed ? 'chevron-right' : 'chevron-down'}
+        onClick={() => {
+          setters.patchCollapsed(allHeadings, !collapsed)
+        }}
       />
       <div
         className='flex w-full items-center'
@@ -139,7 +146,7 @@ export default function Event({
 
       <Block
         type='event'
-        {...{ tasks, startISO, collapseAll }}
+        {...{ tasks, startISO }}
         dragContainer={dragContainer + '::' + startISO}
       />
 

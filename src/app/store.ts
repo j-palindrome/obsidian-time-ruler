@@ -96,8 +96,12 @@ export const setters = {
     }
     if (task.completion) obsidianAPI.playComplete()
   },
-  patchCollapsed: async (id: string, collapsed: boolean) => {
-    modify((state) => ({ collapsed: { ...state.collapsed, [id]: collapsed } }))
+  patchCollapsed: async (ids: string[], collapsed: boolean) => {
+    modify((state) => {
+      for (let id of ids) {
+        state.collapsed[id] = collapsed
+      }
+    })
   },
   updateFileOrder: (heading: string, beforeHeading: string) => {
     const obsidianAPI = getters.getObsidianAPI()

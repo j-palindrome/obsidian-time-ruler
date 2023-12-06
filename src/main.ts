@@ -15,6 +15,7 @@ import { openTaskInRuler } from './services/obsidianApi'
 import { taskToText, textToTask } from './services/parser'
 import { getters, setters } from './app/store'
 import invariant from 'tiny-invariant'
+import { toISO } from './services/util'
 
 // comment out for dev
 // import './tests/parser.test'
@@ -162,11 +163,7 @@ export default class TimeRulerPlugin extends Plugin {
       case 'now':
         let now = DateTime.now().startOf('minute')
         while (now.minute % 15 !== 0) now = now.plus({ minute: 1 })
-        scheduled = now.toISO({
-          includeOffset: false,
-          suppressMilliseconds: true,
-          suppressSeconds: true,
-        }) as string
+        scheduled = toISO(now)
         break
       case 'unschedule':
         scheduled = ''

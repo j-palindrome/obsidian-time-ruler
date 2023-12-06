@@ -5,7 +5,7 @@ import Button from './Button'
 import Block from './Block'
 import { useAppStore } from '../app/store'
 import _ from 'lodash'
-import { isDateISO, processLength } from '../services/util'
+import { isDateISO, processLength, toISO } from '../services/util'
 import { shallow } from 'zustand/shallow'
 import Event from './Event'
 import invariant from 'tiny-invariant'
@@ -191,17 +191,11 @@ export function Timer() {
         />
       </div>
       {expanded && (
-        <div className='relative h-full w-full space-y-2 overflow-y-auto py-2 text-base child:max-w-xl flex items-center justify-center'>
+        <div className='relative h-full w-full space-y-2 overflow-y-auto py-2 text-base child:max-w-xl flex justify-center'>
           <Timeline
             dragContainer='timer'
             startISO={DateTime.now().toISODate() as string}
-            endISO={
-              DateTime.now().toISO({
-                suppressMilliseconds: true,
-                suppressSeconds: true,
-                includeOffset: false,
-              }) as string
-            }
+            endISO={toISO(DateTime.now())}
             hideTimes
             type='minutes'
           />

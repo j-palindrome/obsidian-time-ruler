@@ -3,6 +3,8 @@ import { getters, setters } from 'src/app/store'
 import { isTaskProps } from 'src/types/enums'
 import { DateTime } from 'luxon'
 import { useAppStoreRef } from '../app/store'
+import _ from 'lodash'
+import { roundMinutes, toISO } from './util'
 
 export const onDragEnd = async (
   ev: DragEndEvent,
@@ -11,8 +13,6 @@ export const onDragEnd = async (
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
 
-  console.log(dropData, dragData)
-
   if (dragData?.dragType === 'new_button' && !dropData) {
     setters.set({ newTask: { scheduled: undefined } })
   } else if (dropData && dragData) {
@@ -20,7 +20,7 @@ export const onDragEnd = async (
       switch (dropData.type) {
         case 'heading':
           if (dragData.dragType !== 'group') return
-          setters.updateFileOrder(dragData.name, dropData.heading)
+          setters.updateFileOrder(dragData.path, dropData.heading)
           break
         case 'delete':
           if (dragData.dragType !== 'task') return
@@ -38,6 +38,32 @@ export const onDragEnd = async (
       }
     } else {
       switch (dragData.dragType) {
+        case 'now':
+          if (!dropData.scheduled) break
+          const now = roundMinutes(DateTime.now())
+          const nowString = now.toISODate() as string
+          const tomorrow = DateTime.now().plus({ days: 1 }).toISODate()
+          const futureTasks = _.filter(
+            getters.get('tasks'),
+            (task) =>
+              !!(
+                !task.completed &&
+                task.scheduled &&
+                task.scheduled > nowString &&
+                task.scheduled < tomorrow
+              )
+          )
+          const tasksByTime = _.entries(_.groupBy(futureTasks, 'scheduled'))
+          const addedHour = DateTime.fromISO(dropData.scheduled).diff(now)
+
+          for (let [time, tasks] of tasksByTime) {
+            const timeParse = DateTime.fromISO(time)
+            setters.patchTasks(
+              tasks.map((task) => task.id),
+              { scheduled: toISO(timeParse.plus(addedHour)) }
+            )
+          }
+          break
         case 'new_button':
           setters.set({ newTask: { scheduled: dropData.scheduled } })
           break

@@ -6,6 +6,7 @@ import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import {
   parseDateFromPath,
+  parseFolderFromPath,
   parseHeadingFromPath,
   parseHeadingTitle,
   parsePathFromDate,
@@ -22,15 +23,13 @@ export default function Heading({
   isPage,
   dragProps,
   dragContainer,
-  collapsed,
-  setCollapsed,
+  hidePaths = [],
 }: {
   path: string
   isPage: boolean
   dragProps?: any
   dragContainer: string
-  collapsed: boolean
-  setCollapsed?: (collapsed: boolean) => void
+  hidePaths?: string[]
 }) {
   const dailyNoteInfo = useAppStore(
     ({ dailyNoteFormat, dailyNotePath }) => ({
@@ -56,11 +55,18 @@ export default function Heading({
     (state) =>
       state.dragData &&
       state.dragData.dragType === 'group' &&
-      parseFileFromPath(state.dragData.name) !== fileName
+      parseFileFromPath(state.dragData.path) !== fileName
   )
   if (hideHeadings) return <></>
 
   const topDiv = <div className='h-2 w-full rounded-lg'></div>
+  const title = parseHeadingTitle(path)
+
+  const container = heading
+    ? parseFileFromPath(path)
+    : parseFolderFromPath(path)
+
+  const collapsed = useAppStore((state) => state.collapsed[path] ?? false)
   return (
     <>
       {dragging ? (
@@ -79,33 +85,30 @@ export default function Heading({
       <div
         className={`time-ruler-heading selectable flex w-full rounded-lg pr-2 font-menu text-xs child:truncate group`}
       >
-        {setCollapsed && (
-          <Button
-            className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 w-6 h-4 mx-1 py-0.5 flex-none'
-            src={collapsed ? 'chevron-right' : 'chevron-down'}
-            onClick={() => {
-              setCollapsed(!collapsed)
-              return false
-            }}
-            onPointerDown={() => false}
-          />
-        )}
+        <Button
+          className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 w-6 h-4 mx-1 py-0.5 flex-none'
+          src={collapsed ? 'chevron-right' : 'chevron-down'}
+          onClick={() => {
+            setters.patchCollapsed([path], !collapsed)
+            return false
+          }}
+          onPointerDown={() => false}
+        />
         <div
-          className={`w-fit flex-none cursor-grab`}
+          className={`w-fit flex-none cursor-grab ${
+            path.includes('#') ? 'text-normal' : 'text-accent'
+          }`}
           onPointerDown={() => false}
           onClick={() => false}
         >
-          {heading ? (
-            <span className='text-normal'>{heading}</span>
-          ) : (
-            <span className='text-accent'>{fileName}</span>
-          )}
+          {title}
         </div>
         <div
-          className='min-h-[12px] w-full cursor-grab text-right text-xs text-faint'
-          title={path}
+          className='min-h-[12px] w-full h-full cursor-grab text-right text-xs text-faint'
           {...dragProps}
-        ></div>
+        >
+          {hidePaths.includes(container) ? '' : container.replace('.md', '')}
+        </div>
       </div>
       <hr className='border-t border-t-selection ml-8 mr-2 mt-1 mb-0 h-0'></hr>
     </>

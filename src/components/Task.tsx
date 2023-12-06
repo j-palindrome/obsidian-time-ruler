@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react'
 import moment from 'moment'
 import Logo from './Logo'
 import DueDate from './DueDate'
-import { roundMinutes } from '../services/util'
+import { roundMinutes, toISO } from '../services/util'
 
 export type TaskComponentProps = {
   id: string
@@ -34,11 +34,7 @@ export default function Task({
 }: TaskComponentProps & { startISO?: string }) {
   const completeTask = () => {
     setters.patchTasks([id], {
-      completion: roundMinutes(DateTime.now()).toISO({
-        suppressMilliseconds: true,
-        suppressSeconds: true,
-        includeOffset: false,
-      }) as string,
+      completion: toISO(roundMinutes(DateTime.now())),
       completed: true,
     })
   }
@@ -251,7 +247,7 @@ export default function Task({
         <div className='flex pl-2'>
           <div
             className='group min-w-[16px] grow hover:bg-selection transition-colors duration-500 min-h-[20px] rounded-lg'
-            onClick={() => setters.patchCollapsed(id, !collapsed)}
+            onClick={() => setters.patchCollapsed([id], !collapsed)}
           >
             <Button
               src={collapsed ? 'chevron-right' : 'chevron-down'}
@@ -260,7 +256,6 @@ export default function Task({
           </div>
           {!collapsed && (
             <Block
-              collapseAll={null}
               dragContainer={dragContainer + id}
               hidePaths={[
                 parseHeadingFromPath(task.path, false, dailyNoteInfo),

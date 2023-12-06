@@ -1,25 +1,26 @@
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { Fragment, useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
-import { getters, setters, useAppStore } from '../app/store'
+import { setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
 import {
   isDateISO,
-  insertTextAtCaret,
-  removeNestedChildren,
   parseTaskDate,
+  removeNestedChildren,
+  roundMinutes,
+  toISO,
+  useCollapsed,
+  useHourDisplay,
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
-import Times, { TimeSpanTypes } from './Times'
-import TimeSpan from './TimeSpan'
 import Task from './Task'
-import invariant from 'tiny-invariant'
-import NewTask from './NewTask'
-import { useDroppable } from '@dnd-kit/core'
-import { roundMinutes } from '../services/util'
+import TimeSpan from './TimeSpan'
+import { TimeSpanTypes } from './Times'
 
 export default function Timeline({
   startISO,
@@ -169,7 +170,7 @@ export default function Timeline({
 
   const allDayFrame = useRef<HTMLDivElement>(null)
   const [allDayHeight, setAllDayHeight] = useState<string | undefined>()
-  useEffect(() => {
+  useLayoutEffect(() => {
     const resizeHeight = () => {
       if (!expanded || calendarMode) return
       const frame = allDayFrame.current
@@ -180,16 +181,17 @@ export default function Timeline({
       const parentHeight = parentFrame.getBoundingClientRect().height
       const frameHeight = frame.getBoundingClientRect().height
       if (frameHeight === parentHeight) {
-        setTimeout(resizeHeight, 250)
+        setTimeout(resizeHeight)
         return
       }
       if (frameHeight > parentHeight / 2 && frameHeight !== parentHeight) {
-        console.log(frameHeight, parentHeight, startISO)
         setAllDayHeight('50%')
       }
     }
     resizeHeight()
   }, [calendarMode])
+
+  const { collapsed, allHeadings } = useCollapsed(tasks.concat(allDayTasks))
 
   return (
     <div
@@ -198,21 +200,27 @@ export default function Timeline({
       }`}
     >
       <div className='flex items-center space-x-1 group'>
-        {allDayEvents.length + allDayTasks.length ? (
-          <Button
-            className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
-            onClick={() => setExpanded(!expanded)}
-            src={expanded ? 'chevron-down' : 'chevron-right'}
-          />
-        ) : (
-          <div className='w-6' />
-        )}
+        <Button
+          className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
+          onClick={() => setters.patchCollapsed(allHeadings, !collapsed)}
+          src={collapsed ? 'chevron-right' : 'chevron-down'}
+        />
 
         <Droppable
           data={{ scheduled: startISO }}
           id={dragContainer + startISO + '::timeline'}
         >
-          <div className='font-menu flex grow px-1'>{title || ''}</div>
+          <div className='flex items-center space-x-1 grow'>
+            <div className='font-menu'>{title || ''}</div>
+            <Button
+              className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
+              src={expanded ? 'chevron-down' : 'chevron-left'}
+              onClick={() => {
+                setExpanded(!expanded)
+                return false
+              }}
+            />
+          </div>
         </Droppable>
       </div>
 
@@ -297,26 +305,45 @@ export default function Timeline({
   )
 }
 
-function NowTime({ dragContainer }: { dragContainer?: string }) {
-  const startISO = roundMinutes(DateTime.now()).toISO({
-    includeOffset: false,
-    suppressMilliseconds: true,
-    suppressSeconds: true,
-  })
+export function NowTime({ dragContainer }: { dragContainer?: string }) {
+  const startISO = toISO(roundMinutes(DateTime.now()))
   const { isOver, setNodeRef } = useDroppable({
     id: dragContainer + '::' + startISO + '::scheduled::now',
     data: { scheduled: startISO } as DropData,
   })
 
+  const dragData: DragData = {
+    dragType: 'now',
+  }
+  const {
+    setNodeRef: setDragNodeRef,
+    attributes,
+    listeners,
+  } = useDraggable({
+    data: dragData,
+    id: `${dragContainer}::now`,
+  })
+
+  const nowTime = roundMinutes(DateTime.now())
+  const hourDisplay = useHourDisplay(nowTime.hour)
+
   return (
     <div
-      className={`py-2 flex w-full items-center rounded-lg px-5 ${
+      className={`py-2 flex w-full items-center rounded-lg pl-9 pr-2 cursor-grab hover:bg-selection transition-colors duration-300 ${
         isOver ? 'bg-selection' : ''
       }`}
-      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      ref={(node) => {
+        setNodeRef(node)
+        setDragNodeRef(node)
+      }}
     >
       <div className='w-full border-0 border-b border-solid border-red-800'></div>
       <div className='h-1 w-1 rounded-full bg-red-800'></div>
+      <div className='text-xs font-menu ml-2'>{`${hourDisplay}:${String(
+        nowTime.minute
+      ).padStart(2, '0')}`}</div>
     </div>
   )
 }

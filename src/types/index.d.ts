@@ -93,6 +93,7 @@ declare global {
     | ({ dragType: 'time' } & { start: string; end?: string })
     | ({ dragType: 'due' } & DueDateComponentProps)
     | { dragType: 'new_button' }
+    | { dragType: 'now' }
 
   type DropData =
     | Partial<TaskProps>

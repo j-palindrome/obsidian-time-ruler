@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import { Component, Notice, request } from 'obsidian'
 import { setters } from '../app/store'
 import TimeRulerPlugin from '../main'
+import { toISO } from './util'
 
 export default class CalendarAPI extends Component {
   settings: TimeRulerPlugin['settings']
@@ -40,24 +41,12 @@ export default class CalendarAPI extends Component {
 
           let start = DateTime.fromJSDate(event.start).setZone('local')
 
-          const startString = (
-            event.start['dateOnly']
-              ? start.toISODate()
-              : start.toISO({
-                  suppressMilliseconds: true,
-                  suppressSeconds: true,
-                  includeOffset: false,
-                })
-          ) as string
-          const endString = (
-            event.start['dateOnly']
-              ? end.toISODate()
-              : end.toISO({
-                  suppressMilliseconds: true,
-                  suppressSeconds: true,
-                  includeOffset: false,
-                })
-          ) as string
+          const startString = event.start['dateOnly']
+            ? (start.toISODate() as string)
+            : toISO
+          const endString = event.start['dateOnly']
+            ? (end.toISODate() as string)
+            : toISO(end)
 
           const props: EventProps = {
             id,

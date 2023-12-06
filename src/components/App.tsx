@@ -36,13 +36,17 @@ import Heading from './Heading'
 import Logo from './Logo'
 import Search from './Search'
 import Task from './Task'
-import Timeline from './Timeline'
+import Timeline, { NowTime } from './Timeline'
 import { Timer } from './Timer'
 import { TimeSpanTypes } from './Times'
 import DueDate from './DueDate'
 import invariant from 'tiny-invariant'
 import NewTask from './NewTask'
-import { parseDateFromPath, parseHeadingFromPath } from '../services/util'
+import {
+  parseDateFromPath,
+  parseHeadingFromPath,
+  toISO,
+} from '../services/util'
 import { getAPI } from 'obsidian-dataview'
 import { onDragEnd, onDragStart } from 'src/services/dragging'
 
@@ -114,11 +118,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     {
       startISO: today.toISODate() as string,
       endISO: showingPastDates
-        ? DateTime.now().toISO({
-            suppressMilliseconds: true,
-            suppressSeconds: true,
-            includeOffset: false,
-          })
+        ? toISO(DateTime.now())
         : (today.plus({ days: 1 }).toISODate() as string),
       type: 'minutes',
     },
@@ -199,6 +199,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return <DueDate {...activeDrag} isDragging />
       case 'new_button':
         return <NewTask dragContainer='activeDrag' />
+      case 'now':
+        return <NowTime dragContainer='activeDrag' />
     }
   }
 
