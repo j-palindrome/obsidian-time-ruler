@@ -35,13 +35,7 @@ export default function Group({
   dragContainer,
   startISO,
 }: GroupProps) {
-  const dailyNoteInfo = useAppStore(
-    ({ dailyNoteFormat, dailyNotePath }) => ({
-      dailyNoteFormat,
-      dailyNotePath,
-    }),
-    shallow
-  )
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const groupedHeadings =
     level === 'group'
       ? _.groupBy(tasks, (task) =>

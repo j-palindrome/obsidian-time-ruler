@@ -341,7 +341,7 @@ export function pageToTask(
   const testDateTime = (prop) =>
     DateTime.isDateTime(prop)
       ? !prop.minute && !prop.hour
-        ? prop.toISODate()
+        ? (prop.toISODate() as string)
         : toISO(prop)
       : undefined
   const testDuration = (prop) =>
@@ -484,10 +484,7 @@ export function taskToText(
   task: TaskProps,
   defaultFieldFormat: FieldFormat['main']
 ) {
-  const dailyNoteInfo = {
-    dailyNotePath: getters.get('dailyNotePath'),
-    dailyNoteFormat: getters.get('dailyNoteFormat'),
-  }
+  const dailyNoteInfo = getters.get('dailyNoteInfo')
 
   let draft = `- [${
     task.completed ? 'x' : task.status

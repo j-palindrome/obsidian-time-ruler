@@ -5,7 +5,13 @@ import { parseFileFromPath, parseHeadingFromPath } from '../services/util'
 import Group from './Group'
 
 export const UNGROUPED = '__ungrouped'
-export type BlockType = 'child' | 'time' | 'event' | 'default' | 'search'
+export type BlockType =
+  | 'child'
+  | 'time'
+  | 'event'
+  | 'default'
+  | 'search'
+  | 'unscheduled'
 export default function Block({
   hidePaths = [],
   tasks,
@@ -50,13 +56,7 @@ export default function Block({
     'position.start.line',
   ])
 
-  const dailyNoteInfo = useAppStore(
-    ({ dailyNoteFormat, dailyNotePath }) => ({
-      dailyNoteFormat,
-      dailyNotePath,
-    }),
-    shallow
-  )
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const groupedTasks = _.groupBy(sortedTasks, (task) => {
     const heading = parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
 
@@ -66,14 +66,17 @@ export default function Block({
 
   const sortedGroups = useAppStore(
     (state) =>
-      _.sortBy(_.entries(groupedTasks), ([group, _tasks]) =>
-        state.fileOrder.indexOf(parseFileFromPath(group))
-      ),
+      _.sortBy(_.entries(groupedTasks), [
+        ([group, _tasks]) => state.fileOrder.indexOf(parseFileFromPath(group)),
+        (group) => (group.includes('#') ? '1' : '0'),
+        '1.0.id',
+      ]),
     shallow
   )
 
   const blockId = tasks[0]?.scheduled ?? ''
 
+  const calendarMode = useAppStore((state) => state.calendarMode)
   return (
     <div
       id={id}

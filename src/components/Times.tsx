@@ -64,10 +64,16 @@ export default function Times({
     )
   }
 
+  const startISOs = times.map((date) => toISO(date))
+  const now = toISO(roundMinutes(DateTime.now()))
+
   return (
     <div className={`min-h-[4px]`}>
-      {times.map((time) => (
-        <Time key={time.toISO()} {...{ type, time, dragContainer }} />
+      {startISO <= now && endISO > now && (
+        <NowTime dragContainer={dragContainer} />
+      )}
+      {times.map((time, i) => (
+        <Time key={startISOs[i]} {...{ type, time, dragContainer }} />
       ))}
     </div>
   )
@@ -176,6 +182,53 @@ function Time({ time, type, dragContainer }: TimeProps) {
           ? hourDisplay
           : ''}
       </div>
+    </div>
+  )
+}
+
+export function NowTime({ dragContainer }: { dragContainer: string }) {
+  const startISO = toISO(roundMinutes(DateTime.now()))
+  const { isOver, setNodeRef } = useDroppable({
+    id: `${dragContainer}::now`,
+    data: { scheduled: startISO } as DropData,
+  })
+
+  const dragData: DragData = {
+    dragType: 'now',
+  }
+  const {
+    setNodeRef: setDragNodeRef,
+    attributes,
+    listeners,
+  } = useDraggable({
+    data: dragData,
+    id: `${dragContainer}::now`,
+  })
+
+  const nowTime = roundMinutes(DateTime.now())
+  const hourDisplay = useHourDisplay(nowTime.hour)
+
+  return (
+    <div
+      className={`group flex w-full items-center rounded-lg pl-9 pr-2 hover:bg-selection transition-colors duration-300 ${
+        isOver ? 'bg-selection' : ''
+      }`}
+      ref={setNodeRef}
+    >
+      <div
+        className='cursor-grab hidden group-hover:block text-xs ml-1 text-accent flex-none'
+        {...attributes}
+        {...listeners}
+        ref={setDragNodeRef}
+      >
+        Shift all
+      </div>
+      <div className='h-1 w-1 rounded-full bg-red-800'></div>
+      <div className='w-full border-0 border-b border-solid border-red-800'></div>
+
+      <div className='text-xs font-menu ml-2'>{`${hourDisplay}:${String(
+        nowTime.minute
+      ).padStart(2, '0')}`}</div>
     </div>
   )
 }

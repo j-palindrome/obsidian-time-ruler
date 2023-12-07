@@ -28,8 +28,10 @@ export type AppState = {
   inScroll: number
   searchStatus: false | ViewMode
   calendarMode: boolean
-  dailyNoteFormat: string
-  dailyNotePath: string
+  dailyNoteInfo: {
+    dailyNoteFormat: string
+    dailyNotePath: string
+  }
   fileOrder: string[]
   newTask: false | Partial<TaskProps>
   settings: Pick<
@@ -56,8 +58,10 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
   searchStatus: false,
   calendarMode: false,
   fileOrder: [],
-  dailyNoteFormat: 'YYYY-MM-DD',
-  dailyNotePath: '',
+  dailyNoteInfo: {
+    dailyNoteFormat: 'YYYY-MM-DD',
+    dailyNotePath: '',
+  },
   newTask: false,
   collapsed: {},
   settings: {

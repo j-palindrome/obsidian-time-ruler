@@ -13,22 +13,22 @@ export const onDragEnd = async (
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
 
+  if (ev.active.id === ev.over?.id) return
+
   if (dragData?.dragType === 'new_button' && !dropData) {
     setters.set({ newTask: { scheduled: undefined } })
   } else if (dropData && dragData) {
     if (!isTaskProps(dropData)) {
       switch (dropData.type) {
         case 'heading':
-          if (dragData.dragType !== 'group') return
+          if (dragData.dragType !== 'group') break
           setters.updateFileOrder(dragData.path, dropData.heading)
           break
         case 'delete':
-          if (dragData.dragType !== 'task') return
-          if (dragData.children) {
-            if (!confirm('Delete task and children?')) return
-          }
+          if (dragData.dragType !== 'task') break
           // start from latest task and work backwards
-          if (dragData.children) {
+          if (dragData.children?.length) {
+            if (!confirm('Delete task and children?')) break
             for (let child of dragData.children.reverse()) {
               await getters.getObsidianAPI().deleteTask(child)
             }
@@ -53,8 +53,13 @@ export const onDragEnd = async (
                 task.scheduled < tomorrow
               )
           )
-          const tasksByTime = _.entries(_.groupBy(futureTasks, 'scheduled'))
-          const addedHour = DateTime.fromISO(dropData.scheduled).diff(now)
+          const tasksByTime = _.sortBy(
+            _.entries(_.groupBy(futureTasks, 'scheduled')),
+            0
+          )
+          const addedHour = DateTime.fromISO(dropData.scheduled).diff(
+            DateTime.fromISO(tasksByTime[0][0])
+          )
 
           for (let [time, tasks] of tasksByTime) {
             const timeParse = DateTime.fromISO(time)

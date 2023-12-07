@@ -195,11 +195,11 @@ export default function Timeline({
 
   return (
     <div
-      className={`flex w-full flex-col ${
+      className={`flex w-full flex-col rounded-lg overflow-hidden relative ${
         calendarMode ? 'max-h-full' : 'h-full'
       }`}
     >
-      <div className='flex items-center space-x-1 group'>
+      <div className='flex items-center space-x-1 group relative z-10'>
         <Button
           className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
           onClick={() => setters.patchCollapsed(allHeadings, !collapsed)}
@@ -227,7 +227,7 @@ export default function Timeline({
       <div
         className={`space-y-2 rounded-lg ${
           calendarMode ? 'overflow-y-auto' : 'h-0 grow flex flex-col'
-        }`}
+        } relative z-10`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
         <div
@@ -235,9 +235,7 @@ export default function Timeline({
             calendarMode
               ? 'h-fit'
               : // @ts-ignore
-                `${
-                  app.isMobile ? 'max-h-[40%]' : 'max-h-[80%]'
-                } flex-none overflow-y-auto`
+                `max-h-[50%] flex-none overflow-y-auto`
           } ${!expanded ? 'hidden' : 'block'}`}
           style={{
             resize: !calendarMode ? 'vertical' : 'none',
@@ -286,13 +284,7 @@ export default function Timeline({
           }`}
           data-auto-scroll={calendarMode ? undefined : 'y'}
         >
-          {isToday && !calendarMode && !showingPastDates && (
-            <NowTime dragContainer={dragContainer} />
-          )}
           {timeSpan}
-          {isToday && !calendarMode && showingPastDates && (
-            <NowTime dragContainer={dragContainer} />
-          )}
           <Droppable
             data={{ scheduled: startISO }}
             id={`${dragContainer}::timeline::end`}
@@ -301,49 +293,6 @@ export default function Timeline({
           </Droppable>
         </div>
       </div>
-    </div>
-  )
-}
-
-export function NowTime({ dragContainer }: { dragContainer?: string }) {
-  const startISO = toISO(roundMinutes(DateTime.now()))
-  const { isOver, setNodeRef } = useDroppable({
-    id: dragContainer + '::' + startISO + '::scheduled::now',
-    data: { scheduled: startISO } as DropData,
-  })
-
-  const dragData: DragData = {
-    dragType: 'now',
-  }
-  const {
-    setNodeRef: setDragNodeRef,
-    attributes,
-    listeners,
-  } = useDraggable({
-    data: dragData,
-    id: `${dragContainer}::now`,
-  })
-
-  const nowTime = roundMinutes(DateTime.now())
-  const hourDisplay = useHourDisplay(nowTime.hour)
-
-  return (
-    <div
-      className={`py-2 flex w-full items-center rounded-lg pl-9 pr-2 cursor-grab hover:bg-selection transition-colors duration-300 ${
-        isOver ? 'bg-selection' : ''
-      }`}
-      {...attributes}
-      {...listeners}
-      ref={(node) => {
-        setNodeRef(node)
-        setDragNodeRef(node)
-      }}
-    >
-      <div className='w-full border-0 border-b border-solid border-red-800'></div>
-      <div className='h-1 w-1 rounded-full bg-red-800'></div>
-      <div className='text-xs font-menu ml-2'>{`${hourDisplay}:${String(
-        nowTime.minute
-      ).padStart(2, '0')}`}</div>
     </div>
   )
 }

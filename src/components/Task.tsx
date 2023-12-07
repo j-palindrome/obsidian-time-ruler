@@ -100,13 +100,7 @@ export default function Task({
     data: lengthDragData,
   })
 
-  const dailyNoteInfo = useAppStore(
-    ({ dailyNoteFormat, dailyNotePath }) => ({
-      dailyNoteFormat,
-      dailyNotePath,
-    }),
-    shallow
-  )
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
 
   if (!task) return <></>
 

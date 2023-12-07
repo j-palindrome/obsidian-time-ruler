@@ -43,7 +43,7 @@ export default class CalendarAPI extends Component {
 
           const startString = event.start['dateOnly']
             ? (start.toISODate() as string)
-            : toISO
+            : toISO(start)
           const endString = event.start['dateOnly']
             ? (end.toISODate() as string)
             : toISO(end)

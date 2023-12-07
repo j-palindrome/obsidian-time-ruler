@@ -36,9 +36,9 @@ import Heading from './Heading'
 import Logo from './Logo'
 import Search from './Search'
 import Task from './Task'
-import Timeline, { NowTime } from './Timeline'
+import Timeline from './Timeline'
 import { Timer } from './Timer'
-import { TimeSpanTypes } from './Times'
+import { NowTime, TimeSpanTypes } from './Times'
 import DueDate from './DueDate'
 import invariant from 'tiny-invariant'
 import NewTask from './NewTask'
@@ -46,9 +46,11 @@ import {
   parseDateFromPath,
   parseHeadingFromPath,
   toISO,
+  useChildWidth,
 } from '../services/util'
 import { getAPI } from 'obsidian-dataview'
 import { onDragEnd, onDragStart } from 'src/services/dragging'
+import Unscheduled from './Unscheduled'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -80,7 +82,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
     setters.set({
       apis,
-      ...dailyNoteInfo,
+      dailyNoteInfo,
       settings,
     })
 
@@ -104,6 +106,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const showingPastDates = useAppStore((state) => state.showingPastDates)
 
   const today = now.startOf('day')
+  const todayString = today.toISODate()
   const [weeksShownState, setWeeksShown] = useState(1)
 
   const nextMonday = showingPastDates
@@ -114,7 +117,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         .plus({ days: 1 })
   const datesShown = _.floor(nextMonday.diff(DateTime.now()).as('days'))
 
-  const times: Parameters<typeof Timeline>[0][] = [
+  const times: (Parameters<typeof Timeline>[0] | { type: 'unscheduled' })[] = [
+    { type: 'unscheduled' },
     {
       startISO: today.toISODate() as string,
       endISO: showingPastDates
@@ -204,15 +208,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     }
   }
 
-  const [childWidth, setChildWidth, childWidthRef] = useStateRef(1)
-  const childWidthToClass = [
-    '',
-    'child:w-full',
-    'child:w-1/2',
-    'child:w-1/3',
-    'child:w-1/4',
-  ]
-
   const scroller = useRef<HTMLDivElement>(null)
   const [scrollViews, setScrollViews] = useState([-1, 1])
 
@@ -222,38 +217,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     (state) => state.calendarMode
   )
 
-  function outputSize() {
-    if (Platform.isMobile) {
-      setChildWidth(1)
-      return
-    }
-    const timeRuler = container.current as HTMLDivElement
-    const width = timeRuler.clientWidth
-    const newChildWidth =
-      width < 500
-        ? 1
-        : width < 800
-        ? 2
-        : width < 1200 && !calendarModeRef.current
-        ? 3
-        : 4
-    if (newChildWidth !== childWidthRef.current) {
-      setChildWidth(newChildWidth)
-    }
-  }
-
-  useEffect(() => {
-    outputSize()
-    const timeRuler = document.querySelector('#time-ruler') as HTMLElement
-    if (!timeRuler) return
-    const observer = new ResizeObserver(outputSize)
-    observer.observe(timeRuler)
-    window.addEventListener('resize', outputSize)
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('resize', outputSize)
-    }
-  }, [])
+  const { childWidth, childClass } = useChildWidth({
+    container,
+    calendarModeRef,
+  })
 
   const updateScroll = () => {
     invariant(scroller.current)
@@ -269,23 +236,16 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   useEffect(updateScroll, [childWidth])
 
   useEffect(() => {
-    outputSize()
     updateScroll()
   }, [calendarMode])
 
-  const scrollToNow = () => {
-    setTimeout(() => {
-      const targetChild = showingPastDates
-        ? $('#time-ruler-times').children().last()
-        : $('#time-ruler-times').children().first()
-
-      targetChild?.[0].scrollIntoView({
-        inline: showingPastDates ? 'end' : 'start',
-      })
-    }, 250)
-  }
-
-  useEffect(() => scrollToNow(), [calendarMode, showingPastDates])
+  useEffect(() => {
+    const childNodes = $('#time-ruler-times')[0].childNodes
+    const firstElement = childNodes.item(
+      showingPastDates ? childNodes.length - 2 : 1
+    ) as HTMLElement
+    $('#time-ruler-times').scrollLeft(firstElement.offsetLeft)
+  }, [calendarMode, showingPastDates])
 
   const sensors = useSensors(
     ...(Platform.isMobile
@@ -350,7 +310,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         />
         <div className='w-full flex items-center h-5 flex-none space-x-2 mb-2 mt-1 relative'>
           <Timer />
-          <div className='absolute right-0 top-full flex space-x-2 pt-3 pr-3'>
+          <div className='absolute right-0 top-full flex space-x-2 pt-3 pr-3 z-40'>
             {activeDrag && activeDrag.dragType === 'task' && (
               <Droppable id={`delete-task`} data={{ type: 'delete' }}>
                 <Button src='x' className='!rounded-full h-8 w-8 bg-red-900' />
@@ -360,9 +320,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           </div>
         </div>
         <div
-          className={`flex h-full w-full snap-mandatory  rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${
-            childWidthToClass[childWidth]
-          } ${
+          className={`flex h-full w-full snap-mandatory  rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childClass} ${
             calendarMode
               ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
               : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
@@ -376,18 +334,30 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
             const isShowing =
               calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
 
-            return (
+            return time.type === 'unscheduled' ? (
+              <Unscheduled isFlex={childWidth > 1 && calendarMode} />
+            ) : (
               <Fragment key={time.startISO + '::' + time.type}>
-                {calendarMode && i === 0 && (
+                {calendarMode && i === (showingPastDates ? 0 : 1) && (
                   <>
                     {_.range(1, DateTime.fromISO(time.startISO).weekday).map(
                       (day) => (
-                        <div key={day} className='!h-0' />
+                        <div key={day} className='p-4 flex flex-col'>
+                          <div className='font-menu pl-8 text-faint '>
+                            {now
+                              .startOf('week')
+                              .plus({ days: day - 1 })
+                              .toFormat('EEE d')}
+                          </div>
+                          <div className='grow h-0 w-full rounded-lg bg-secondary-alt'></div>
+                        </div>
                       )
                     )}
                   </>
                 )}
-                <div>{isShowing && <Timeline {...time} />}</div>
+                <div id={time.startISO === todayString ? 'today' : undefined}>
+                  {isShowing && <Timeline {...time} />}
+                </div>
                 {calendarMode &&
                 DateTime.fromISO(time.startISO).weekday === 7 ? (
                   <div className='!h-0 !w-1'></div>
@@ -412,13 +382,35 @@ const Buttons = ({
   const now = DateTime.now()
 
   const scrollToSection = (section: number) => {
-    $('#time-ruler-times').children()[section]?.scrollIntoView({
+    const child = $('#time-ruler-times').children()[section]
+    console.log('scrolling to', child)
+    if (!child) {
+      setTimeout(() => scrollToSection(section), 100)
+      return
+    }
+    child.scrollIntoView({
       block: 'start',
+      inline: 'start',
       behavior: 'smooth',
     })
   }
 
   const calendarMode = useAppStore((state) => state.calendarMode)
+  useEffect(
+    () => scrollToSection(showingPastDates ? times.length - 1 : 1),
+    [calendarMode, showingPastDates]
+  )
+
+  useEffect(() => {
+    const checkScroll = () => {
+      const offsetLeft = $('#time-ruler-times').children()[1]?.offsetLeft
+      if ($('#time-ruler-times')[0].scrollLeft < offsetLeft - 20) {
+        $('#time-ruler-times')[0].scrollTo({ left: offsetLeft })
+        setTimeout(checkScroll, 100)
+      }
+    }
+    checkScroll()
+  }, [])
 
   const nextButton = (
     <div className='flex'>
@@ -444,19 +436,6 @@ const Buttons = ({
   const buttonMaps = times.concat()
   buttonMaps.splice(1, 0, {})
 
-  const unscheduledButton = (
-    <Droppable id={'unscheduled::button'} data={{ scheduled: '' }}>
-      <Button
-        className={`h-[28px]`}
-        onClick={() => {
-          setters.set({ searchStatus: 'unscheduled' })
-        }}
-      >
-        Unscheduled
-      </Button>
-    </Droppable>
-  )
-
   const [showingModal, setShowingModal] = useState(false)
   const modalFrame = useRef<HTMLDivElement>(null)
   const checkShowing = (ev: MouseEvent) => {
@@ -478,6 +457,35 @@ const Buttons = ({
   const today = now.toISODate()
   const yesterday = now.minus({ days: 1 }).toISODate()
   const tomorrow = now.plus({ days: 1 }).toISODate()
+
+  const renderButton = (time, i) => {
+    const thisDate = DateTime.fromISO(time.startISO)
+    return (
+      <Droppable
+        key={time.startISO ?? 'unscheduled'}
+        id={time.startISO + '::button'}
+        data={{ scheduled: time.startISO ?? '' }}
+      >
+        <Button className='h-[28px]' onClick={() => scrollToSection(i)}>
+          {time.type === 'unscheduled'
+            ? 'Unscheduled'
+            : time.startISO === today
+            ? 'Today'
+            : time.startISO === yesterday
+            ? 'Yesterday'
+            : time.startISO === tomorrow
+            ? 'Tomorrow'
+            : thisDate.toFormat(
+                calendarMode
+                  ? thisDate.day === 1 || i === 0
+                    ? 'MMM d'
+                    : 'd'
+                  : 'EEE MMM d'
+              )}
+        </Button>
+      </Droppable>
+    )
+  }
   return (
     <>
       <div className={`flex w-full items-center space-x-1`}>
@@ -487,6 +495,11 @@ const Buttons = ({
               src='more-horizontal'
               onClick={(ev) => setShowingModal(!showingModal)}
             />
+            {calendarMode &&
+              renderButton(
+                showingPastDates ? times.last() : times.first(),
+                showingPastDates ? times.length - 1 : 0
+              )}
             {showingModal && (
               <div className='tr-menu' ref={modalFrame}>
                 <div className=''>
@@ -546,7 +559,6 @@ const Buttons = ({
               </div>
             )}
           </div>
-          {calendarMode && unscheduledButton}
         </div>
 
         <div
@@ -558,32 +570,9 @@ const Buttons = ({
           data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
           {calendarMode && dayPadding()}
-          {!calendarMode && unscheduledButton}
-          {times.map((times, i) => {
-            const thisDate = DateTime.fromISO(times.startISO)
-            return (
-              <Droppable
-                key={times.startISO}
-                id={times.startISO + '::button'}
-                data={{ scheduled: times.startISO }}
-              >
-                <Button className='h-[28px]' onClick={() => scrollToSection(i)}>
-                  {times.startISO === today
-                    ? 'Today'
-                    : times.startISO === yesterday
-                    ? 'Yesterday'
-                    : times.startISO === tomorrow
-                    ? 'Tomorrow'
-                    : thisDate.toFormat(
-                        calendarMode
-                          ? thisDate.day === 1 || i === 0
-                            ? 'MMM d'
-                            : 'd'
-                          : 'EEE MMM d'
-                      )}
-                </Button>
-              </Droppable>
-            )
+          {times.map((time, i) => {
+            if (time.type === 'unscheduled' && calendarMode) return null
+            else return renderButton(time, i)
           })}
 
           {nextButton}

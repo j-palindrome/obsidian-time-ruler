@@ -21,7 +21,12 @@ import {
   taskToText,
   textToTask,
 } from './parser'
-import { parseFileFromPath, parseHeadingFromPath, toISO } from './util'
+import {
+  parseDateFromPath,
+  parseFileFromPath,
+  parseHeadingFromPath,
+  toISO,
+} from './util'
 
 let dv: DataviewApi
 
@@ -192,10 +197,7 @@ export default class ObsidianAPI extends Component {
       return
     }
 
-    const dailyNoteInfo = {
-      dailyNotePath: getters.get('dailyNotePath'),
-      dailyNoteFormat: getters.get('dailyNoteFormat'),
-    }
+    const dailyNoteInfo = getters.get('dailyNoteInfo')
 
     const searchWithinWeeks = getters.get('searchWithinWeeks')
     const dateBounds: [string, string] = [
@@ -292,7 +294,10 @@ export default class ObsidianAPI extends Component {
     }
 
     let file = app.vault.getAbstractFileByPath(fileName)
+    const dailyNoteInfo = getters.get('dailyNoteInfo')
     if (!(file instanceof TFile)) {
+      if (parseDateFromPath(path, dailyNoteInfo)) {
+      }
       file = await app.vault.create(fileName, '')
     }
     if (!(file instanceof TFile)) {
@@ -433,7 +438,7 @@ export default class ObsidianAPI extends Component {
 }
 
 export async function getDailyNoteInfo(): Promise<
-  Pick<AppState, 'dailyNoteFormat' | 'dailyNotePath'> | undefined
+  AppState['dailyNoteInfo'] | undefined
 > {
   try {
     let { folder, format } = (await app.vault

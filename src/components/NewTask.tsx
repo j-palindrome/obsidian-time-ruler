@@ -49,17 +49,12 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
 
   const [search, setSearch] = useState('')
 
-  const dailyNoteInfo = useAppStore(
-    ({ dailyNoteFormat, dailyNotePath }) => ({
-      dailyNoteFormat,
-      dailyNotePath,
-    }),
-    shallow
-  )
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const allHeadings: string[] = useAppStore((state) => {
     if (!newTask) return []
     return _.uniq(
       _.flatMap(state.tasks, (task) => {
+        if (task.completed) return []
         const heading = parseHeadingFromPath(
           task.path,
           task.page,
@@ -154,13 +149,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
 }
 
 function NewTaskHeading({ path }: { path: string }) {
-  const dailyNoteInfo = useAppStore(
-    ({ dailyNoteFormat, dailyNotePath }) => ({
-      dailyNoteFormat,
-      dailyNotePath,
-    }),
-    shallow
-  )
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const name = useMemo(
     () => parseHeadingFromPath(path, false, dailyNoteInfo),
     [path]

@@ -5,6 +5,9 @@ import _ from 'lodash'
 import { getDailyNoteInfo } from './obsidianApi'
 import NewTask from 'src/components/NewTask'
 import { useEffect, useState } from 'react'
+import useStateRef from 'react-usestateref'
+import invariant from 'tiny-invariant'
+import { Platform } from 'obsidian'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
@@ -71,9 +74,11 @@ export const processLength = ([time, items]: BlockData) => {
 }
 
 export const getTodayNote = () => {
-  const dailyPath = getters.get('dailyNotePath')
-  const dailyFormat = getters.get('dailyNoteFormat')
-  const dailyNote = dailyPath + moment().format(dailyFormat) + '.md'
+  const dailyNoteInfo = getters.get('dailyNoteInfo')
+  const dailyNote =
+    dailyNoteInfo.dailyNotePath +
+    moment().format(dailyNoteInfo.dailyNoteFormat) +
+    '.md'
   return dailyNote
 }
 
@@ -198,10 +203,7 @@ export const parseTaskDate = (task: TaskProps): string | undefined =>
   task.scheduled || task.due || task.completion
 
 export const useCollapsed = (tasks: TaskProps[]) => {
-  const dailyNoteInfo = useAppStore((state) => ({
-    dailyNoteFormat: state.dailyNoteFormat,
-    dailyNotePath: state.dailyNotePath,
-  }))
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const allHeadings = _.uniq(
     tasks.map((task) =>
       parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
@@ -236,4 +238,59 @@ export const useHourDisplay = (hours: number) => {
     : hours % 12
 
   return hourDisplay
+}
+
+export const useChildWidth = ({
+  container,
+  calendarModeRef,
+}: {
+  container: React.RefObject<HTMLDivElement>
+  calendarModeRef: React.RefObject<boolean>
+}) => {
+  const [childWidth, setChildWidth, childWidthRef] = useStateRef(1)
+  const childWidthToClass = [
+    '',
+    'child:w-full',
+    'child:w-1/2',
+    'child:w-1/3',
+    'child:w-1/4',
+  ]
+
+  function outputSize() {
+    if (Platform.isMobile) {
+      setChildWidth(1)
+      return
+    }
+    const timeRuler = container.current
+    invariant(timeRuler)
+    const width = timeRuler.clientWidth
+    const newChildWidth =
+      width < 500
+        ? 1
+        : width < 800
+        ? 2
+        : width < 1200 && !calendarModeRef.current
+        ? 3
+        : 4
+    if (newChildWidth !== childWidthRef.current) {
+      setChildWidth(newChildWidth)
+    }
+  }
+
+  useEffect(outputSize, [calendarModeRef.current])
+
+  useEffect(() => {
+    outputSize()
+    const timeRuler = document.querySelector('#time-ruler') as HTMLElement
+    if (!timeRuler) return
+    const observer = new ResizeObserver(outputSize)
+    observer.observe(timeRuler)
+    window.addEventListener('resize', outputSize)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', outputSize)
+    }
+  }, [])
+
+  return { childWidth, childClass: childWidthToClass[childWidth] }
 }

@@ -31,13 +31,7 @@ export default function Heading({
   dragContainer: string
   hidePaths?: string[]
 }) {
-  const dailyNoteInfo = useAppStore(
-    ({ dailyNoteFormat, dailyNotePath }) => ({
-      dailyNoteFormat,
-      dailyNotePath,
-    }),
-    shallow
-  )
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const name = useMemo(
     () => parseHeadingFromPath(path, isPage, dailyNoteInfo),
     [path]
