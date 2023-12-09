@@ -26,11 +26,12 @@ export type AppState = {
   dragData: DragData | null
   findingTask: string | null
   inScroll: number
-  searchStatus: false | ViewMode
-  calendarMode: boolean
+  searchStatus: boolean
+  viewMode: 'hour' | 'day' | 'week'
   dailyNoteInfo: {
-    dailyNoteFormat: string
-    dailyNotePath: string
+    format: string
+    folder: string
+    template: string
   }
   fileOrder: string[]
   newTask: false | Partial<TaskProps>
@@ -42,10 +43,12 @@ export type AppState = {
     | 'twentyFourHourFormat'
     | 'showCompleted'
     | 'extendBlocks'
+    | 'hideTimes'
   >
   collapsed: Record<string, boolean>
   showingPastDates: boolean
   searchWithinWeeks: [number, number]
+  childWidth: number
 }
 
 export const useAppStore = createWithEqualityFn<AppState>(() => ({
@@ -56,11 +59,12 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
   findingTask: null,
   inScroll: 0,
   searchStatus: false,
-  calendarMode: false,
+  viewMode: 'hour',
   fileOrder: [],
   dailyNoteInfo: {
-    dailyNoteFormat: 'YYYY-MM-DD',
-    dailyNotePath: '',
+    format: 'YYYY-MM-DD',
+    folder: '',
+    template: '',
   },
   newTask: false,
   collapsed: {},
@@ -71,9 +75,12 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     twentyFourHourFormat: false,
     showCompleted: false,
     extendBlocks: false,
+    hideTimes: false,
+    separatorHour: 0,
   },
   showingPastDates: false,
   searchWithinWeeks: [-1, 1],
+  childWidth: 1,
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {

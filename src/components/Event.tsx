@@ -79,7 +79,7 @@ function _Event({
     ? $('#time-ruler-times').children()[0]?.getBoundingClientRect().width - 16
     : undefined
 
-  const calendarMode = useAppStore((state) => state.calendarMode)
+  const calendarMode = useAppStore((state) => state.viewMode === 'week')
 
   const { collapsed, allHeadings } = useCollapsed(tasks)
 

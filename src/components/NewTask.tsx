@@ -81,12 +81,14 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     } else {
       getters.getObsidianAPI().createTask(selectedHeading, newTask)
     }
+
+    setSearch('')
   }
 
   return (
     <>
       <div
-        className='relative z-30 h-8 w-8 flex-none'
+        className='relative z-30 h-10 w-10 flex-none'
         {...attributes}
         {...listeners}
         ref={setNodeRef}

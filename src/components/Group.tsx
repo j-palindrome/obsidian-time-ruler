@@ -75,7 +75,7 @@ export default function Group({
     })
 
   return (
-    <div ref={setNodeRef} className={`w-full`}>
+    <div ref={setNodeRef} className={`w-full overflow-hidden`}>
       {path && path !== UNGROUPED && !hidePaths.includes(path) && (
         <Heading
           dragProps={{

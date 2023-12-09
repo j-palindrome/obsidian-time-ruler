@@ -76,7 +76,7 @@ export default function Block({
 
   const blockId = tasks[0]?.scheduled ?? ''
 
-  const calendarMode = useAppStore((state) => state.calendarMode)
+  const calendarMode = useAppStore((state) => state.viewMode === 'week')
   return (
     <div
       id={id}

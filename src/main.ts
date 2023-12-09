@@ -32,7 +32,6 @@ type TimeRulerSettings = {
     include: boolean
     statuses: string
   }
-  viewingPastDates: boolean
   showCompleted: boolean
   dayStartEnd: [number, number]
   hideHeadings: boolean
@@ -40,6 +39,7 @@ type TimeRulerSettings = {
   filterFunction: string
   addTaskToEnd: boolean
   extendBlocks: boolean
+  hideTimes: boolean
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -61,7 +61,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   filterFunction: '',
   addTaskToEnd: false,
   extendBlocks: false,
-  viewingPastDates: false,
+  hideTimes: false,
 }
 
 export default class TimeRulerPlugin extends Plugin {

@@ -111,19 +111,11 @@ export default function Task({
     <div
       className={`relative rounded-lg py-0.5 transition-colors duration-300 ${
         type === 'parent' ? 'mt-1' : ''
-      }`}
+      } w-full`}
       ref={setNodeRef}
-      data-id={isLink || (type === 'search' && task.scheduled) ? '' : id}
+      data-id={isLink ? '' : id}
       data-task={task.status === ' ' ? '' : task.status}
     >
-      {type === 'deadline' && (
-        <div
-          className='cursor-pointer pl-8 text-xs text-accent hover:underline'
-          onClick={() => app.workspace.openLinkText(task.path, '')}
-        >
-          {parseHeadingFromPath(task.path, task.page, dailyNoteInfo)}
-        </div>
-      )}
       <div
         className={`selectable group flex items-center rounded-lg pr-2 ${
           isLink ? 'font-menu text-xs' : 'font-sans'
@@ -238,7 +230,7 @@ export default function Task({
         </div>
       )}
       {subtasks.length > 0 && (
-        <div className='flex pl-2'>
+        <div className='flex pl-2 w-full overflow-hidden'>
           <div
             className='group min-w-[16px] grow hover:bg-selection transition-colors duration-500 min-h-[20px] rounded-lg'
             onClick={() => setters.patchCollapsed([id], !collapsed)}

@@ -1,13 +1,20 @@
 import { DateTime } from 'luxon'
-import { AppState, getters, setters, useAppStore } from '../app/store'
+import {
+  AppState,
+  getters,
+  setters,
+  useAppStore,
+  useAppStoreRef,
+} from '../app/store'
 import moment from 'moment'
-import _ from 'lodash'
-import { getDailyNoteInfo } from './obsidianApi'
+import _, { reject } from 'lodash'
+import ObsidianAPI, { getDailyNoteInfo } from './obsidianApi'
 import NewTask from 'src/components/NewTask'
 import { useEffect, useState } from 'react'
 import useStateRef from 'react-usestateref'
 import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
+import TimeRulerPlugin from 'src/main'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
@@ -76,9 +83,7 @@ export const processLength = ([time, items]: BlockData) => {
 export const getTodayNote = () => {
   const dailyNoteInfo = getters.get('dailyNoteInfo')
   const dailyNote =
-    dailyNoteInfo.dailyNotePath +
-    moment().format(dailyNoteInfo.dailyNoteFormat) +
-    '.md'
+    dailyNoteInfo.folder + moment().format(dailyNoteInfo.format) + '.md'
   return dailyNote
 }
 
@@ -92,19 +97,19 @@ export const parseFileFromPath = (path: string) =>
 
 export const parsePathFromDate = (
   date: string,
-  dailyNoteInfo: DailyNoteInfo
+  dailyNoteInfo: AppState['dailyNoteInfo']
 ) => {
-  const formattedDate = moment(date).format(dailyNoteInfo.dailyNoteFormat)
-  return dailyNoteInfo.dailyNotePath + formattedDate + '.md'
+  const formattedDate = moment(date).format(dailyNoteInfo.format)
+  return dailyNoteInfo.folder + formattedDate + '.md'
 }
 
 export const parseDateFromPath = (
   path: string,
-  dailyNoteInfo: DailyNoteInfo
+  dailyNoteInfo: AppState['dailyNoteInfo']
 ) => {
   const date = moment(
-    path.replace(dailyNoteInfo.dailyNotePath, '').replace('.md', ''),
-    dailyNoteInfo.dailyNoteFormat,
+    path.replace(dailyNoteInfo.folder, '').replace('.md', ''),
+    dailyNoteInfo.format,
     true
   )
   if (!date.isValid()) return false
@@ -114,7 +119,7 @@ export const parseDateFromPath = (
 export const parseHeadingFromPath = (
   path: string,
   isPage: boolean,
-  dailyNoteInfo: DailyNoteInfo
+  dailyNoteInfo: AppState['dailyNoteInfo']
 ): string => {
   let name = ''
   let fileName = parseFileFromPath(path)
@@ -140,7 +145,7 @@ export const parseHeadingTitle = (path: string) => {
 
 export const getTasksByHeading = (
   tasks: AppState['tasks'],
-  dailyNoteInfo: DailyNoteInfo,
+  dailyNoteInfo: AppState['dailyNoteInfo'],
   fileOrder: string[]
 ): [string, TaskProps[]][] => {
   return _.sortBy(
@@ -156,7 +161,7 @@ export const getTasksByHeading = (
 
 export const createInDaily = (
   task: Partial<TaskProps>,
-  dailyNoteInfo: DailyNoteInfo
+  dailyNoteInfo: AppState['dailyNoteInfo']
 ) => {
   const date = !task.scheduled
     ? (DateTime.now().toISODate() as string)
@@ -181,21 +186,10 @@ export const isLengthType = (type?: DragData['dragType']) =>
   (type && type === 'task-length') || type === 'time'
 
 export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
-  const childrenToRemove: number[] = []
-
-  const recurse = (id: string, taskList: TaskProps[]) => {
-    for (let i = 0; i < taskList.length; i++) {
-      if (taskList[i].parent === id && !childrenToRemove.includes(i)) {
-        childrenToRemove.push(i)
-        childrenToRemove.push(...recurse(taskList[i].id, taskList))
-      }
+  for (let child of taskList) {
+    if (child.parent === id) {
+      _.remove(taskList, child)
     }
-    return childrenToRemove
-  }
-
-  recurse(id, taskList)
-  for (let child of childrenToRemove.sort().reverse()) {
-    taskList.splice(child, 1)
   }
 }
 
@@ -242,12 +236,17 @@ export const useHourDisplay = (hours: number) => {
 
 export const useChildWidth = ({
   container,
-  calendarModeRef,
 }: {
   container: React.RefObject<HTMLDivElement>
-  calendarModeRef: React.RefObject<boolean>
 }) => {
-  const [childWidth, setChildWidth, childWidthRef] = useStateRef(1)
+  const [_childWidth, childWidthRef] = useAppStoreRef(
+    (state) => state.childWidth
+  )
+  const setChildWidth = (newChildWidth: number) => {
+    if (newChildWidth !== childWidthRef.current)
+      setters.set({ childWidth: newChildWidth })
+  }
+  const [viewMode, viewModeRef] = useAppStoreRef((state) => state.viewMode)
   const childWidthToClass = [
     '',
     'child:w-full',
@@ -269,15 +268,14 @@ export const useChildWidth = ({
         ? 1
         : width < 800
         ? 2
-        : width < 1200 && !calendarModeRef.current
+        : width < 1200 && viewModeRef.current !== 'week'
         ? 3
         : 4
-    if (newChildWidth !== childWidthRef.current) {
-      setChildWidth(newChildWidth)
-    }
+
+    setChildWidth(newChildWidth)
   }
 
-  useEffect(outputSize, [calendarModeRef.current])
+  useEffect(outputSize, [viewMode])
 
   useEffect(() => {
     outputSize()
@@ -292,5 +290,51 @@ export const useChildWidth = ({
     }
   }, [])
 
-  return { childWidth, childClass: childWidthToClass[childWidth] }
+  const appChildWidth = viewMode === 'hour' ? 1 : childWidthRef.current
+  const appChildClass = childWidthToClass[appChildWidth]
+  return {
+    childWidth: appChildWidth,
+    childClass: appChildClass,
+  }
+}
+
+export const scrollToSection = async (id: string) =>
+  new Promise<void>((resolve) => {
+    let count = 0
+    const scroll = () => {
+      count++
+      if (count > 10) {
+        reject(`section not found: #time-ruler-${id}`)
+        return
+      }
+      const child = document.getElementById(`time-ruler-${id}`)
+      if (!child) {
+        setTimeout(() => scrollToSection(id), 250)
+        return
+      }
+      child.scrollIntoView({
+        block: 'start',
+        inline: 'start',
+        behavior: 'smooth',
+      })
+      setTimeout(() => resolve(), 250)
+    }
+    scroll()
+  })
+
+export const findScheduledInParents = (
+  id: string,
+  tasks: Record<string, TaskProps>
+): TaskProps['scheduled'] => {
+  let task: TaskProps
+  task = tasks[id]
+  while (true) {
+    invariant(task)
+    if (task.scheduled) return task.scheduled
+    if (task.parent) {
+      task = tasks[task.parent]
+    } else {
+      return undefined
+    }
+  }
 }

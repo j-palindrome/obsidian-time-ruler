@@ -77,7 +77,7 @@ export default function Heading({
         topDiv
       )}
       <div
-        className={`time-ruler-heading selectable flex w-full rounded-lg pr-2 font-menu text-xs child:truncate group`}
+        className={`time-ruler-heading selectable flex w-full rounded-lg font-menu text-xs group overflow-hidden`}
       >
         <Button
           className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 w-6 h-4 mx-1 py-0.5 flex-none'
@@ -89,7 +89,7 @@ export default function Heading({
           onPointerDown={() => false}
         />
         <div
-          className={`w-fit flex-none cursor-grab ${
+          className={`w-fit flex-none cursor-grab max-w-[50%] overflow-hidden ${
             path.includes('#') ? 'text-normal' : 'text-accent'
           }`}
           onPointerDown={() => false}
@@ -98,7 +98,7 @@ export default function Heading({
           {title}
         </div>
         <div
-          className='min-h-[12px] w-full h-full cursor-grab text-right text-xs text-faint'
+          className='min-h-[12px] w-0 grow h-full cursor-grab text-right text-xs text-faint overflow-ellipsis'
           {...dragProps}
         >
           {hidePaths.includes(container) ? '' : container.replace('.md', '')}

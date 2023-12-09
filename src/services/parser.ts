@@ -12,7 +12,7 @@ import {
 } from '../types/enums'
 import _ from 'lodash'
 import { isDateISO, parseDateFromPath, parseFileFromPath, toISO } from './util'
-import { getters } from '../app/store'
+import { AppState, getters } from '../app/store'
 import { startTransition } from 'react'
 import { create } from 'zustand'
 import TimeRulerPlugin from '../main'
@@ -38,7 +38,7 @@ const KANBAN_TIME = / ?@@\{(\d{2}:\d{2})\}/
 
 export function textToTask(
   item: any,
-  dailyNoteInfo: DailyNoteInfo,
+  dailyNoteInfo: AppState['dailyNoteInfo'],
   defaultFormat: TimeRulerPlugin['settings']['fieldFormat']
 ): TaskProps {
   const { main: mainFormat } = detectFieldFormat(item.text, defaultFormat)
@@ -527,7 +527,11 @@ export function taskToText(
           !date || date.toISOString(false).slice(0, 10) !== scheduledDate
 
         let scheduledTime = task.scheduled.slice(11, 16).replace(/^0/, '')
-        if (task.length && task.length.hour + task.length.minute > 0) {
+        if (
+          scheduledTime &&
+          task.length &&
+          task.length.hour + task.length.minute > 0
+        ) {
           const end = DateTime.fromISO(task.scheduled).plus(task.length)
           scheduledTime += ` - ${end.toFormat('HH:mm').replace(/^0/, '')}`
         }
@@ -539,9 +543,19 @@ export function taskToText(
           ' ' +
           draft.slice(6).replace(/^\s+/, '')
       }
+
       if (task.due) draft += `  > ${task.due}`
       if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
         draft += ` ${priorityNumberToSimplePriority[task.priority]}`
+      }
+      if (
+        (!task.scheduled || isDateISO(task.scheduled)) &&
+        task.length &&
+        task.length.hour + task.length.minute > 0
+      ) {
+        draft += `  [length:: ${
+          task.length.hour ? `${task.length.hour}h` : ''
+        }${task.length.minute ? `${task.length.minute}m` : ''}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) {

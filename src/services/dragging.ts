@@ -63,7 +63,7 @@ export const onDragEnd = async (
 
           for (let [time, tasks] of tasksByTime) {
             const timeParse = DateTime.fromISO(time)
-            setters.patchTasks(
+            await setters.patchTasks(
               tasks.map((task) => task.id),
               { scheduled: toISO(timeParse.plus(addedHour)) }
             )

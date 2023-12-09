@@ -11,6 +11,8 @@ import Event from './Event'
 import invariant from 'tiny-invariant'
 import Timeline from './Timeline'
 import { sounds } from '../assets/assets'
+import Droppable from './Droppable'
+import NewTask from './NewTask'
 
 export function Timer() {
   const pauseExpiration = useRef(true)
@@ -132,6 +134,10 @@ export function Timer() {
     }
   }
 
+  const draggingTask = useAppStore(
+    (state) => state.dragData && state.dragData.dragType === 'task'
+  )
+
   return (
     <div
       className={`${
@@ -143,8 +149,16 @@ export function Timer() {
       <div
         className={`relative my-1 flex w-full items-center justify-center rounded-icon bg-primary-alt font-menu text-sm child:relative child:h-full py-0.5 ${
           negative ? 'bg-red-800/50' : ''
-        } ${expanded ? 'h-12' : 'h-6'}`}
+        } ${expanded ? 'h-14' : 'h-6'}`}
       >
+        <div className='!absolute top-0 right-1 h-full flex items-center space-x-1'>
+          {draggingTask && (
+            <Droppable id={`delete-task`} data={{ type: 'delete' }}>
+              <Button src='x' className='!rounded-full h-10 w-10 bg-red-900' />
+            </Droppable>
+          )}
+          <NewTask dragContainer='timer' />
+        </div>
         <div
           className={`!absolute left-0 top-0 h-full flex-none rounded-icon ${
             width === 0 ? '' : 'transition-width duration-1000 ease-linear'
@@ -191,12 +205,11 @@ export function Timer() {
         />
       </div>
       {expanded && (
-        <div className='relative h-full w-full space-y-2 overflow-y-auto py-2 text-base child:max-w-xl flex justify-center'>
+        <div className='relative h-full w-full overflow-y-auto py-2 text-base child:max-w-xl child:w-full flex justify-center'>
           <Timeline
             dragContainer='timer'
             startISO={DateTime.now().toISODate() as string}
             endISO={toISO(DateTime.now())}
-            hideTimes
             type='minutes'
           />
         </div>

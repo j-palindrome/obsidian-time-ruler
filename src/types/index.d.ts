@@ -101,11 +101,6 @@ declare global {
     | { type: 'delete' }
 
   type BlockData = [string, (EventProps | TaskProps)[]]
-
-  type DailyNoteInfo = {
-    dailyNoteFormat: string
-    dailyNotePath: string
-  }
 }
 
 declare module 'obsidian' {

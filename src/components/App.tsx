@@ -45,6 +45,7 @@ import NewTask from './NewTask'
 import {
   parseDateFromPath,
   parseHeadingFromPath,
+  scrollToSection,
   toISO,
   useChildWidth,
 } from '../services/util'
@@ -78,6 +79,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       dayStartEnd: apis.obsidian.getSetting('dayStartEnd'),
       showCompleted: apis.obsidian.getSetting('showCompleted'),
       extendBlocks: apis.obsidian.getSetting('extendBlocks'),
+      hideTimes: apis.obsidian.getSetting('hideTimes'),
     }
 
     setters.set({
@@ -117,19 +119,22 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         .plus({ days: 1 })
   const datesShown = _.floor(nextMonday.diff(DateTime.now()).as('days'))
 
+  const dayStart = useAppStore((state) => state.settings.dayStartEnd[0])
   const times: (Parameters<typeof Timeline>[0] | { type: 'unscheduled' })[] = [
     { type: 'unscheduled' },
     {
-      startISO: today.toISODate() as string,
+      startISO: toISO(today.plus({ hours: dayStart })),
       endISO: showingPastDates
         ? toISO(DateTime.now())
-        : (today.plus({ days: 1 }).toISODate() as string),
+        : toISO(today.plus({ hours: dayStart, days: 1 })),
       type: 'minutes',
+      dragContainer: 'app',
     },
     ..._.range(showingPastDates ? -1 : 1, datesShown).map((i) => ({
-      startISO: today.plus({ days: i }).toISODate() as string,
-      endISO: today.plus({ days: i + 1 }).toISODate() as string,
+      startISO: toISO(today.plus({ days: i, hours: dayStart })),
+      endISO: toISO(today.plus({ days: i + 1, hours: dayStart })),
       type: 'minutes' as TimeSpanTypes,
+      dragContainer: 'app',
     })),
   ]
   if (showingPastDates) times.reverse()
@@ -213,13 +218,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const container = useRef<HTMLDivElement>(null)
 
-  const [calendarMode, calendarModeRef] = useAppStoreRef(
-    (state) => state.calendarMode
-  )
+  const calendarMode = useAppStore((state) => state.viewMode === 'week')
 
   const { childWidth, childClass } = useChildWidth({
     container,
-    calendarModeRef,
   })
 
   const updateScroll = () => {
@@ -264,116 +266,136 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     $('#time-ruler')
       .parent()[0]
       ?.style?.setProperty('overflow', 'clip', 'important')
+    $('#time-ruler')
+      .parent()[0]
+      ?.style?.setProperty('padding', '4px 8px 8px', 'important')
   }, [])
 
+  const frameClass =
+    'p-0.5 child:p-1 child:bg-primary-alt child:rounded-lg child:h-full child:w-full'
+
+  const dayPadding = (time: (typeof times)[number]) => {
+    invariant(time.type !== 'unscheduled')
+    const startDate = DateTime.fromISO(time.startISO)
+    return (
+      <>
+        {_.range(startDate.weekday < 4 ? 1 : 5, startDate.weekday).map(
+          (day) => (
+            <div key={day} className={`${frameClass}`}>
+              <div className='flex-col'>
+                <div className='font-menu pl-8 text-faint flex-none'>
+                  {now
+                    .startOf('week')
+                    .plus({ days: day - 1 })
+                    .toFormat('EEE d')}
+                </div>
+                <div className='grow h-0 w-full rounded-lg bg-secondary-alt'></div>
+              </div>
+            </div>
+          )
+        )}
+      </>
+    )
+  }
+
+  const searchStatus = useAppStore((state) => state.searchStatus)
+
   return (
-    <DndContext
-      onDragStart={onDragStart}
-      onDragEnd={(ev) => onDragEnd(ev, activeDragRef)}
-      onDragCancel={() => setters.set({ dragData: null })}
-      collisionDetection={pointerWithin}
-      measuring={measuringConfig}
-      sensors={sensors}
-      autoScroll={false}
-    >
-      <div
-        id='time-ruler'
-        ref={container}
-        style={{
-          height: '100%',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          background: 'transparent',
-        }}
-        className={`time-ruler-container`}
+    <>
+      <DndContext
+        onDragStart={onDragStart}
+        onDragEnd={(ev) => onDragEnd(ev, activeDragRef)}
+        onDragCancel={() => setters.set({ dragData: null })}
+        collisionDetection={pointerWithin}
+        measuring={measuringConfig}
+        sensors={sensors}
+        autoScroll={false}
       >
-        <DragOverlay
-          dropAnimation={null}
+        <div
+          id='time-ruler'
+          ref={container}
           style={{
-            width: `calc((100% - 48px) / ${childWidth})`,
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            background: 'transparent',
           }}
+          className={`time-ruler-container`}
         >
-          {getDragElement()}
-        </DragOverlay>
-        <Search />
-        <Buttons
-          {...{
-            times,
-            datesShown,
-            setWeeksShown,
-            weeksShownState,
-            setupStore: reload,
-            showingPastDates,
-          }}
-        />
-        <div className='w-full flex items-center h-5 flex-none space-x-2 mb-2 mt-1 relative'>
-          <Timer />
-          <div className='absolute right-0 top-full flex space-x-2 pt-3 pr-3 z-40'>
-            {activeDrag && activeDrag.dragType === 'task' && (
-              <Droppable id={`delete-task`} data={{ type: 'delete' }}>
-                <Button src='x' className='!rounded-full h-8 w-8 bg-red-900' />
-              </Droppable>
-            )}
-            <NewTask dragContainer='main' />
+          <DragOverlay
+            dropAnimation={null}
+            style={{
+              width: `calc((100% - 48px) / ${childWidth})`,
+            }}
+          >
+            {getDragElement()}
+          </DragOverlay>
+
+          <Buttons
+            {...{
+              times,
+              datesShown,
+              setWeeksShown,
+              weeksShownState,
+              setupStore: reload,
+              showingPastDates,
+            }}
+          />
+          <div className='w-full flex items-center h-5 flex-none my-1'>
+            <Timer />
+          </div>
+          <div
+            className={`flex h-full w-full snap-mandatory rounded-lg text-base child:flex-none child:snap-start ${childClass} ${
+              calendarMode
+                ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
+                : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
+            }`}
+            id='time-ruler-times'
+            data-auto-scroll={calendarMode ? 'y' : 'x'}
+            ref={scroller}
+            onScroll={updateScroll}
+          >
+            {times.map((time, i) => {
+              const isShowing =
+                calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
+              return time.type === 'unscheduled' ? (
+                <div
+                  key='unscheduled'
+                  id='time-ruler-unscheduled'
+                  className={`${frameClass} ${calendarMode ? '!w-full' : ''}`}
+                >
+                  <Unscheduled />
+                </div>
+              ) : (
+                <Fragment key={time.startISO + '::' + time.type}>
+                  {calendarMode &&
+                    i === (showingPastDates ? 0 : 1) &&
+                    dayPadding(time)}
+                  <div
+                    id={`time-ruler-${time.startISO.slice(0, 10)}`}
+                    className={frameClass}
+                  >
+                    {isShowing && <Timeline {...time} dragContainer='app' />}
+                  </div>
+                  {calendarMode &&
+                  DateTime.fromISO(time.startISO).weekday === 7 ? (
+                    <div className='!h-0 !w-1'></div>
+                  ) : null}
+                </Fragment>
+              )
+            })}
           </div>
         </div>
-        <div
-          className={`flex h-full w-full snap-mandatory  rounded-lg bg-primary-alt text-base child:flex-none child:snap-start child:p-2 ${childClass} ${
-            calendarMode
-              ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
-              : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
-          }`}
-          id='time-ruler-times'
-          data-auto-scroll={calendarMode ? 'y' : 'x'}
-          ref={scroller}
-          onScroll={updateScroll}
-        >
-          {times.map((time, i) => {
-            const isShowing =
-              calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
-
-            return time.type === 'unscheduled' ? (
-              <Unscheduled isFlex={childWidth > 1 && calendarMode} />
-            ) : (
-              <Fragment key={time.startISO + '::' + time.type}>
-                {calendarMode && i === (showingPastDates ? 0 : 1) && (
-                  <>
-                    {_.range(1, DateTime.fromISO(time.startISO).weekday).map(
-                      (day) => (
-                        <div key={day} className='p-4 flex flex-col'>
-                          <div className='font-menu pl-8 text-faint '>
-                            {now
-                              .startOf('week')
-                              .plus({ days: day - 1 })
-                              .toFormat('EEE d')}
-                          </div>
-                          <div className='grow h-0 w-full rounded-lg bg-secondary-alt'></div>
-                        </div>
-                      )
-                    )}
-                  </>
-                )}
-                <div id={time.startISO === todayString ? 'today' : undefined}>
-                  {isShowing && <Timeline {...time} />}
-                </div>
-                {calendarMode &&
-                DateTime.fromISO(time.startISO).weekday === 7 ? (
-                  <div className='!h-0 !w-1'></div>
-                ) : null}
-              </Fragment>
-            )
-          })}
-        </div>
-      </div>
-    </DndContext>
+      </DndContext>
+      {searchStatus && <Search />}
+    </>
   )
 }
 
 const Buttons = ({
   times,
-  datesShown,
   weeksShownState,
   setWeeksShown,
   setupStore,
@@ -381,25 +403,11 @@ const Buttons = ({
 }) => {
   const now = DateTime.now()
 
-  const scrollToSection = (section: number) => {
-    const child = $('#time-ruler-times').children()[section]
-    console.log('scrolling to', child)
-    if (!child) {
-      setTimeout(() => scrollToSection(section), 100)
-      return
-    }
-    child.scrollIntoView({
-      block: 'start',
-      inline: 'start',
-      behavior: 'smooth',
-    })
-  }
+  const viewMode = useAppStore((state) => state.viewMode)
 
-  const calendarMode = useAppStore((state) => state.calendarMode)
-  useEffect(
-    () => scrollToSection(showingPastDates ? times.length - 1 : 1),
-    [calendarMode, showingPastDates]
-  )
+  useEffect(() => {
+    scrollToSection(DateTime.now().toISODate())
+  }, [viewMode, showingPastDates])
 
   useEffect(() => {
     const checkScroll = () => {
@@ -415,23 +423,18 @@ const Buttons = ({
   const nextButton = (
     <div className='flex'>
       <Button
-        className={`${calendarMode ? '!w-full' : ''}`}
         onClick={() => setWeeksShown(weeksShownState + 1)}
         src={'chevron-right'}
       />
       {weeksShownState > 0 && (
         <Button
-          className={`force-hover rounded-lg ${calendarMode ? '' : '!w-8'}`}
+          className={`force-hover rounded-lg`}
           onClick={() => setWeeksShown(weeksShownState - 1)}
           src='chevron-left'
         />
       )}
     </div>
   )
-
-  const dayPadding = () => {
-    return _.range(1, now.weekday).map((i) => <div key={i}></div>)
-  }
 
   const buttonMaps = times.concat()
   buttonMaps.splice(1, 0, {})
@@ -464,9 +467,16 @@ const Buttons = ({
       <Droppable
         key={time.startISO ?? 'unscheduled'}
         id={time.startISO + '::button'}
-        data={{ scheduled: time.startISO ?? '' }}
+        data={{ scheduled: time.startISO?.slice(0, 10) ?? '' }}
       >
-        <Button className='h-[28px]' onClick={() => scrollToSection(i)}>
+        <Button
+          className='h-[28px]'
+          onClick={() =>
+            scrollToSection(
+              !time.startISO ? 'unscheduled' : time.startISO.slice(0, 10)
+            )
+          }
+        >
           {time.type === 'unscheduled'
             ? 'Unscheduled'
             : time.startISO === today
@@ -475,44 +485,23 @@ const Buttons = ({
             ? 'Yesterday'
             : time.startISO === tomorrow
             ? 'Tomorrow'
-            : thisDate.toFormat(
-                calendarMode
-                  ? thisDate.day === 1 || i === 0
-                    ? 'MMM d'
-                    : 'd'
-                  : 'EEE MMM d'
-              )}
+            : thisDate.toFormat('EEE MMM d')}
         </Button>
       </Droppable>
     )
   }
   return (
     <>
-      <div className={`flex w-full items-center space-x-1`}>
+      <div className={`flex w-full items-center space-x-1 rounded-lg`}>
         <div className='text-left'>
           <div className='group relative'>
             <Button
               src='more-horizontal'
               onClick={(ev) => setShowingModal(!showingModal)}
             />
-            {calendarMode &&
-              renderButton(
-                showingPastDates ? times.last() : times.first(),
-                showingPastDates ? times.length - 1 : 0
-              )}
             {showingModal && (
               <div className='tr-menu' ref={modalFrame}>
                 <div className=''>
-                  <div
-                    className='clickable-icon'
-                    onClick={() => {
-                      setters.set({ searchStatus: 'all' })
-                      setShowingModal(false)
-                    }}
-                  >
-                    <Logo src={'search'} className='w-6 flex-none' />
-                    <span className='whitespace-nowrap'>Search</span>
-                  </div>
                   <div
                     className='clickable-icon'
                     onClick={() => {
@@ -538,41 +527,58 @@ const Buttons = ({
                     <Logo src={'rotate-cw'} className='w-6 flex-none' />
                     <span className='whitespace-nowrap'>Reload</span>
                   </div>
-                  <div
-                    className='clickable-icon'
-                    onClick={() => {
-                      setters.set({
-                        calendarMode: !calendarMode,
-                      })
-                      setShowingModal(false)
-                    }}
-                  >
-                    <Logo
-                      src={calendarMode ? 'calendar-days' : 'calendar'}
+                  <div className='pl-1 text-muted'>Layout</div>
+                  <div className='flex'>
+                    <Button
+                      src={'square'}
+                      title='One'
                       className='w-6 flex-none'
+                      onClick={() => {
+                        setters.set({
+                          viewMode: 'hour',
+                        })
+                        setShowingModal(false)
+                      }}
                     />
-                    <span className='whitespace-nowrap'>{`${
-                      calendarMode ? 'Hourly' : 'Daily'
-                    } view`}</span>
+                    <Button
+                      title='Row'
+                      src={'gallery-horizontal'}
+                      className='w-6 flex-none'
+                      onClick={() => {
+                        setters.set({
+                          viewMode: 'day',
+                        })
+                        setShowingModal(false)
+                      }}
+                    />
+                    <Button
+                      title='Grid'
+                      src={'layout-grid'}
+                      className='w-6 flex-none'
+                      onClick={() => {
+                        setters.set({
+                          viewMode: 'week',
+                        })
+                        setShowingModal(false)
+                      }}
+                    />
                   </div>
                 </div>
               </div>
             )}
           </div>
+          <Button
+            src='search'
+            onClick={() => setters.set({ searchStatus: true })}
+          />
         </div>
 
         <div
-          className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start ${
-            calendarMode
-              ? 'max-h-[calc(28px*2+2px)] snap-y flex-wrap justify-around overflow-y-auto child:w-[calc(100%/7)]'
-              : 'snap-x items-center space-x-2 overflow-x-auto'
-          }`}
-          data-auto-scroll={calendarMode ? 'y' : 'x'}
+          className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start snap-x items-center space-x-2 overflow-x-auto`}
+          data-auto-scroll='x'
         >
-          {calendarMode && dayPadding()}
           {times.map((time, i) => {
-            if (time.type === 'unscheduled' && calendarMode) return null
-            else return renderButton(time, i)
+            return renderButton(time, i)
           })}
 
           {nextButton}

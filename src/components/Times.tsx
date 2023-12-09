@@ -10,7 +10,7 @@ import ObsidianAPI from '../services/obsidianApi'
 import { getters, setters, useAppStore } from '../app/store'
 import Button from './Button'
 import Droppable from './Droppable'
-import { useEffect } from 'react'
+import { Fragment, useEffect } from 'react'
 
 export type TimeSpanTypes = 'minutes' | 'hours'
 export default function Times({
@@ -69,11 +69,11 @@ export default function Times({
 
   return (
     <div className={`min-h-[4px]`}>
-      {startISO <= now && endISO > now && (
-        <NowTime dragContainer={dragContainer} />
-      )}
       {times.map((time, i) => (
-        <Time key={startISOs[i]} {...{ type, time, dragContainer }} />
+        <Fragment key={startISOs[i]}>
+          {startISOs[i] === now && <NowTime dragContainer={dragContainer} />}
+          <Time key={startISOs[i]} {...{ type, time, dragContainer }} />
+        </Fragment>
       ))}
     </div>
   )

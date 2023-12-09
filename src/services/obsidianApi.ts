@@ -22,9 +22,11 @@ import {
   textToTask,
 } from './parser'
 import {
+  findScheduledInParents,
   parseDateFromPath,
   parseFileFromPath,
   parseHeadingFromPath,
+  scrollToSection,
   toISO,
 } from './util'
 
@@ -70,7 +72,7 @@ export default class ObsidianAPI extends Component {
 
   searchTasks(
     path: string,
-    dailyNoteInfo: DailyNoteInfo,
+    dailyNoteInfo: AppState['dailyNoteInfo'],
     completed = false,
     dateBounds: [string, string]
   ) {
@@ -217,7 +219,7 @@ export default class ObsidianAPI extends Component {
   updateTasks(
     processedTasks: TaskProps[],
     path: string,
-    dailyNoteInfo: DailyNoteInfo
+    dailyNoteInfo: AppState['dailyNoteInfo']
   ) {
     const updatedTasks = {
       ...getters.get('tasks'),
@@ -296,9 +298,17 @@ export default class ObsidianAPI extends Component {
     let file = app.vault.getAbstractFileByPath(fileName)
     const dailyNoteInfo = getters.get('dailyNoteInfo')
     if (!(file instanceof TFile)) {
-      if (parseDateFromPath(path, dailyNoteInfo)) {
+      let starterText = ''
+      if (parseDateFromPath(path, dailyNoteInfo) && dailyNoteInfo.template) {
+        const templateFile = await this.getFile(
+          dailyNoteInfo.template +
+            (dailyNoteInfo.template.endsWith('.md') ? '' : '.md')
+        )
+        if (templateFile) {
+          starterText = await app.vault.read(templateFile)
+        }
       }
-      file = await app.vault.create(fileName, '')
+      file = await app.vault.create(fileName, starterText)
     }
     if (!(file instanceof TFile)) {
       new Notice(`Time Ruler: failed to create file ${fileName}`)
@@ -336,7 +346,9 @@ export default class ObsidianAPI extends Component {
         i++
       }
       if (this.settings.addTaskToEnd) {
-        targetLine = lines.length
+        const firstHeading = lines.findIndex((line) => /^#+ /.test(line))
+        if (firstHeading === -1) targetLine = lines.length
+        else targetLine = firstHeading
       } else if (
         lines[i] === '---' &&
         lines.find((line) => line === '---', i + 1)
@@ -370,6 +382,7 @@ export default class ObsidianAPI extends Component {
 
     await this.saveTask(defaultTask, true)
     openTask(defaultTask)
+    setters.set({ newTask: undefined })
   }
 
   private async getFile(path: string) {
@@ -441,7 +454,7 @@ export async function getDailyNoteInfo(): Promise<
   AppState['dailyNoteInfo'] | undefined
 > {
   try {
-    let { folder, format } = (await app.vault
+    let { folder, format, template } = (await app.vault
       .readConfigJson('daily-notes')
       .catch(() => {
         return { folder: undefined, format: undefined }
@@ -449,10 +462,12 @@ export async function getDailyNoteInfo(): Promise<
     if (!folder) folder = '/'
     if (!folder.endsWith('/')) folder += '/'
     if (!format) format = 'YYYY-MM-DD'
+    if (!template) template = ''
 
     return {
-      dailyNoteFormat: format,
-      dailyNotePath: folder,
+      format,
+      folder,
+      template,
     }
   } catch (err) {
     console.error(err)
@@ -490,28 +505,65 @@ export async function openTask(task: TaskProps) {
 }
 
 export function openTaskInRuler(line: number, path: string) {
-  const id = `${path.replace(/\.md$/, '')}::${line}`
-  const gottenTask = getters.getTask(id)
-  if (!gottenTask) {
+  const id = `${parseFileFromPath(path.replace(/\.md/, ''))}::${line}`
+
+  const task = getters.getTask(id)
+  if (!task) {
     new Notice('Task not loaded in Time Ruler')
     return
   }
 
-  setters.set({
-    searchStatus: !gottenTask.scheduled ? 'all' : false,
-    findingTask: id,
+  const scheduled = findScheduledInParents(task.id, getters.get('tasks'))
+
+  if (scheduled) {
+    const showingPastDates = getters.get('showingPastDates')
+    const searchWithinWeeks = getters.get('searchWithinWeeks')
+    const weeksAhead = Math.ceil(
+      DateTime.now().diff(DateTime.fromISO(scheduled)).as('weeks')
+    )
+    if (showingPastDates || weeksAhead > searchWithinWeeks[1]) {
+      setters.set({
+        showingPastDates: false,
+        searchWithinWeeks: [searchWithinWeeks[0], weeksAhead],
+      })
+    }
+  }
+
+  setTimeout(async () => {
+    const today = DateTime.now().toISODate()
+    let section = !scheduled
+      ? 'unscheduled'
+      : scheduled <= today
+      ? today
+      : scheduled.slice(0, 10)
+
+    await scrollToSection(section)
+
+    let tries = 0
+    const findTask = () => {
+      tries++
+      if (tries > 10) {
+        throw new Error(`Task not found: ${id} in section ${section}`)
+      }
+      const foundTask = document.querySelector(`[data-id="${id}"]`)
+      console.log('finding', id, foundTask)
+
+      if (!foundTask) {
+        setTimeout(findTask, 250)
+        return
+      }
+
+      foundTask.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'start',
+        block: 'center',
+      })
+
+      foundTask.addClass('!bg-accent')
+      setTimeout(() => foundTask.removeClass('!bg-accent'), 1500)
+      setTimeout(() => setters.set({ findingTask: null }))
+    }
+
+    setTimeout(findTask, 250), 500
   })
-
-  setTimeout(() => {
-    const foundTask = $(`[data-id="${id}"]`)
-
-    foundTask[0]?.scrollIntoView({
-      behavior: 'smooth',
-      inline: 'start',
-      block: 'center',
-    })
-    foundTask.addClass('!bg-accent')
-    setTimeout(() => foundTask.removeClass('!bg-accent'), 1500)
-    setTimeout(() => setters.set({ findingTask: null }))
-  }, 250)
 }

@@ -2,9 +2,9 @@ import _, { toSafeInteger } from 'lodash'
 import { DateTime } from 'luxon'
 import { Fragment, useEffect, useState } from 'react'
 import { shallow } from 'zustand/shallow'
-import { setters, useAppStore } from '../app/store'
+import { setters, useAppStore, ViewMode } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
-import { isDateISO, processLength } from '../services/util'
+import { isDateISO, processLength, toISO } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
@@ -17,7 +17,6 @@ export default function TimeSpan({
   type,
   startWithHours = false,
   chopStart = false,
-  hideTimes = false,
   dragContainer = '',
   noExtension = false,
 }: {
@@ -27,7 +26,6 @@ export default function TimeSpan({
   type: TimeSpanTypes
   startWithHours?: boolean
   chopStart?: boolean
-  hideTimes?: boolean
   dragContainer?: string
   noExtension?: boolean
 }) {
@@ -46,12 +44,11 @@ export default function TimeSpan({
     testStart,
     testStart.set({ hour: dayStartEnd[0] })
   ).toISO() as string
-  const testEnd = DateTime.fromISO(endISO)
-  const minEnd = DateTime.min(
-    testEnd,
-    testStart.set({ hour: dayStartEnd[1] })
-  ).toISO() as string
+  let minEnd = toISO(testStart.set({ hour: dayStartEnd[1] }))
+  if (minEnd < maxStart)
+    minEnd = toISO(DateTime.fromISO(minEnd).plus({ days: 1 }))
 
+  minEnd = [minEnd, endISO].sort()[0]
   for (let i = 0; i < blocks.length; i++) {
     const [startISO, _tasks] = blocks[i]
 
@@ -83,8 +80,12 @@ export default function TimeSpan({
     })
   }
 
+  const hideTimes = useAppStore(
+    (state) => state.settings.hideTimes || state.viewMode === 'week'
+  )
+
   return (
-    <div className={`pb-1 ${hideTimes ? 'space-y-2' : ''}`}>
+    <div className={`pb-1 ${hideTimes ? 'space-y-1' : ''}`}>
       {!hideTimes && (
         <Times
           dragContainer={dragContainer + '::' + startISO}

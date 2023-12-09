@@ -26,18 +26,14 @@ export default function Timeline({
   startISO,
   endISO,
   type,
-  hideTimes = false,
-  dragContainer = '',
+  dragContainer,
 }: {
   startISO: string
   endISO: string
   type: TimeSpanTypes
-  hideTimes?: boolean
-  dragContainer?: string
+  dragContainer: string
 }) {
   const showingPastDates = useAppStore((state) => state.showingPastDates)
-
-  dragContainer = dragContainer || startISO
   const now = DateTime.now().toISO() as string
   const events = useAppStore((state) => {
     return _.filter(
@@ -49,8 +45,8 @@ export default function Timeline({
     )
   }, shallow)
 
-  const isToday =
-    startISO.slice(0, 10) === (DateTime.now().toISODate() as string)
+  const startDate = startISO.slice(0, 10)
+  const isToday = startDate === DateTime.now().toISODate()
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
   const [tasks, dueTasks, allDayTasks] = useAppStore((state) => {
@@ -61,36 +57,39 @@ export default function Timeline({
       const isShown = !task.completed || showingPastDates || showCompleted
       if (!isShown) return
       // for viewing past tasks correctly
-      const scheduledDate = parseTaskDate(task)
+      const scheduled = parseTaskDate(task)
 
-      const scheduledForToday =
-        scheduledDate &&
-        scheduledDate < endISO &&
-        ((isToday && !showingPastDates) || scheduledDate >= startISO) &&
-        !(
-          !task.completed &&
-          isToday &&
-          showingPastDates &&
-          task.scheduled === startISO
-        )
-      const dueToday =
-        task.due &&
-        task.due < endISO &&
-        (task.due >= startISO || (isToday && !showingPastDates))
+      const scheduledForToday = !scheduled
+        ? false
+        : isDateISO(scheduled)
+        ? scheduled === startDate ||
+          (isToday && !showingPastDates && scheduled < startDate)
+        : ((isToday && !showingPastDates) || scheduled >= startISO) &&
+          scheduled < endISO
+
+      const dueToday = !task.due
+        ? false
+        : scheduled &&
+          (isDateISO(scheduled) ? scheduled > startDate : scheduled >= endISO)
+        ? false
+        : isDateISO(task.due)
+        ? task.due >= startDate ||
+          (isToday && !showingPastDates && task.due < startDate)
+        : task.due >= startISO && task.due < endISO
+
       if (!scheduledForToday && dueToday) {
         dueTasks.push(task)
       } else if (scheduledForToday) {
-        invariant(scheduledDate)
-        if (scheduledDate > startISO) {
-          tasks.push(task)
-        } else {
+        invariant(scheduled)
+        if (isDateISO(scheduled) || scheduled < startISO) {
           allDayTasks.push(task)
+        } else {
+          tasks.push(task)
         }
       }
     })
 
     const scheduledParents = tasks.map((task) => task.id)
-
     for (let id of scheduledParents) {
       removeNestedChildren(id, allDayTasks)
     }
@@ -108,22 +107,25 @@ export default function Timeline({
   const allTimeObjects = (tasks as (TaskProps | EventProps)[]).concat(
     atTimeEvents
   )
-
   const blocks = _.groupBy(allTimeObjects, (object) =>
-    object.type === 'event' ? object.startISO : parseTaskDate(object)
+    object.type === 'event'
+      ? object.startISO
+      : (parseTaskDate(object) as string)
   )
   const sortedBlocks = _.sortBy(_.entries(blocks), 0)
-  const timeBlocks = sortedBlocks.filter(([time, _tasks]) => time > startISO)
+  if (isToday) console.log(sortedBlocks)
 
-  const calendarMode = useAppStore((state) => state.calendarMode)
+  const timeBlocks = sortedBlocks.filter(([time, _tasks]) => !isDateISO(time))
+
+  const viewMode = useAppStore((state) => state.viewMode)
+  const calendarMode = viewMode === 'week'
+
   let title =
     dragContainer === 'timer'
       ? 'Now'
       : DateTime.fromISO(startISO || endISO).toFormat(
           calendarMode ? 'EEE d' : 'EEE, MMM d'
         )
-
-  const hidingTimes = hideTimes || calendarMode
 
   const timeSpan = (
     <TimeSpan
@@ -135,7 +137,6 @@ export default function Timeline({
         dragContainer,
       }}
       startWithHours={!isToday || showingPastDates}
-      hideTimes={hidingTimes}
     />
   )
 
@@ -172,9 +173,9 @@ export default function Timeline({
   const [allDayHeight, setAllDayHeight] = useState<string | undefined>()
   useLayoutEffect(() => {
     const resizeHeight = () => {
-      if (!expanded || calendarMode) return
+      if (!expanded || viewMode !== 'day') return
       const frame = allDayFrame.current
-      invariant(frame)
+      if (!frame) return
 
       const parentFrame = frame.parentElement
       invariant(parentFrame)
@@ -193,12 +194,10 @@ export default function Timeline({
 
   const { collapsed, allHeadings } = useCollapsed(tasks.concat(allDayTasks))
 
+  const wide = useAppStore((state) => state.childWidth > 1)
+
   return (
-    <div
-      className={`flex w-full flex-col rounded-lg overflow-hidden relative ${
-        calendarMode ? 'max-h-full' : 'h-full'
-      }`}
-    >
+    <div className={`flex flex-col overflow-hidden relative`}>
       <div className='flex items-center space-x-1 group relative z-10'>
         <Button
           className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
@@ -207,11 +206,11 @@ export default function Timeline({
         />
 
         <Droppable
-          data={{ scheduled: startISO }}
-          id={dragContainer + startISO + '::timeline'}
+          data={{ scheduled: startDate }}
+          id={dragContainer + '::' + startISO + '::timeline'}
         >
-          <div className='flex items-center space-x-1 grow'>
-            <div className='font-menu'>{title || ''}</div>
+          <div className='flex pl-2 items-center grow'>
+            <div className='font-menu w-full'>{title || ''}</div>
             <Button
               className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
               src={expanded ? 'chevron-down' : 'chevron-left'}
@@ -225,69 +224,85 @@ export default function Timeline({
       </div>
 
       <div
-        className={`space-y-2 rounded-lg ${
-          calendarMode ? 'overflow-y-auto' : 'h-0 grow flex flex-col'
-        } relative z-10`}
+        className={`rounded-lg ${
+          {
+            hour: wide
+              ? 'h-0 grow flex space-x-2 child:h-full child:flex-1 child:w-full justify-center child:max-w-xl'
+              : 'h-0 grow flex flex-col',
+            day: 'overflow-y-auto',
+            week: 'overflow-y-auto',
+          }[viewMode]
+        }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        <div
-          className={`relative w-full space-y-2 overflow-x-hidden rounded-lg ${
-            calendarMode
-              ? 'h-fit'
-              : // @ts-ignore
-                `max-h-[50%] flex-none overflow-y-auto`
-          } ${!expanded ? 'hidden' : 'block'}`}
-          style={{
-            resize: !calendarMode ? 'vertical' : 'none',
-            height: allDayHeight,
-          }}
-          data-auto-scroll={calendarMode ? undefined : 'y'}
-          ref={allDayFrame}
-        >
-          <div>
-            {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
-              <Task
-                key={task.id}
-                id={task.id}
-                type='deadline'
+        {dueTasks.length + allDayEvents.length + allDayTasks.length > 0 && (
+          <div
+            className={`relative w-full child:mb-1 overflow-x-hidden rounded-lg mt-1 ${
+              {
+                hour: wide
+                  ? '!h-full'
+                  : 'max-h-[50%] flex-none overflow-y-auto resize-y',
+                day: 'h-fit',
+                week: 'h-fit',
+              }[viewMode]
+            } ${!expanded ? 'hidden' : 'block'}`}
+            style={{
+              height: viewMode === 'hour' ? allDayHeight : '',
+            }}
+            data-auto-scroll={calendarMode ? undefined : 'y'}
+            ref={allDayFrame}
+          >
+            {dueTasks.length > 0 && (
+              <div className='rounded-lg bg-secondary-alt'>
+                {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
+                  <Task
+                    key={task.id}
+                    id={task.id}
+                    type='deadline'
+                    dragContainer={dragContainer}
+                  />
+                ))}
+              </div>
+            )}
+            {allDayEvents.map((event) => (
+              <Event
+                key={event.id}
+                id={event.id}
+                tasks={[]}
+                blocks={[]}
+                startISO={startDate}
+                endISO={startDate}
                 dragContainer={dragContainer}
+                noExtension
               />
             ))}
+            {allDayTasks.length > 0 && (
+              <Event
+                tasks={allDayTasks}
+                blocks={[]}
+                startISO={startDate}
+                endISO={startDate}
+                dragContainer={dragContainer}
+                noExtension
+              />
+            )}
           </div>
-          {allDayEvents.map((event) => (
-            <Event
-              key={event.id}
-              id={event.id}
-              tasks={[]}
-              blocks={[]}
-              startISO={startISO}
-              endISO={startISO}
-              dragContainer={dragContainer}
-              noExtension
-            />
-          ))}
-          {allDayTasks.length > 0 && (
-            <Event
-              tasks={allDayTasks}
-              blocks={[]}
-              startISO={startISO}
-              endISO={startISO}
-              dragContainer={dragContainer}
-              noExtension
-            />
-          )}
-        </div>
+        )}
 
         <div
-          className={`flex w-full flex-col overflow-x-hidden rounded-lg ${
-            calendarMode ? 'h-fit' : 'h-0 grow overflow-y-auto'
+          className={`overflow-x-hidden rounded-lg mt-1 ${
+            {
+              hour: 'h-0 grow overflow-y-auto',
+              day: 'h-fit',
+              week: 'h-fit',
+            }[viewMode]
           }`}
           data-auto-scroll={calendarMode ? undefined : 'y'}
         >
           {timeSpan}
           <Droppable
             data={{ scheduled: startISO }}
-            id={`${dragContainer}::timeline::end`}
+            id={`${dragContainer}::${startISO}::timeline::end`}
           >
             <div className='h-0 grow'></div>
           </Droppable>

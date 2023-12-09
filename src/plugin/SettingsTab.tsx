@@ -136,6 +136,16 @@ export default class SettingsTab extends PluginSettingTab {
           })
       })
 
+    new Setting(containerEl)
+      .setName('Hide Hour/Minute Lines')
+      .setDesc('Hide hour/minute tic marks in the Time Ruler.')
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.hideTimes).onChange((value) => {
+          this.plugin.settings.hideTimes = value
+          this.plugin.saveSettings()
+        })
+      })
+
     const dayStartEnd = new Setting(containerEl)
       .setName('Day Start & End')
       .setDesc('Choose the boundaries of the Time Ruler hour tick-marks.')
@@ -163,7 +173,7 @@ export default class SettingsTab extends PluginSettingTab {
     dayStartEnd.controlEl.appendChild(hourEnd)
     dayStartEnd.addDropdown((component) => {
       let options: Record<string, string> = {}
-      for (let i = 13; i < 25; i++) {
+      for (let i = 0; i < 24; i++) {
         options[`${i}`] = `${i}:00`
       }
       component
