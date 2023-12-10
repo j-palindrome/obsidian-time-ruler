@@ -7,6 +7,7 @@ import { shallow } from 'zustand/shallow'
 import { setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
 import {
+  findScheduledInParents,
   isDateISO,
   parseTaskDate,
   removeNestedChildren,
@@ -19,10 +20,10 @@ import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
 import Task from './Task'
-import TimeSpan from './TimeSpan'
-import { TimeSpanTypes } from './Times'
+import Hours from './Hours'
+import { TimeSpanTypes } from './Minutes'
 
-export default function Timeline({
+export default function Day({
   startISO,
   endISO,
   type,
@@ -54,10 +55,11 @@ export default function Timeline({
     const dueTasks: TaskProps[] = []
     const allDayTasks: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
-      const isShown = !task.completed || showingPastDates || showCompleted
+      const isShown =
+        showCompleted || (showingPastDates ? task.completed : !task.completed)
       if (!isShown) return
       // for viewing past tasks correctly
-      const scheduled = parseTaskDate(task)
+      const scheduled = findScheduledInParents(task.id, state.tasks)
 
       const scheduledForToday = !scheduled
         ? false
@@ -89,11 +91,6 @@ export default function Timeline({
       }
     })
 
-    const scheduledParents = tasks.map((task) => task.id)
-    for (let id of scheduledParents) {
-      removeNestedChildren(id, allDayTasks)
-    }
-
     return [tasks, dueTasks, allDayTasks]
   }, shallow)
 
@@ -113,7 +110,6 @@ export default function Timeline({
       : (parseTaskDate(object) as string)
   )
   const sortedBlocks = _.sortBy(_.entries(blocks), 0)
-  if (isToday) console.log(sortedBlocks)
 
   const timeBlocks = sortedBlocks.filter(([time, _tasks]) => !isDateISO(time))
 
@@ -128,7 +124,7 @@ export default function Timeline({
         )
 
   const timeSpan = (
-    <TimeSpan
+    <Hours
       {...{
         startISO,
         endISO,
@@ -162,9 +158,7 @@ export default function Timeline({
       ) as TaskProps
       if (!foundTask) return
       setters.set({ findingTask: null })
-      setTimeout(() =>
-        openTaskInRuler(foundTask.position.start.line, foundTask.path)
-      )
+      setTimeout(() => openTaskInRuler(foundTask.id))
     }
   }
   useEffect(expandIfFound, [foundTaskInAllDay])
@@ -257,9 +251,10 @@ export default function Timeline({
                 {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
                   <Task
                     key={task.id}
-                    id={task.id}
+                    task={task.id}
                     type='deadline'
                     dragContainer={dragContainer}
+                    subtasks={[]}
                   />
                 ))}
               </div>
@@ -269,7 +264,7 @@ export default function Timeline({
                 key={event.id}
                 id={event.id}
                 tasks={[]}
-                blocks={[]}
+                nestedBlocks={[]}
                 startISO={startDate}
                 endISO={startDate}
                 dragContainer={dragContainer}
@@ -279,7 +274,7 @@ export default function Timeline({
             {allDayTasks.length > 0 && (
               <Event
                 tasks={allDayTasks}
-                blocks={[]}
+                nestedBlocks={[]}
                 startISO={startDate}
                 endISO={startDate}
                 dragContainer={dragContainer}

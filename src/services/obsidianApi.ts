@@ -26,6 +26,7 @@ import {
   parseDateFromPath,
   parseFileFromPath,
   parseHeadingFromPath,
+  parsePathFromDate,
   scrollToSection,
   toISO,
 } from './util'
@@ -286,7 +287,32 @@ export default class ObsidianAPI extends Component {
     setters.set({ fileOrder: newFileOrder })
   }
 
-  async createTask(path: string, dropData: Partial<TaskProps>) {
+  createNewTask = (
+    newTask: Partial<TaskProps>,
+    selectedHeading: string | null,
+    dailyNoteInfo: AppState['dailyNoteInfo']
+  ) => {
+    if (!selectedHeading) {
+      const date = !newTask.scheduled
+        ? (DateTime.now().toISODate() as string)
+        : (DateTime.fromISO(newTask.scheduled).toISODate() as string)
+
+      const path = parsePathFromDate(date, dailyNoteInfo)
+      this.createTaskInPath(path, newTask, getters.get('showingPastDates'))
+    } else {
+      this.createTaskInPath(
+        selectedHeading,
+        newTask,
+        getters.get('showingPastDates')
+      )
+    }
+  }
+
+  private async createTaskInPath(
+    path: string,
+    dropData: Partial<TaskProps>,
+    completed = false
+  ) {
     let [fileName, heading] = path.split('#')
     if (!fileName.endsWith('.md')) fileName += '.md'
 
@@ -376,7 +402,7 @@ export default class ObsidianAPI extends Component {
       position,
       status: ' ',
       fieldFormat: this.settings.fieldFormat,
-      completed: false,
+      completed,
       ...dropData,
     }
 
@@ -504,9 +530,7 @@ export async function openTask(task: TaskProps) {
   }
 }
 
-export function openTaskInRuler(line: number, path: string) {
-  const id = `${parseFileFromPath(path.replace(/\.md/, ''))}::${line}`
-
+export function openTaskInRuler(id: string) {
   const task = getters.getTask(id)
   if (!task) {
     new Notice('Task not loaded in Time Ruler')
@@ -546,7 +570,6 @@ export function openTaskInRuler(line: number, path: string) {
         throw new Error(`Task not found: ${id} in section ${section}`)
       }
       const foundTask = document.querySelector(`[data-id="${id}"]`)
-      console.log('finding', id, foundTask)
 
       if (!foundTask) {
         setTimeout(findTask, 250)
@@ -554,9 +577,9 @@ export function openTaskInRuler(line: number, path: string) {
       }
 
       foundTask.scrollIntoView({
-        behavior: 'smooth',
-        inline: 'start',
+        inline: 'center',
         block: 'center',
+        behavior: 'smooth',
       })
 
       foundTask.addClass('!bg-accent')
@@ -564,6 +587,6 @@ export function openTaskInRuler(line: number, path: string) {
       setTimeout(() => setters.set({ findingTask: null }))
     }
 
-    setTimeout(findTask, 250), 500
+    findTask()
   })
 }

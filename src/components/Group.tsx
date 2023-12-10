@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { BlockType } from './Block'
 import Droppable from './Droppable'
 import Heading from './Heading'
-import Task from './Task'
+import Task, { TaskComponentProps } from './Task'
 import { parseFileFromPath, parseHeadingFromPath } from '../services/util'
 import { getDailyNoteInfo } from 'src/services/obsidianApi'
 import { useAppStore } from '../app/store'
@@ -15,11 +15,10 @@ const UNGROUPED = '__ungrouped'
 export type GroupProps = {
   hidePaths: string[]
   path: string
-  tasks: TaskProps[]
+  tasks: TaskComponentProps[]
   type: BlockType
   level: 'group' | 'heading'
   due?: boolean
-  id: string
   dragContainer: string
   startISO: string | undefined
 }
@@ -31,7 +30,6 @@ export default function Group({
   level,
   due,
   hidePaths,
-  id,
   dragContainer,
   startISO,
 }: GroupProps) {
@@ -39,8 +37,12 @@ export default function Group({
   const groupedHeadings =
     level === 'group'
       ? _.groupBy(tasks, (task) =>
-          task.path.includes('#')
-            ? parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+          task.task.path.includes('#')
+            ? parseHeadingFromPath(
+                task.task.path,
+                task.task.page,
+                dailyNoteInfo
+              )
             : UNGROUPED
         )
       : []
@@ -63,19 +65,22 @@ export default function Group({
     level,
     path: path,
     hidePaths,
-    id,
     dragContainer,
     startISO,
   }
 
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
-      id: `${id}::${tasks[0].path}::${dragContainer}::${type}`,
+      id: `${path}::${dragContainer}::${type}`,
       data: dragData,
     })
 
   return (
-    <div ref={setNodeRef} className={`w-full overflow-hidden`}>
+    <div
+      ref={setNodeRef}
+      className={`w-full overflow-hidden`}
+      data-id={`${path}::${dragContainer}::${type}`}
+    >
       {path && path !== UNGROUPED && !hidePaths.includes(path) && (
         <Heading
           dragProps={{
@@ -84,10 +89,8 @@ export default function Group({
             ref: setActivatorNodeRef,
           }}
           path={path}
-          isPage={tasks[0].page}
-          dragContainer={`${id}::${path}::${
-            dragData.type
-          }::${level}::${dragData.tasks.map((x) => x.id).join(':')}::reorder`}
+          isPage={tasks[0].task.page}
+          dragContainer={`${dragContainer}::${path}::${type}::reorder`}
           hidePaths={hidePaths}
         />
       )}
@@ -105,22 +108,12 @@ export default function Group({
                     type,
                     due,
                     hidePaths: hidePaths.concat([path]),
-                    id,
                     dragContainer,
                     startISO,
                   }}
                 />
               ))
-            : tasks.map((task, i) => (
-                <Task
-                  dragContainer={dragContainer}
-                  key={task.id}
-                  id={task.id}
-                  type={task.type}
-                  children={task.children}
-                  startISO={startISO}
-                />
-              ))}
+            : tasks.map((task, i) => <Task {...task} />)}
         </>
       )}
     </div>

@@ -82,6 +82,8 @@ export function textToTask(
     .replace(MD_LINK_LINE_SEARCH, '$1')
     .replace(MD_LINK_SEARCH, '$1')
     .replace(LINK_SEARCH, '[$1]')
+    .replace(/^\s+/, '')
+    .replace(/\s+$/, '')
 
   let notes = item.text.includes('\n')
     ? item.text.match(/\n((.|\n)*$)/)?.[1]

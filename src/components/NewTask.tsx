@@ -7,7 +7,6 @@ import moment from 'moment'
 import {
   getTasksByHeading,
   parseHeadingFromPath,
-  createInDaily,
   parseHeadingTitle,
   parseFileFromPath,
   convertSearchToRegExp,
@@ -72,18 +71,9 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     searchExp.test(heading)
   )
 
-  const createNewTask = () => {
-    invariant(newTask)
-    const selectedHeading = filteredHeadings[0]
-
-    if (!selectedHeading) {
-      createInDaily(newTask, dailyNoteInfo)
-    } else {
-      getters.getObsidianAPI().createTask(selectedHeading, newTask)
-    }
-
+  useEffect(() => {
     setSearch('')
-  }
+  }, [newTask])
 
   return (
     <>
@@ -119,12 +109,19 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
                   })
                 }
                 onKeyDown={(ev) =>
-                  ev.key === 'Enter' && createInDaily(newTask, dailyNoteInfo)
+                  ev.key === 'Enter' &&
+                  getters
+                    .getObsidianAPI()
+                    .createNewTask(newTask, null, dailyNoteInfo)
                 }
               ></input>
               <Button
                 src='check'
-                onClick={() => createInDaily(newTask, dailyNoteInfo)}
+                onClick={() =>
+                  getters
+                    .getObsidianAPI()
+                    .createNewTask(newTask, null, dailyNoteInfo)
+                }
               />
             </div>
             <input
@@ -134,7 +131,9 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
               onChange={(ev) => setSearch(ev.target.value)}
               onKeyDown={(ev) => {
                 if (ev.key === 'Enter') {
-                  createNewTask()
+                  getters
+                    .getObsidianAPI()
+                    .createNewTask(newTask, filteredHeadings[0], dailyNoteInfo)
                 }
               }}
             ></input>
@@ -164,9 +163,10 @@ function NewTaskHeading({ path }: { path: string }) {
     <div
       key={path}
       onMouseDown={() => {
-        if (path === 'Daily') createInDaily(newTask, dailyNoteInfo)
+        if (path === 'Daily')
+          getters.getObsidianAPI().createNewTask(newTask, null, dailyNoteInfo)
         else {
-          getters.getObsidianAPI().createTask(path, newTask)
+          getters.getObsidianAPI().createNewTask(newTask, path, dailyNoteInfo)
         }
         setTimeout(() => setters.set({ newTask: false }))
       }}

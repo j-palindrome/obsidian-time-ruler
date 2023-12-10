@@ -12,11 +12,15 @@ export default Unscheduled
 
 function _Unscheduled() {
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
   const tasks = useAppStore((state) =>
     _.filter(
       state.tasks,
       (task) =>
-        !task.scheduled && (!task.completed || showCompleted) && !task.parent
+        !task.scheduled &&
+        (showCompleted ||
+          (showingPastDates ? task.completed : !task.completed)) &&
+        !task.parent
     )
   )
   const childWidth = useAppStore((state) =>
@@ -42,7 +46,7 @@ function _Unscheduled() {
       <div
         className={`h-0 grow w-full p-1 rounded-lg bg-secondary-alt mt-1 ${
           childWidth > 1
-            ? `child:flex child:overflow-y-hidden child:overflow-x-auto child:flex-col child:flex-wrap child:h-full child:child:max-h-full child:child:overflow-y-auto ${
+            ? `child:flex child:overflow-y-hidden child:overflow-x-auto child:flex-col child:flex-wrap child:h-full child:snap-x child:snap-mandatory child:child:max-h-full child:child:overflow-y-auto child:child:snap-start ${
                 [
                   '',
                   'child:child:w-full',

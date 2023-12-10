@@ -19,21 +19,21 @@ import DueDate from './DueDate'
 import { roundMinutes, toISO } from '../services/util'
 
 export type TaskComponentProps = {
-  id: string
-  children?: string[]
+  task: TaskProps
+  subtasks: TaskComponentProps[]
   type: TaskProps['type']
   dragContainer: string
 }
 
 export default function Task({
-  id,
-  children,
+  task,
+  subtasks,
   type,
   dragContainer,
   startISO,
 }: TaskComponentProps & { startISO?: string }) {
   const completeTask = () => {
-    setters.patchTasks([id], {
+    setters.patchTasks([task.id], {
       completion: toISO(roundMinutes(DateTime.now())),
       completed: true,
     })
@@ -42,52 +42,33 @@ export default function Task({
   const dragData: DragData = {
     dragType: 'task',
     type,
-    id,
-    children,
+    task: task,
+    subtasks,
     dragContainer,
   }
   const { setNodeRef, setActivatorNodeRef, attributes, listeners } =
     useDraggable({
-      id: `${id}::${type}::${dragContainer}`,
+      id: `${task}::${type}::${dragContainer}`,
       data: dragData,
     })
 
   const isLink = ['parent', 'link', 'deadline'].includes(type)
 
-  let task = useAppStore((state) => state.tasks[id])
   if (!startISO) startISO = task.scheduled
 
-  const collapsed = useAppStore((state) => state.collapsed[id] ?? false)
+  const collapsed = useAppStore((state) => state.collapsed[task.id] ?? false)
 
   const hasSameDate = (subtask: TaskProps) =>
     startISO && subtask.scheduled && subtask.scheduled === startISO.slice(0, 10)
-  const differentScheduled = (subtask: TaskProps) =>
+  const differentScheduled = (subtask: TaskComponentProps) =>
     type === 'task' &&
-    subtask.scheduled &&
-    subtask.scheduled !== (startISO ?? task.scheduled) &&
-    !hasSameDate(subtask)
-
-  const showCompleted = useAppStore((state) => state.settings.showCompleted)
-  const showingPastDates = useAppStore((state) => state.showingPastDates)
-
-  const subtasks = useAppStore((state) => {
-    if (!task || type === 'deadline') return []
-    return (children ?? task.children).flatMap((child) => {
-      const subtask = state.tasks[child]
-      if (!subtask) return []
-
-      if (
-        differentScheduled(subtask) ||
-        (!showCompleted && !showingPastDates && subtask.completed)
-      )
-        return []
-      return subtask
-    })
-  }, shallow)
+    subtask.task.scheduled &&
+    subtask.task.scheduled !== (startISO ?? task.scheduled) &&
+    !hasSameDate(subtask.task)
 
   const lengthDragData: DragData = {
     dragType: 'task-length',
-    id,
+    id: task.id,
     start: task?.scheduled ?? '',
     end: task?.scheduled ?? '',
   }
@@ -96,7 +77,7 @@ export default function Task({
     attributes: lengthAttributes,
     listeners: lengthListeners,
   } = useDraggable({
-    id: `${id}::${type}::${length}::${dragContainer}`,
+    id: `${task}::${type}::${length}::${dragContainer}`,
     data: lengthDragData,
   })
 
@@ -113,7 +94,7 @@ export default function Task({
         type === 'parent' ? 'mt-1' : ''
       } w-full`}
       ref={setNodeRef}
-      data-id={isLink ? '' : id}
+      data-id={isLink ? '' : task}
       data-task={task.status === ' ' ? '' : task.status}
     >
       <div
@@ -193,7 +174,7 @@ export default function Task({
         {!task.completed && (isLink || type == 'search') && task.scheduled && (
           <div
             className='task-scheduled ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-normal'
-            onClick={() => openTaskInRuler(task.position.start.line, task.path)}
+            onClick={() => openTaskInRuler(task.id)}
           >
             {DateTime.fromISO(task.scheduled).toFormat('EEEEE M/d')}
           </div>
@@ -202,7 +183,7 @@ export default function Task({
         {!task.completed && (
           <DueDate
             task={task}
-            dragContainer={`${id}::${type}::${dragContainer}`}
+            dragContainer={`${task}::${type}::${dragContainer}`}
           />
         )}
 
@@ -233,7 +214,7 @@ export default function Task({
         <div className='flex pl-2 w-full overflow-hidden'>
           <div
             className='group min-w-[16px] grow hover:bg-selection transition-colors duration-500 min-h-[20px] rounded-lg'
-            onClick={() => setters.patchCollapsed([id], !collapsed)}
+            onClick={() => setters.patchCollapsed([task.id], !collapsed)}
           >
             <Button
               src={collapsed ? 'chevron-right' : 'chevron-down'}
@@ -242,24 +223,12 @@ export default function Task({
           </div>
           {!collapsed && (
             <Block
-              dragContainer={dragContainer + id}
+              dragContainer={dragContainer + task}
               hidePaths={[
                 parseHeadingFromPath(task.path, false, dailyNoteInfo),
               ]}
               startISO={startISO}
-              tasks={subtasks.map((subtask) => ({
-                ...subtask,
-                type:
-                  type === 'search'
-                    ? 'task'
-                    : type === 'parent'
-                    ? subtask.type
-                    : type === 'deadline'
-                    ? 'link'
-                    : type === 'link' || differentScheduled(subtask)
-                    ? 'link'
-                    : 'task',
-              }))}
+              tasks={subtasks}
               type='child'
             ></Block>
           )}

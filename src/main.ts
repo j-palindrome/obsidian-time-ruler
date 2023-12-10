@@ -123,7 +123,7 @@ export default class TimeRulerPlugin extends Plugin {
     }
 
     await this.activateView()
-    openTaskInRuler(cursor.line, path)
+    openTaskInRuler(path + '::' + cursor.line)
   }
 
   openMenu(menu: Menu, context: MarkdownView | MarkdownFileInfo) {

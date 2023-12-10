@@ -8,9 +8,9 @@ import { isDateISO, processLength, toISO } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
-import Times, { TimeSpanTypes } from './Times'
+import Minutes, { TimeSpanTypes } from './Minutes'
 
-export default function TimeSpan({
+export default function Hours({
   startISO,
   endISO,
   blocks,
@@ -39,16 +39,12 @@ export default function TimeSpan({
 
   const dayStartEnd = useAppStore((state) => state.settings.dayStartEnd)
   const extendBlocks = useAppStore((state) => state.settings.extendBlocks)
-  const testStart = DateTime.fromISO(startISO)
-  const maxStart = DateTime.max(
-    testStart,
-    testStart.set({ hour: dayStartEnd[0] })
-  ).toISO() as string
-  let minEnd = toISO(testStart.set({ hour: dayStartEnd[1] }))
-  if (minEnd < maxStart)
-    minEnd = toISO(DateTime.fromISO(minEnd).plus({ days: 1 }))
+  let maxStart = startISO
+  let minEnd = [
+    endISO,
+    toISO(DateTime.fromISO(endISO).set({ hour: dayStartEnd[1] })),
+  ].sort()[0]
 
-  minEnd = [minEnd, endISO].sort()[0]
   for (let i = 0; i < blocks.length; i++) {
     const [startISO, _tasks] = blocks[i]
 
@@ -62,7 +58,7 @@ export default function TimeSpan({
     const lastChildBlock = includeNextBlocks.last()
     if (lastChildBlock) {
       const { endISO: lastChildEndISO } = processLength(lastChildBlock)
-      blockEndISO = [lastChildEndISO, endISO].sort()[0]
+      blockEndISO = [lastChildEndISO, blockEndISO].sort()[1]
     }
 
     if (blockEndISO === startISO && extendBlocks) {
@@ -87,7 +83,7 @@ export default function TimeSpan({
   return (
     <div className={`pb-1 ${hideTimes ? 'space-y-1' : ''}`}>
       {!hideTimes && (
-        <Times
+        <Minutes
           dragContainer={dragContainer + '::' + startISO}
           type={startWithHours ? 'hours' : type}
           startISO={maxStart}
@@ -117,12 +113,12 @@ export default function TimeSpan({
                 tasks={thisTasks}
                 id={thisEvents[0]?.id}
                 type={type}
-                blocks={thisBlocks}
+                nestedBlocks={thisBlocks}
                 dragContainer={dragContainer}
               />
 
               {!hideTimes && (
-                <Times
+                <Minutes
                   dragContainer={dragContainer + '::' + startISO}
                   type={type}
                   startISO={_.max([maxStart, thisEndISO]) as string}

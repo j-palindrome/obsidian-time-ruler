@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getters, setters, useAppStore } from 'src/app/store'
 import { convertSearchToRegExp } from 'src/services/util'
@@ -32,6 +32,9 @@ export default function Search() {
     strings.find((string) => !search || (string && searchExp.test(string)))
   )
 
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => input.current?.focus(), [])
+
   return createPortal(
     <div className='modal-container mod-dim !px-2'>
       <div
@@ -42,8 +45,17 @@ export default function Search() {
         <div className='prompt-input-container'>
           <input
             className='prompt-input'
+            style={{ fontFamily: 'var(--font-interface)' }}
             value={search}
             onChange={(ev) => setSearch(ev.target.value)}
+            onKeyDown={(ev) => {
+              if (ev.key === 'Escape') setters.set({ searchStatus: false })
+              else if (ev.key === 'Enter') {
+                if (foundTasks[0]) openTaskInRuler(foundTasks[0][1].id)
+                setters.set({ searchStatus: false })
+              }
+            }}
+            ref={input}
           />
         </div>
         <div className='prompt-results'>
@@ -52,7 +64,7 @@ export default function Search() {
               key={task.id}
               className='suggestion-item mod-complex'
               onClick={() => {
-                openTaskInRuler(task.position.start.line, task.path)
+                openTaskInRuler(task.id)
                 setters.set({ searchStatus: false })
               }}
             >
@@ -60,11 +72,10 @@ export default function Search() {
               <div
                 className='suggestion-aux'
                 style={{
-                  fontSize: '10px',
                   color: 'var(--text-faint)',
                 }}
               >
-                {task.path}
+                {task.path.replace('#', ' # ').replace('.md', '')}
               </div>
             </div>
           ))}

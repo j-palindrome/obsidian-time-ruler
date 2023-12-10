@@ -1,11 +1,17 @@
 import { useDraggable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
 import { setters, useAppStore } from '../app/store'
-import { isDateISO, parseHeadingFromPath, useCollapsed } from '../services/util'
+import {
+  isDateISO,
+  parseHeadingFromPath,
+  useCollapsed,
+  roundMinutes,
+  toISO,
+} from '../services/util'
 import Block from './Block'
 import Droppable from './Droppable'
-import Times, { TimeSpanTypes } from './Times'
-import TimeSpan from './TimeSpan'
+import Minutes, { NowTime, TimeSpanTypes } from './Minutes'
+import Hours from './Hours'
 import Logo from './Logo'
 import Button from './Button'
 import $ from 'jquery'
@@ -19,7 +25,7 @@ export type EventComponentProps = {
   type?: TimeSpanTypes
   startISO: string
   endISO: string
-  blocks: BlockData[]
+  nestedBlocks: BlockData[]
 }
 
 const Event = memo(_Event, _.isEqual)
@@ -31,7 +37,7 @@ function _Event({
   startISO,
   endISO,
   due,
-  blocks,
+  nestedBlocks,
   type = 'minutes',
   draggable = true,
   isDragging = false,
@@ -51,7 +57,7 @@ function _Event({
     id,
     tasks,
     type,
-    blocks,
+    nestedBlocks: nestedBlocks,
     startISO,
     endISO,
   }
@@ -104,21 +110,24 @@ function _Event({
       >
         {thisEvent && (
           <div
-            className={`mr-2 w-fit min-w-[24px] flex-none whitespace-nowrap text-sm`}
+            className={`mr-2 w-fit min-w-[24px] max-w-[60%] overflow-ellipsis flex-none text-sm whitespace-nowrap`}
           >
-            {thisEvent.title}
+            {thisEvent.title.slice(0, 40) +
+              (thisEvent.title.length > 40 ? '...' : '')}
           </div>
         )}
 
-        <hr className='my-0 w-full border-t border-faint'></hr>
+        <hr className='my-0 w-0 grow border-t border-faint'></hr>
 
-        <span className='ml-2 whitespace-nowrap'>{formatStart(startISO)}</span>
+        <span className='ml-2 whitespace-nowrap flex-none'>
+          {formatStart(startISO)}
+        </span>
         {calendarMode &&
           !isDateISO(startISO) &&
           DateTime.fromISO(startISO).diff(DateTime.fromISO(endISO)) && (
             <>
-              <span className='ml-2 text-faint'>&gt;</span>
-              <span className='ml-2 whitespace-nowrap text-muted'>
+              <span className='ml-2 text-faint flex-none'>&gt;</span>
+              <span className='ml-2 whitespace-nowrap text-muted flex-none'>
                 {formatStart(endISO)}
               </span>
             </>
@@ -151,10 +160,10 @@ function _Event({
       />
 
       {!calendarMode && (
-        <TimeSpan
+        <Hours
           startISO={startISO}
           endISO={endISO}
-          blocks={blocks}
+          blocks={nestedBlocks}
           type={type}
           chopStart={true}
           dragContainer={dragContainer + '::' + startISO}
@@ -163,11 +172,9 @@ function _Event({
       )}
 
       {thisEvent && (thisEvent.location || thisEvent.notes) && (
-        <div className='flex space-x-4 py-2 pl-6 text-xs'>
-          <div className='whitespace-nowrap'>{thisEvent.location}</div>
-          <div className='max-w-[75%] truncate text-muted'>
-            {thisEvent.notes}
-          </div>
+        <div className='py-2 pl-6 text-xs'>
+          <div className='w-full truncate'>{thisEvent.location}</div>
+          <div className='w-full truncate text-muted'>{thisEvent.notes}</div>
         </div>
       )}
     </div>

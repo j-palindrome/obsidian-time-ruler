@@ -54,7 +54,9 @@ export const processLength = ([time, items]: BlockData) => {
 
   for (let item of items) {
     if (item.type === 'event') events.push(item)
-    else tasks.push(item)
+    else {
+      tasks.push(item)
+    }
   }
   const tasksWithLength = tasks.filter((task) => task.length) as (TaskProps & {
     length: NonNullable<TaskProps['length']>
@@ -157,20 +159,6 @@ export const getTasksByHeading = (
     ),
     ([heading, _tasks]) => fileOrder.indexOf(heading)
   )
-}
-
-export const createInDaily = (
-  task: Partial<TaskProps>,
-  dailyNoteInfo: AppState['dailyNoteInfo']
-) => {
-  const date = !task.scheduled
-    ? (DateTime.now().toISODate() as string)
-    : (DateTime.fromISO(task.scheduled).toISODate() as string)
-
-  const path = parsePathFromDate(date, dailyNoteInfo)
-
-  getters.getObsidianAPI().createTask(path, task)
-  setters.set({ newTask: false })
 }
 
 export const convertSearchToRegExp = (search: string) =>
@@ -317,7 +305,7 @@ export const scrollToSection = async (id: string) =>
         inline: 'start',
         behavior: 'smooth',
       })
-      setTimeout(() => resolve(), 250)
+      setTimeout(() => resolve(), 500)
     }
     scroll()
   })
@@ -330,7 +318,8 @@ export const findScheduledInParents = (
   task = tasks[id]
   while (true) {
     invariant(task)
-    if (task.scheduled) return task.scheduled
+    const date = task.scheduled ?? task.completion
+    if (date) return date
     if (task.parent) {
       task = tasks[task.parent]
     } else {

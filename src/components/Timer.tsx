@@ -9,7 +9,7 @@ import { isDateISO, processLength, toISO } from '../services/util'
 import { shallow } from 'zustand/shallow'
 import Event from './Event'
 import invariant from 'tiny-invariant'
-import Timeline from './Timeline'
+import Day from './Day'
 import { sounds } from '../assets/assets'
 import Droppable from './Droppable'
 import NewTask from './NewTask'
@@ -206,7 +206,7 @@ export function Timer() {
       </div>
       {expanded && (
         <div className='relative h-full w-full overflow-y-auto py-2 text-base child:max-w-xl child:w-full flex justify-center'>
-          <Timeline
+          <Day
             dragContainer='timer'
             startISO={DateTime.now().toISODate() as string}
             endISO={toISO(DateTime.now())}

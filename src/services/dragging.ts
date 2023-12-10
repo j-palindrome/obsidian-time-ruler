@@ -27,13 +27,13 @@ export const onDragEnd = async (
         case 'delete':
           if (dragData.dragType !== 'task') break
           // start from latest task and work backwards
-          if (dragData.children?.length) {
+          if (dragData.subtasks?.length) {
             if (!confirm('Delete task and children?')) break
-            for (let child of dragData.children.reverse()) {
+            for (let child of dragData.subtasks.reverse()) {
               await getters.getObsidianAPI().deleteTask(child)
             }
           }
-          await getters.getObsidianAPI().deleteTask(dragData.id)
+          await getters.getObsidianAPI().deleteTask(dragData.task)
           break
       }
     } else {
@@ -104,13 +104,13 @@ export const onDragEnd = async (
         case 'task':
           setters.patchTasks(
             dragData.type === 'parent'
-              ? dragData.children ?? []
-              : [dragData.id],
+              ? dragData.subtasks ?? []
+              : [dragData.task],
             dropData
           )
           break
         case 'due':
-          setters.patchTasks([dragData.task.id], { due: dropData.scheduled })
+          setters.patchTasks([dragData.task.task], { due: dropData.scheduled })
           break
       }
     }

@@ -36,9 +36,9 @@ import Heading from './Heading'
 import Logo from './Logo'
 import Search from './Search'
 import Task from './Task'
-import Timeline from './Timeline'
+import Day from './Day'
 import { Timer } from './Timer'
-import { NowTime, TimeSpanTypes } from './Times'
+import { NowTime, TimeSpanTypes } from './Minutes'
 import DueDate from './DueDate'
 import invariant from 'tiny-invariant'
 import NewTask from './NewTask'
@@ -108,19 +108,12 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const showingPastDates = useAppStore((state) => state.showingPastDates)
 
   const today = now.startOf('day')
-  const todayString = today.toISODate()
   const [weeksShownState, setWeeksShown] = useState(1)
 
-  const nextMonday = showingPastDates
-    ? DateTime.now().minus({ weeks: weeksShownState }).startOf('week')
-    : DateTime.now()
-        .plus({ weeks: weeksShownState })
-        .startOf('week')
-        .plus({ days: 1 })
-  const datesShown = _.floor(nextMonday.diff(DateTime.now()).as('days'))
+  const datesShown = weeksShownState * 7 * (showingPastDates ? -1 : 1)
 
   const dayStart = useAppStore((state) => state.settings.dayStartEnd[0])
-  const times: (Parameters<typeof Timeline>[0] | { type: 'unscheduled' })[] = [
+  const times: (Parameters<typeof Day>[0] | { type: 'unscheduled' })[] = [
     { type: 'unscheduled' },
     {
       startISO: toISO(today.plus({ hours: dayStart })),
@@ -377,7 +370,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                     id={`time-ruler-${time.startISO.slice(0, 10)}`}
                     className={frameClass}
                   >
-                    {isShowing && <Timeline {...time} dragContainer='app' />}
+                    {isShowing && <Day {...time} dragContainer='app' />}
                   </div>
                   {calendarMode &&
                   DateTime.fromISO(time.startISO).weekday === 7 ? (
@@ -493,85 +486,84 @@ const Buttons = ({
   return (
     <>
       <div className={`flex w-full items-center space-x-1 rounded-lg`}>
-        <div className='text-left'>
-          <div className='group relative'>
-            <Button
-              src='more-horizontal'
-              onClick={(ev) => setShowingModal(!showingModal)}
-            />
-            {showingModal && (
-              <div className='tr-menu' ref={modalFrame}>
-                <div className=''>
-                  <div
-                    className='clickable-icon'
+        <div className='group relative'>
+          <Button
+            src='more-horizontal'
+            onClick={(ev) => setShowingModal(!showingModal)}
+          />
+          {showingModal && (
+            <div className='tr-menu' ref={modalFrame}>
+              <div className=''>
+                <div
+                  className='clickable-icon'
+                  onClick={() => {
+                    setters.set({ showingPastDates: !showingPastDates })
+                    setShowingModal(false)
+                  }}
+                >
+                  <Logo
+                    src={showingPastDates ? 'chevron-right' : 'chevron-left'}
+                    className='w-6 flex-none'
+                  />
+                  <span className='whitespace-nowrap'>
+                    {showingPastDates ? 'Future' : 'Past'}
+                  </span>
+                </div>
+                <div
+                  className='clickable-icon'
+                  onClick={async () => {
+                    setupStore()
+                    setShowingModal(false)
+                  }}
+                >
+                  <Logo src={'rotate-cw'} className='w-6 flex-none' />
+                  <span className='whitespace-nowrap'>Reload</span>
+                </div>
+                <div className='pl-1 text-muted'>Layout</div>
+                <div className='flex'>
+                  <Button
+                    src={'square'}
+                    title='One'
+                    className='w-6 flex-none'
                     onClick={() => {
-                      setters.set({ showingPastDates: !showingPastDates })
+                      setters.set({
+                        viewMode: 'hour',
+                      })
                       setShowingModal(false)
                     }}
-                  >
-                    <Logo
-                      src={showingPastDates ? 'chevron-right' : 'chevron-left'}
-                      className='w-6 flex-none'
-                    />
-                    <span className='whitespace-nowrap'>
-                      {showingPastDates ? 'Future' : 'Past'}
-                    </span>
-                  </div>
-                  <div
-                    className='clickable-icon'
-                    onClick={async () => {
-                      setupStore()
+                  />
+                  <Button
+                    title='Row'
+                    src={'gallery-horizontal'}
+                    className='w-6 flex-none'
+                    onClick={() => {
+                      setters.set({
+                        viewMode: 'day',
+                      })
                       setShowingModal(false)
                     }}
-                  >
-                    <Logo src={'rotate-cw'} className='w-6 flex-none' />
-                    <span className='whitespace-nowrap'>Reload</span>
-                  </div>
-                  <div className='pl-1 text-muted'>Layout</div>
-                  <div className='flex'>
-                    <Button
-                      src={'square'}
-                      title='One'
-                      className='w-6 flex-none'
-                      onClick={() => {
-                        setters.set({
-                          viewMode: 'hour',
-                        })
-                        setShowingModal(false)
-                      }}
-                    />
-                    <Button
-                      title='Row'
-                      src={'gallery-horizontal'}
-                      className='w-6 flex-none'
-                      onClick={() => {
-                        setters.set({
-                          viewMode: 'day',
-                        })
-                        setShowingModal(false)
-                      }}
-                    />
-                    <Button
-                      title='Grid'
-                      src={'layout-grid'}
-                      className='w-6 flex-none'
-                      onClick={() => {
-                        setters.set({
-                          viewMode: 'week',
-                        })
-                        setShowingModal(false)
-                      }}
-                    />
-                  </div>
+                  />
+                  <Button
+                    title='Grid'
+                    src={'layout-grid'}
+                    className='w-6 flex-none'
+                    onClick={() => {
+                      setters.set({
+                        viewMode: 'week',
+                      })
+                      setShowingModal(false)
+                    }}
+                  />
                 </div>
               </div>
-            )}
-          </div>
-          <Button
-            src='search'
-            onClick={() => setters.set({ searchStatus: true })}
-          />
+            </div>
+          )}
         </div>
+
+        <Button
+          src='search'
+          onClick={() => setters.set({ searchStatus: true })}
+        />
 
         <div
           className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start snap-x items-center space-x-2 overflow-x-auto`}

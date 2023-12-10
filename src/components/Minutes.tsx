@@ -13,7 +13,7 @@ import Droppable from './Droppable'
 import { Fragment, useEffect } from 'react'
 
 export type TimeSpanTypes = 'minutes' | 'hours'
-export default function Times({
+export default function Minutes({
   startISO,
   endISO,
   type = 'minutes',
@@ -50,7 +50,10 @@ export default function Times({
     minutes: { minutes: 15 },
     hours: { hours: 1 },
   }
-  if (chopStart) start = start.plus(modifier[type])
+  const now = roundMinutes(DateTime.now())
+  const nowISO = toISO(now)
+  if (chopStart && !(start <= now && end > now))
+    start = start.plus(modifier[type])
   if (chopEnd) end = end.minus(modifier[type])
 
   while (start <= end) {
@@ -64,17 +67,17 @@ export default function Times({
     )
   }
 
-  const startISOs = times.map((date) => toISO(date))
-  const now = toISO(roundMinutes(DateTime.now()))
+  const startISOs = times.map((time) => toISO(time))
 
   return (
     <div className={`min-h-[4px]`}>
-      {times.map((time, i) => (
-        <Fragment key={startISOs[i]}>
-          {startISOs[i] === now && <NowTime dragContainer={dragContainer} />}
+      {times.map((time, i) =>
+        startISOs[i] === nowISO ? (
+          <NowTime key={startISOs[i]} dragContainer={dragContainer} />
+        ) : (
           <Time key={startISOs[i]} {...{ type, time, dragContainer }} />
-        </Fragment>
-      ))}
+        )
+      )}
     </div>
   )
 }
@@ -193,17 +196,17 @@ export function NowTime({ dragContainer }: { dragContainer: string }) {
     data: { scheduled: startISO } as DropData,
   })
 
-  const dragData: DragData = {
-    dragType: 'now',
-  }
-  const {
-    setNodeRef: setDragNodeRef,
-    attributes,
-    listeners,
-  } = useDraggable({
-    data: dragData,
-    id: `${dragContainer}::now`,
-  })
+  // const dragData: DragData = {
+  //   dragType: 'now',
+  // }
+  // const {
+  //   setNodeRef: setDragNodeRef,
+  //   attributes,
+  //   listeners,
+  // } = useDraggable({
+  //   data: dragData,
+  //   id: `${dragContainer}::now`,
+  // })
 
   const nowTime = roundMinutes(DateTime.now())
   const hourDisplay = useHourDisplay(nowTime.hour)
@@ -215,14 +218,14 @@ export function NowTime({ dragContainer }: { dragContainer: string }) {
       }`}
       ref={setNodeRef}
     >
-      <div
+      {/* <div
         className='cursor-grab hidden group-hover:block text-xs ml-1 text-accent flex-none'
-        {...attributes}
-        {...listeners}
-        ref={setDragNodeRef}
+        // {...attributes}
+        // {...listeners}
+        // ref={setDragNodeRef}
       >
         Shift all
-      </div>
+      </div> */}
       <div className='h-1 w-1 rounded-full bg-red-800'></div>
       <div className='w-full border-0 border-b border-solid border-red-800'></div>
 

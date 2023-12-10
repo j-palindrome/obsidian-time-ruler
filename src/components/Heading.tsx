@@ -69,7 +69,7 @@ export default function Heading({
             type: 'heading',
             heading: parseFileFromPath(name),
           }}
-          id={`${dragContainer}::${path}`}
+          id={`${dragContainer}::${path}::droppable`}
         >
           {topDiv}
         </Droppable>
@@ -77,7 +77,8 @@ export default function Heading({
         topDiv
       )}
       <div
-        className={`time-ruler-heading selectable flex w-full rounded-lg font-menu text-xs group overflow-hidden`}
+        className={`selectable flex rounded-lg font-menu text-xs group child:truncate w-full`}
+        {...dragProps}
       >
         <Button
           className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 w-6 h-4 mx-1 py-0.5 flex-none'
@@ -89,19 +90,18 @@ export default function Heading({
           onPointerDown={() => false}
         />
         <div
-          className={`w-fit flex-none cursor-grab max-w-[50%] overflow-hidden ${
+          className={`cursor-grab w-fit flex-none max-w-[50%] ${
             path.includes('#') ? 'text-normal' : 'text-accent'
           }`}
-          onPointerDown={() => false}
-          onClick={() => false}
         >
-          {title}
+          {title.slice(0, 40) + (title.length > 40 ? '...' : '')}
         </div>
-        <div
-          className='min-h-[12px] w-0 grow h-full cursor-grab text-right text-xs text-faint overflow-ellipsis'
-          {...dragProps}
-        >
-          {hidePaths.includes(container) ? '' : container.replace('.md', '')}
+        <div className='cursor-grab w-0 grow text-right pr-2'>
+          {hidePaths.includes(container)
+            ? ''
+            : (
+                container.slice(0, 25) + (container.length > 25 ? '...' : '')
+              ).replace('.md', '')}
         </div>
       </div>
       <hr className='border-t border-t-selection ml-8 mr-2 mt-1 mb-0 h-0'></hr>

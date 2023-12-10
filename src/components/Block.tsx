@@ -3,6 +3,7 @@ import { shallow } from 'zustand/shallow'
 import { useAppStore } from '../app/store'
 import { parseFileFromPath, parseHeadingFromPath } from '../services/util'
 import Group from './Group'
+import { TaskComponentProps } from './Task'
 
 export const UNGROUPED = '__ungrouped'
 export type BlockType =
@@ -21,44 +22,48 @@ export default function Block({
   startISO,
 }: {
   hidePaths?: string[]
-  tasks: TaskProps[]
+  tasks: TaskComponentProps[]
   type: BlockType
   id?: string
   dragContainer: string
   startISO: string | undefined
 }) {
-  const tasksByParent = ['parent', 'child'].includes(type)
-    ? { undefined: tasks }
-    : _.groupBy(tasks, 'parent')
+  // const tasksByParent = ['parent', 'child'].includes(type)
+  //   ? { undefined: tasks }
+  //   : _.groupBy(tasks, 'parent')
 
-  const taskIds = _.flatMap(tasks, (task) => [task.id, ...task.children])
+  // const taskIds = _.flatMap(tasks, (task) => [task.id, ...task.children])
 
   // add in parent tasks which aren't included (to be "parent" type dummy tasks of children)
-  const nestedTasks = useAppStore((state) =>
-    _.entries(tasksByParent).flatMap(([parentID, children]) => {
-      if (parentID === 'undefined') return children
-      else {
-        const parentAlreadyIncludedInList = taskIds.includes(parentID)
-        if (parentAlreadyIncludedInList) return []
-        const parentTask = state.tasks[parentID]
-        return {
-          ...parentTask,
-          children: children.map((x) => x.id),
-          type: 'parent',
-        } as TaskProps
-      }
-    })
-  )
+  // const nestedTasks = useAppStore((state) =>
+  //   _.entries(tasksByParent).flatMap(([parentID, children]) => {
+  //     if (parentID === 'undefined') return children
+  //     else {
+  //       const parentAlreadyIncludedInList = taskIds.includes(parentID)
+  //       if (parentAlreadyIncludedInList) return []
+  //       const parentTask = state.tasks[parentID]
+  //       return {
+  //         ...parentTask,
 
-  const sortedTasks = _.sortBy(nestedTasks, [
-    'priority',
-    'path',
-    'position.start.line',
+  //         type: 'parent',
+  //       } as TaskProps
+  //     }
+  //   })
+  // )
+
+  const sortedTasks = _.sortBy(tasks, [
+    'task.priority',
+    'task.path',
+    'task.position.start.line',
   ])
 
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const groupedTasks = _.groupBy(sortedTasks, (task) => {
-    const heading = parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+    const heading = parseHeadingFromPath(
+      task.task.path,
+      task.task.page,
+      dailyNoteInfo
+    )
 
     if (hidePaths.includes(heading)) return UNGROUPED
     return heading
@@ -74,9 +79,7 @@ export default function Block({
     shallow
   )
 
-  const blockId = tasks[0]?.scheduled ?? ''
-
-  const calendarMode = useAppStore((state) => state.viewMode === 'week')
+  const blockId = startISO ?? 'unscheduled'
   return (
     <div
       id={id}
@@ -85,7 +88,7 @@ export default function Block({
     >
       {sortedGroups.map(([name, tasks]) => (
         <Group
-          key={tasks[0].id}
+          key={tasks[0].task.id}
           level='group'
           {...{
             path: name,
