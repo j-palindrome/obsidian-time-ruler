@@ -25,9 +25,9 @@ declare global {
   }
 
   type TaskProps = {
+    type: 'task'
     id: string
     page: boolean
-    type: 'task' | 'parent' | 'deadline' | 'link' | 'search'
     title: string
     originalTitle: string
     originalText: string

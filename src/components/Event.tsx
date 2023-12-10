@@ -18,6 +18,7 @@ import $ from 'jquery'
 import { memo, useEffect, useState } from 'react'
 import useStateRef from 'react-usestateref'
 import _ from 'lodash'
+import { TaskComponentProps } from './Task'
 
 export type EventComponentProps = {
   id?: string

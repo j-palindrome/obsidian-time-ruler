@@ -20,8 +20,8 @@ import { roundMinutes, toISO } from '../services/util'
 
 export type TaskComponentProps = {
   task: TaskProps
-  subtasks: TaskComponentProps[]
-  type: TaskProps['type']
+  subtasks: TaskProps[]
+  type: 'deadline' | 'parent' | 'task'
   dragContainer: string
 }
 
@@ -52,7 +52,7 @@ export default function Task({
       data: dragData,
     })
 
-  const isLink = ['parent', 'link', 'deadline'].includes(type)
+  const isLink = ['parent', 'deadline'].includes(type)
 
   if (!startISO) startISO = task.scheduled
 
@@ -60,11 +60,6 @@ export default function Task({
 
   const hasSameDate = (subtask: TaskProps) =>
     startISO && subtask.scheduled && subtask.scheduled === startISO.slice(0, 10)
-  const differentScheduled = (subtask: TaskComponentProps) =>
-    type === 'task' &&
-    subtask.task.scheduled &&
-    subtask.task.scheduled !== (startISO ?? task.scheduled) &&
-    !hasSameDate(subtask.task)
 
   const lengthDragData: DragData = {
     dragType: 'task-length',
@@ -171,7 +166,7 @@ export default function Task({
           </div>
         )}
 
-        {!task.completed && (isLink || type == 'search') && task.scheduled && (
+        {!task.completed && isLink && task.scheduled && (
           <div
             className='task-scheduled ml-2 cursor-pointer whitespace-nowrap font-menu text-xs text-normal'
             onClick={() => openTaskInRuler(task.id)}

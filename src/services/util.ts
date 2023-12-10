@@ -15,6 +15,7 @@ import useStateRef from 'react-usestateref'
 import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
 import TimeRulerPlugin from 'src/main'
+import { TaskComponentProps } from 'src/components/Task'
 
 export function roundMinutes(date: DateTime) {
   return date.set({

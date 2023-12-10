@@ -22,7 +22,7 @@ export default function Block({
   startISO,
 }: {
   hidePaths?: string[]
-  tasks: TaskComponentProps[]
+  tasks: TaskProps[]
   type: BlockType
   id?: string
   dragContainer: string
@@ -59,11 +59,7 @@ export default function Block({
 
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const groupedTasks = _.groupBy(sortedTasks, (task) => {
-    const heading = parseHeadingFromPath(
-      task.task.path,
-      task.task.page,
-      dailyNoteInfo
-    )
+    const heading = parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
 
     if (hidePaths.includes(heading)) return UNGROUPED
     return heading
@@ -88,7 +84,7 @@ export default function Block({
     >
       {sortedGroups.map(([name, tasks]) => (
         <Group
-          key={tasks[0].task.id}
+          key={tasks[0].id}
           level='group'
           {...{
             path: name,

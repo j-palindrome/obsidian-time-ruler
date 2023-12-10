@@ -19,7 +19,7 @@ import {
 import Button from './Button'
 import Droppable from './Droppable'
 import Event from './Event'
-import Task from './Task'
+import Task, { TaskComponentProps } from './Task'
 import Hours from './Hours'
 import { TimeSpanTypes } from './Minutes'
 
@@ -251,10 +251,10 @@ export default function Day({
                 {_.sortBy(dueTasks, 'due', 'scheduled').map((task) => (
                   <Task
                     key={task.id}
-                    task={task.id}
+                    task={task}
                     type='deadline'
-                    dragContainer={dragContainer}
                     subtasks={[]}
+                    dragContainer={dragContainer}
                   />
                 ))}
               </div>

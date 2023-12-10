@@ -15,7 +15,7 @@ const UNGROUPED = '__ungrouped'
 export type GroupProps = {
   hidePaths: string[]
   path: string
-  tasks: TaskComponentProps[]
+  tasks: TaskProps[]
   type: BlockType
   level: 'group' | 'heading'
   due?: boolean
@@ -33,29 +33,6 @@ export default function Group({
   dragContainer,
   startISO,
 }: GroupProps) {
-  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const groupedHeadings =
-    level === 'group'
-      ? _.groupBy(tasks, (task) =>
-          task.task.path.includes('#')
-            ? parseHeadingFromPath(
-                task.task.path,
-                task.task.page,
-                dailyNoteInfo
-              )
-            : UNGROUPED
-        )
-      : []
-
-  const sortedHeadings =
-    level === 'group'
-      ? _.sortBy(_.entries(groupedHeadings), [
-          ([name, _tasks]) => (name === UNGROUPED ? 0 : 1),
-          '1.0.path',
-          '1.0.position.start.line',
-        ])
-      : []
-
   const collapsed = useAppStore((state) => state.collapsed[path] ?? false)
 
   const dragData: DragData = {
@@ -75,6 +52,17 @@ export default function Group({
       data: dragData,
     })
 
+  const props: GroupProps = {
+    type,
+    due,
+    hidePaths,
+    path,
+    tasks,
+    dragContainer,
+    startISO,
+    level: 'heading',
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -89,7 +77,7 @@ export default function Group({
             ref: setActivatorNodeRef,
           }}
           path={path}
-          isPage={tasks[0].task.page}
+          isPage={tasks[0].page}
           dragContainer={`${dragContainer}::${path}::${type}::reorder`}
           hidePaths={hidePaths}
         />
@@ -97,25 +85,69 @@ export default function Group({
 
       {!collapsed && (
         <>
-          {level === 'group'
-            ? sortedHeadings.map(([headingName, tasks]) => (
-                <Group
-                  level='heading'
-                  key={headingName}
-                  {...{
-                    tasks,
-                    path: headingName,
-                    type,
-                    due,
-                    hidePaths: hidePaths.concat([path]),
-                    dragContainer,
-                    startISO,
-                  }}
-                />
-              ))
-            : tasks.map((task, i) => <Task {...task} />)}
+          {level === 'group' ? (
+            <HeadingGroups {...props} />
+          ) : (
+            <ParentGroups {...props} />
+          )}
         </>
       )}
     </div>
   )
+}
+
+function HeadingGroups({
+  type,
+  due,
+  hidePaths,
+  path,
+  tasks,
+  dragContainer,
+  startISO,
+}: GroupProps) {
+  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
+  const groupedHeadings = _.groupBy(tasks, (task) =>
+    task.path.includes('#')
+      ? parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+      : UNGROUPED
+  )
+
+  const sortedHeadings = _.sortBy(_.entries(groupedHeadings), [
+    ([name, _tasks]) => (name === UNGROUPED ? 0 : 1),
+    '1.0.path',
+    '1.0.position.start.line',
+  ])
+
+  return (
+    <>
+      {sortedHeadings.map(([headingName, tasks]) => (
+        <Group
+          level='heading'
+          key={headingName}
+          {...{
+            tasks,
+            path: headingName,
+            type,
+            due,
+            hidePaths: hidePaths.concat([path]),
+            dragContainer,
+            startISO,
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
+function ParentGroups({
+  type,
+  due,
+  hidePaths,
+  path,
+  tasks,
+  dragContainer,
+  startISO,
+  level,
+}: GroupProps) {
+  return <></>
 }
