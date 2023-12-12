@@ -1,10 +1,17 @@
 import { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { getters, setters } from 'src/app/store'
 import { isTaskProps } from 'src/types/enums'
-import { DateTime } from 'luxon'
+import { DateTime, Duration } from 'luxon'
 import { useAppStoreRef } from '../app/store'
 import _ from 'lodash'
-import { roundMinutes, toISO } from './util'
+import {
+  assembleSubtasks,
+  roundMinutes,
+  toISO,
+  isDateISO,
+  findScheduledInParents,
+} from './util'
+import invariant from 'tiny-invariant'
 
 export const onDragEnd = async (
   ev: DragEndEvent,
@@ -13,7 +20,33 @@ export const onDragEnd = async (
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
 
-  if (ev.active.id === ev.over?.id) return
+  if (ev.active.id === ev.over?.id) {
+    setters.set({ dragData: null })
+    return
+  }
+
+  const getChildren = () => {
+    let children: string[] = []
+    invariant(dragData)
+    const tasks = _.values(getters.get('tasks'))
+    switch (dragData.dragType) {
+      case 'block':
+      case 'group':
+        children = dragData.tasks
+          .filter((x) => !x.task.queryParent)
+          .flatMap((parent) =>
+            assembleSubtasks(parent.task, tasks).concat(parent.task)
+          )
+          .map((child) => child.id)
+        break
+      case 'task':
+        children = assembleSubtasks(dragData.task, tasks)
+          .map((x) => x.id)
+          .concat(dragData.task.id)
+        break
+    }
+    return children.sort()
+  }
 
   if (dragData?.dragType === 'new_button' && !dropData) {
     setters.set({ newTask: { scheduled: undefined } })
@@ -25,49 +58,70 @@ export const onDragEnd = async (
           setters.updateFileOrder(dragData.path, dropData.heading)
           break
         case 'delete':
-          if (dragData.dragType !== 'task') break
-          // start from latest task and work backwards
-          const children = getters.getTask(dragData.task.id).children
-          if (children?.length) {
-            if (!confirm('Delete task and children?')) break
+          let children = getChildren()
 
-            for (let id of children.reverse()) {
-              await getters.getObsidianAPI().deleteTask(id)
-            }
+          if (children.length > 1) {
+            if (!confirm(`Delete ${children.length} tasks and children?`)) break
           }
-          await getters.getObsidianAPI().deleteTask(dragData.task.id)
+
+          for (let id of children.reverse()) {
+            await getters.getObsidianAPI().deleteTask(id)
+          }
+
           break
       }
     } else {
       switch (dragData.dragType) {
         case 'now':
           if (!dropData.scheduled) break
-          const now = roundMinutes(DateTime.now())
-          const nowString = now.toISODate() as string
-          const tomorrow = DateTime.now().plus({ days: 1 }).toISODate()
-          const futureTasks = _.filter(
-            getters.get('tasks'),
-            (task) =>
-              !!(
-                !task.completed &&
-                task.scheduled &&
-                task.scheduled > nowString &&
-                task.scheduled < tomorrow
-              )
+
+          const dayStart = getters.get('settings').dayStartEnd[0]
+          const startOfDay = DateTime.now()
+            .startOf('day')
+            .plus({ hours: dayStart })
+          const today = toISO(startOfDay)
+          const tomorrow = toISO(startOfDay.plus({ days: 1 }))
+          const tasks = getters.get('tasks')
+          const futureTasks: Record<string, TaskProps[]> = {}
+
+          for (let task of _.values(tasks)) {
+            if (task.completed) continue
+            const scheduled = findScheduledInParents(task.id, tasks, false)
+            if (
+              scheduled &&
+              !isDateISO(scheduled) &&
+              scheduled >= today &&
+              scheduled < tomorrow
+            ) {
+              if (task.queryParent) continue
+              let parent = task.parent
+              while (parent) {
+                if (tasks[parent].queryParent) continue
+                parent = tasks[parent].parent
+              }
+              if (futureTasks[scheduled]) futureTasks[scheduled].push(task)
+              else futureTasks[scheduled] = [task]
+            }
+          }
+
+          const tasksByTime = _.sortBy(_.entries(futureTasks), 0)
+          const { hours: shiftHours, minutes: shiftMinutes } = DateTime.fromISO(
+            dropData.scheduled
           )
-          const tasksByTime = _.sortBy(
-            _.entries(_.groupBy(futureTasks, 'scheduled')),
-            0
-          )
-          const addedHour = DateTime.fromISO(dropData.scheduled).diff(
-            DateTime.fromISO(tasksByTime[0][0])
-          )
+            .diff(DateTime.fromISO(tasksByTime[0][0]))
+            .shiftTo('hours', 'minutes')
+
+          if (!confirm(`Shift tasks by ${shiftHours}h${shiftMinutes}m?`)) break
 
           for (let [time, tasks] of tasksByTime) {
             const timeParse = DateTime.fromISO(time)
             await setters.patchTasks(
               tasks.map((task) => task.id),
-              { scheduled: toISO(timeParse.plus(addedHour)) }
+              {
+                scheduled: toISO(
+                  timeParse.plus({ hours: shiftHours, minutes: shiftMinutes })
+                ),
+              }
             )
           }
           break
@@ -94,10 +148,15 @@ export const onDragEnd = async (
             })
           }
           break
+        // block and group is rollover
+        case 'block':
         case 'group':
-        case 'event':
           setters.patchTasks(
-            dragData.tasks.flatMap((x) => x.id),
+            dragData.tasks
+              .filter((x) => !x.task.queryParent)
+              .flatMap((x) =>
+                x.type === 'parent' ? x.subtasks.map((x) => x.id) : x.task.id
+              ),
             dropData
           )
           break

@@ -1,10 +1,10 @@
 import _ from 'lodash'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getters, setters, useAppStore } from 'src/app/store'
+import { setters, useAppStore } from 'src/app/store'
+import { openTaskInRuler } from 'src/services/obsidianApi'
 import { convertSearchToRegExp } from 'src/services/util'
 import { priorityNumberToKey } from '../types/enums'
-import { openTaskInRuler } from 'src/services/obsidianApi'
 
 export default function Search() {
   const tasks = useAppStore((state) => state.tasks)

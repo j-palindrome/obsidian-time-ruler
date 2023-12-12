@@ -1,17 +1,11 @@
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import { useStopwatch, useTimer } from 'react-timer-hook'
-import Button from './Button'
-import Block from './Block'
-import { useAppStore } from '../app/store'
-import _ from 'lodash'
-import { isDateISO, processLength, toISO } from '../services/util'
-import { shallow } from 'zustand/shallow'
-import Event from './Event'
-import invariant from 'tiny-invariant'
-import Day from './Day'
+import { AppState, getters, setters, useAppStore } from '../app/store'
 import { sounds } from '../assets/assets'
-import Droppable from './Droppable'
+import { toISO } from '../services/util'
+import Button from './Button'
+import Day from './Day'
 import NewTask from './NewTask'
 
 export function Timer() {
@@ -42,7 +36,7 @@ export function Timer() {
     pauseExpiration.current = false
   }, [])
 
-  const [expanded, setExpanded] = useState(false)
+  const expanded = useAppStore((state) => state.viewMode === 'now')
   const [input, setInput] = useState('')
   const [maxSeconds, setMaxSeconds] = useState<number | null>(null)
   const seconds = maxSeconds ? timer.seconds : stopwatch.seconds
@@ -134,9 +128,7 @@ export function Timer() {
     }
   }
 
-  const draggingTask = useAppStore(
-    (state) => state.dragData && state.dragData.dragType === 'task'
-  )
+  const previousViewMode = useRef<AppState['viewMode']>('hour')
 
   return (
     <div
@@ -152,11 +144,6 @@ export function Timer() {
         } ${expanded ? 'h-14' : 'h-6'}`}
       >
         <div className='!absolute top-0 right-1 h-full flex items-center space-x-1'>
-          {draggingTask && (
-            <Droppable id={`delete-task`} data={{ type: 'delete' }}>
-              <Button src='x' className='!rounded-full h-10 w-10 bg-red-900' />
-            </Droppable>
-          )}
           <NewTask dragContainer='timer' />
         </div>
         <div
@@ -200,7 +187,14 @@ export function Timer() {
           <Button onClick={reset} src='rotate-cw' className='p-0.5' />
         )}
         <Button
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            if (!expanded) {
+              previousViewMode.current = getters.get('viewMode')
+              setters.set({ viewMode: 'now' })
+            } else {
+              setters.set({ viewMode: previousViewMode.current })
+            }
+          }}
           src={expanded ? 'minimize-2' : 'maximize-2'}
         />
       </div>

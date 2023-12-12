@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon'
+import { DateTime, Duration } from 'luxon'
 import {
   AppState,
   getters,
@@ -16,6 +16,8 @@ import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
 import TimeRulerPlugin from 'src/main'
 import { TaskComponentProps } from 'src/components/Task'
+import { priorityKeyToNumber, simplePriorityToNumber } from 'src/types/enums'
+import { BlockProps } from 'src/components/Block'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
@@ -49,38 +51,23 @@ export const isDateISO = (isoString: string) => isoString.length === 10
 const NaNtoZero = (numberTest: number) =>
   isNaN(numberTest) ? 0 : typeof numberTest === 'number' ? numberTest : 0
 
-export const processLength = ([time, items]: BlockData) => {
-  const events: EventProps[] = []
-  const tasks: TaskProps[] = []
+export const getEndISO = ({ tasks, events, startISO, endISO }: BlockProps) => {
+  invariant(startISO, endISO)
+  let startDate = DateTime.fromISO(startISO)
 
-  for (let item of items) {
-    if (item.type === 'event') events.push(item)
-    else {
-      tasks.push(item)
-    }
+  for (let event of events) {
+    const length = DateTime.fromISO(event.endISO).diff(
+      DateTime.fromISO(event.startISO)
+    )
+    startDate = startDate.plus(length)
   }
-  const tasksWithLength = tasks.filter((task) => task.length) as (TaskProps & {
-    length: NonNullable<TaskProps['length']>
-  })[]
-  const totalLength =
-    events.length > 0
-      ? (DateTime.fromISO(events[0].endISO)
-          .diff(DateTime.fromISO(events[0].startISO))
-          .shiftTo('hour', 'minute')
-          .toObject() as { hour: number; minute: number })
-      : tasksWithLength.reduce(
-          ({ hour, minute }, task) => {
-            return {
-              hour: hour + NaNtoZero(task.length.hour),
-              minute: minute + NaNtoZero(task.length.minute),
-            }
-          },
-          { hour: 0, minute: 0 }
-        )
+  for (let task of tasks) {
+    if (!task.length) continue
+    const length = Duration.fromDurationLike(task.length)
+    startDate = startDate.plus(length)
+  }
 
-  const endTime = toISO(DateTime.fromISO(time).plus(totalLength))
-
-  return { events, tasks, endISO: endTime }
+  return _.max([toISO(startDate), endISO]) as string
 }
 
 export const getTodayNote = () => {
@@ -311,20 +298,81 @@ export const scrollToSection = async (id: string) =>
     scroll()
   })
 
-export const findScheduledInParents = (
+export const queryTasks = (
   id: string,
+  query: string,
   tasks: Record<string, TaskProps>
-): TaskProps['scheduled'] => {
-  let task: TaskProps
-  task = tasks[id]
-  while (true) {
-    invariant(task)
-    const date = task.scheduled ?? task.completion
-    if (date) return date
-    if (task.parent) {
-      task = tasks[task.parent]
-    } else {
-      return undefined
+) => {
+  const paths = query.match(/\"[^\"]+\"/g)?.map((x) => x.slice(1, -1))
+  if (paths) {
+    for (let path of paths) query = query.replace(`"${path}"`, '')
+  }
+  const tags = query.match(/#([\w-]+)/g)?.map((x) => x.slice(1))
+  const fields = query.split(/ ?WHERE ?/)[1]
+
+  type Comparison = '<' | '<=' | '=' | '>=' | '>' | '!='
+  type FieldTest = {
+    key: string
+    comparison: Comparison
+    value: string | number | boolean
+  }
+  let fieldTests: FieldTest[] = []
+  if (fields) {
+    fieldTests = fields.split(/ ?(AND|OR|&|\|) ?/).flatMap((test) => {
+      const matches = test.match(/(.+?) ?(!=|<=|>=|=|<|>) ?(.+)/)
+      if (!matches) return []
+      let value = matches[3]
+      let parsedValue: string | number | boolean = value
+      if (matches[1] === 'priority') {
+        if (simplePriorityToNumber[value] !== undefined)
+          parsedValue = simplePriorityToNumber[value]
+        else if (priorityKeyToNumber[value] !== undefined)
+          parsedValue = priorityKeyToNumber[value]
+      } else if (value === 'true') parsedValue = true
+      else if (value === 'false') parsedValue = false
+      else parsedValue = value
+
+      return {
+        key: matches[1],
+        comparison: matches[2] as Comparison,
+        value: parsedValue,
+      }
+    })
+  }
+
+  if (!paths && !tags && !fieldTests.length) return []
+
+  const testField = (test: FieldTest, task: TaskProps): boolean => {
+    let value: string = task[test.key] ?? task.extraFields?.[test.key]
+    if (value === undefined) return false
+
+    switch (test.comparison) {
+      case '=':
+        return test.value === value
+      case '!=':
+        return test.value !== value
+      case '<':
+        return test.value < value
+      case '<=':
+        return test.value <= value
+      case '>':
+        return test.value > value
+      case '>=':
+        return test.value >= value
     }
   }
+
+  return _.filter(_.values(tasks), (task) => {
+    if (task.completed || task.id === id) return false
+    if (paths && paths.map((path) => task.path.includes(path)).includes(false))
+      return false
+    if (tags && tags.map((tag) => task.tags.includes(tag)).includes(false))
+      return false
+    if (
+      fieldTests &&
+      fieldTests.map((field) => testField(field, task)).includes(false)
+    )
+      return false
+    return true
+  })
 }

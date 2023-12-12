@@ -1,15 +1,12 @@
-import { DateTime } from 'luxon'
-import { openTaskInRuler } from '../services/obsidianApi'
-import { TaskComponentProps } from './Task'
 import { useDraggable } from '@dnd-kit/core'
-import invariant from 'tiny-invariant'
+import { DateTime } from 'luxon'
 
 export type DueDateComponentProps = {
   task: TaskProps
   dragContainer: string
   isDragging?: boolean
 }
-export default function DueDate({
+export default function Deadline({
   task,
   dragContainer,
   isDragging = false,

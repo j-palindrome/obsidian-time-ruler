@@ -112,11 +112,13 @@ export default class TimeRulerPlugin extends Plugin {
   }
 
   async jumpToTask(context: MarkdownView | MarkdownFileInfo) {
-    const path = context.file?.path
+    invariant(context.file)
+    let path = context.file.path.replace('.md', '')
     if (!path) return
-    const cursor = context.editor?.getCursor()
+    invariant(context.editor)
+    const cursor = context.editor.getCursor()
     if (!cursor) return
-    const line = context.editor?.getLine(cursor.line)
+    const line = context.editor.getLine(cursor.line)
     if (!line || !/ *- \[ \] /.test(line)) {
       new Notice('cursor is not on task')
       return

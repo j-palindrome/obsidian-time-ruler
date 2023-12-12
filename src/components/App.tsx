@@ -1,14 +1,11 @@
 import {
   DndContext,
-  DragEndEvent,
   DragOverlay,
-  DragStartEvent,
   MeasuringConfiguration,
   MouseSensor,
   PointerSensor,
   TouchSensor,
   pointerWithin,
-  useDraggable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -16,8 +13,10 @@ import $ from 'jquery'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
 import { Platform } from 'obsidian'
+import { getAPI } from 'obsidian-dataview'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import useStateRef from 'react-usestateref'
+import { onDragEnd, onDragStart } from 'src/services/dragging'
+import invariant from 'tiny-invariant'
 import {
   AppState,
   getters,
@@ -27,30 +26,19 @@ import {
 } from '../app/store'
 import { useAutoScroll } from '../services/autoScroll'
 import { getDailyNoteInfo } from '../services/obsidianApi'
-import { isTaskProps } from '../types/enums'
+import { scrollToSection, toISO, useChildWidth } from '../services/util'
+import { DraggableBlock } from './Block'
 import Button from './Button'
+import Day from './Day'
+import Deadline from './Deadline'
 import Droppable from './Droppable'
-import Event from './Event'
 import Group from './Group'
-import Heading from './Heading'
 import Logo from './Logo'
+import { NowTime, TimeSpanTypes } from './Minutes'
+import NewTask from './NewTask'
 import Search from './Search'
 import Task from './Task'
-import Day from './Day'
 import { Timer } from './Timer'
-import { NowTime, TimeSpanTypes } from './Minutes'
-import DueDate from './DueDate'
-import invariant from 'tiny-invariant'
-import NewTask from './NewTask'
-import {
-  parseDateFromPath,
-  parseHeadingFromPath,
-  scrollToSection,
-  toISO,
-  useChildWidth,
-} from '../services/util'
-import { getAPI } from 'obsidian-dataview'
-import { onDragEnd, onDragStart } from 'src/services/dragging'
 import Unscheduled from './Unscheduled'
 
 /**
@@ -195,10 +183,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return <></>
       case 'group':
         return <Group {...activeDrag} />
-      case 'event':
-        return <Event {...activeDrag} isDragging={true} />
+      case 'block':
+        return <DraggableBlock {...activeDrag} dragging />
       case 'due':
-        return <DueDate {...activeDrag} isDragging />
+        return <Deadline {...activeDrag} isDragging />
       case 'new_button':
         return <NewTask dragContainer='activeDrag' />
       case 'now':
@@ -211,7 +199,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const container = useRef<HTMLDivElement>(null)
 
-  const calendarMode = useAppStore((state) => state.viewMode === 'week')
+  const viewMode = useAppStore((state) => state.viewMode)
+  const calendarMode = viewMode === 'week'
 
   const { childWidth, childClass } = useChildWidth({
     container,
@@ -221,12 +210,14 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     invariant(scroller.current)
     const scrollWidth = scroller.current.getBoundingClientRect().width
     if (scrollWidth === 0) return
-    const leftLevel = Math.floor(
+    const scrolledToChild =
       scroller.current.scrollLeft / (scrollWidth / childWidth)
-    )
-    const rightLevel = leftLevel + childWidth + 1
-    if (leftLevel !== scrollViews[0] || rightLevel !== scrollViews[1])
+    const leftLevel = Math.floor(scrolledToChild)
+    const rightLevel = Math.ceil(scrolledToChild + childWidth)
+
+    if (leftLevel !== scrollViews[0] || rightLevel !== scrollViews[1]) {
       setScrollViews([leftLevel, rightLevel])
+    }
   }
   useEffect(updateScroll, [childWidth])
 
@@ -326,60 +317,64 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
             {getDragElement()}
           </DragOverlay>
 
-          <Buttons
-            {...{
-              times,
-              datesShown,
-              setWeeksShown,
-              weeksShownState,
-              setupStore: reload,
-              showingPastDates,
-            }}
-          />
+          {viewMode !== 'now' && (
+            <Buttons
+              {...{
+                times,
+                datesShown,
+                setWeeksShown,
+                weeksShownState,
+                setupStore: reload,
+                showingPastDates,
+              }}
+            />
+          )}
           <div className='w-full flex items-center h-5 flex-none my-1'>
             <Timer />
           </div>
-          <div
-            className={`flex h-full w-full snap-mandatory rounded-lg text-base child:flex-none child:snap-start ${childClass} ${
-              calendarMode
-                ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
-                : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
-            }`}
-            id='time-ruler-times'
-            data-auto-scroll={calendarMode ? 'y' : 'x'}
-            ref={scroller}
-            onScroll={updateScroll}
-          >
-            {times.map((time, i) => {
-              const isShowing =
-                calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
-              return time.type === 'unscheduled' ? (
-                <div
-                  key='unscheduled'
-                  id='time-ruler-unscheduled'
-                  className={`${frameClass} ${calendarMode ? '!w-full' : ''}`}
-                >
-                  <Unscheduled />
-                </div>
-              ) : (
-                <Fragment key={time.startISO + '::' + time.type}>
-                  {calendarMode &&
-                    i === (showingPastDates ? 0 : 1) &&
-                    dayPadding(time)}
+          {viewMode !== 'now' && (
+            <div
+              className={`flex h-full w-full snap-mandatory rounded-lg text-base child:flex-none child:snap-start ${childClass} ${
+                calendarMode
+                  ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
+                  : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
+              }`}
+              id='time-ruler-times'
+              data-auto-scroll={calendarMode ? 'y' : 'x'}
+              ref={scroller}
+              onScroll={updateScroll}
+            >
+              {times.map((time, i) => {
+                const isShowing =
+                  calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
+                return time.type === 'unscheduled' ? (
                   <div
-                    id={`time-ruler-${time.startISO.slice(0, 10)}`}
-                    className={frameClass}
+                    key='unscheduled'
+                    id='time-ruler-unscheduled'
+                    className={`${frameClass} ${calendarMode ? '!w-full' : ''}`}
                   >
-                    {isShowing && <Day {...time} dragContainer='app' />}
+                    {isShowing && <Unscheduled />}
                   </div>
-                  {calendarMode &&
-                  DateTime.fromISO(time.startISO).weekday === 7 ? (
-                    <div className='!h-0 !w-1'></div>
-                  ) : null}
-                </Fragment>
-              )
-            })}
-          </div>
+                ) : (
+                  <Fragment key={time.startISO + '::' + time.type}>
+                    {calendarMode &&
+                      i === (showingPastDates ? 0 : 1) &&
+                      dayPadding(time)}
+                    <div
+                      id={`time-ruler-${time.startISO.slice(0, 10)}`}
+                      className={frameClass}
+                    >
+                      {isShowing && <Day {...time} dragContainer='app' />}
+                    </div>
+                    {calendarMode &&
+                    DateTime.fromISO(time.startISO).weekday === 7 ? (
+                      <div className='!h-0 !w-1'></div>
+                    ) : null}
+                  </Fragment>
+                )
+              })}
+            </div>
+          )}
         </div>
       </DndContext>
       {searchStatus && <Search />}
@@ -404,12 +399,19 @@ const Buttons = ({
 
   useEffect(() => {
     const checkScroll = () => {
-      const offsetLeft = $('#time-ruler-times').children()[1]?.offsetLeft
-      if ($('#time-ruler-times')[0].scrollLeft < offsetLeft - 20) {
-        $('#time-ruler-times')[0].scrollTo({ left: offsetLeft })
+      const times = $('#time-ruler-times')
+      if (!times[0]) {
         setTimeout(checkScroll, 100)
+        return
+      }
+      const offsetLeft = times.children()[1].offsetLeft
+      if (times[0].scrollLeft < offsetLeft - 20) {
+        times[0].scrollTo({ left: offsetLeft })
+
+        setTimeout(checkScroll, 250)
       }
     }
+
     checkScroll()
   }, [])
 

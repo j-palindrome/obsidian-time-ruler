@@ -14,6 +14,7 @@ export default function Logo({ src, className = '', title = '' }) {
       className={`flex select-none flex-col items-center justify-center ${className} ${
         !className.includes('h-') ? 'h-full' : ''
       } ${!className.includes('w-') ? 'w-full' : ''}`}
-      ref={frame}></div>
+      ref={frame}
+    ></div>
   )
 }

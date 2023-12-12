@@ -1,8 +1,8 @@
 import { STask } from 'obsidian-dataview'
-import { GroupProps } from '../components/Group'
-import { EventComponentProps } from '../components/Event'
+import { GroupComponentProps } from '../components/Group'
 import { TaskComponentProps } from '../components/Task'
-import { DueDateComponentProps } from '../components/DueDate'
+import { DueDateComponentProps } from '../components/Deadline'
+import { BlockComponentProps } from 'src/components/Block'
 
 declare global {
   type FieldFormat = {
@@ -43,6 +43,9 @@ declare global {
     blockReference?: string
     fieldFormat: FieldFormat['main']
     completed: boolean
+    query?: string
+    queryParent?: string
+    queryChildren?: string
 
     // Obsidian Reminder
     reminder?: string
@@ -82,9 +85,9 @@ declare global {
   }
 
   type DragData =
-    | ({ dragType: 'group' } & GroupProps)
+    | ({ dragType: 'group' } & GroupComponentProps)
     | ({ dragType: 'task' } & TaskComponentProps)
-    | ({ dragType: 'event' } & EventComponentProps)
+    | ({ dragType: 'block' } & BlockComponentProps)
     | ({ dragType: 'task-length' } & {
         id: string
         start: string
@@ -99,8 +102,6 @@ declare global {
     | Partial<TaskProps>
     | { type: 'heading'; heading: string }
     | { type: 'delete' }
-
-  type BlockData = [string, (EventProps | TaskProps)[]]
 }
 
 declare module 'obsidian' {

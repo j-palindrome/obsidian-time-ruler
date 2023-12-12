@@ -1,5 +1,7 @@
 const plugin = require('tailwindcss/plugin')
 
+const INDENT = 28
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [`src/**/*.{tsx,css,ts}`],
@@ -15,7 +17,23 @@ module.exports = {
   important: '#time-ruler',
   theme: {
     extend: {
+      padding: {
+        indent: INDENT,
+      },
+      margin: {
+        indent: INDENT,
+      },
+      width: {
+        indent: INDENT,
+      },
+      minWidth: {
+        indent: INDENT,
+      },
       minHeight: {
+        indent: INDENT,
+        line: 'var(--font-text-size)',
+      },
+      maxHeight: {
         line: 'var(--font-text-size)',
       },
       lineHeight: {

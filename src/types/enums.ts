@@ -104,7 +104,8 @@ const tasksKeys = [
 export const RESERVED_FIELDS = dataViewKeys.concat(
   sTaskKeys,
   fullCalendarKeys,
-  tasksKeys
+  tasksKeys,
+  'query'
 )
 
 export const isTaskProps = (data: DropData): data is Partial<TaskProps> =>

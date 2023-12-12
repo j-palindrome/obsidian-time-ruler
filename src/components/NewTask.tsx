@@ -1,19 +1,18 @@
 import { useDraggable } from '@dnd-kit/core'
-import Button from './Button'
-import { getters, setters, useAppStore, AppState } from '../app/store'
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import _ from 'lodash'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
-import moment from 'moment'
+import { shallow } from 'zustand/shallow'
+import { getters, setters, useAppStore } from '../app/store'
 import {
-  getTasksByHeading,
+  convertSearchToRegExp,
+  parseFileFromPath,
+  parseFolderFromPath,
   parseHeadingFromPath,
   parseHeadingTitle,
-  parseFileFromPath,
-  convertSearchToRegExp,
-  parseFolderFromPath,
 } from '../services/util'
-import { shallow } from 'zustand/shallow'
-import _ from 'lodash'
+import Button from './Button'
+import Droppable from './Droppable'
 
 export default function NewTask({ dragContainer }: { dragContainer: string }) {
   const data: DragData = {
@@ -75,16 +74,30 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     setSearch('')
   }, [newTask])
 
+  const draggingTask = useAppStore(
+    (state) =>
+      state.dragData &&
+      ['task', 'group', 'block'].includes(state.dragData.dragType)
+  )
+
   return (
-    <>
+    <div className='flex relative z-30'>
+      {draggingTask && (
+        <Droppable id={`delete-task`} data={{ type: 'delete' }}>
+          <Button
+            src='x'
+            className='!rounded-full h-10 w-10 bg-red-900 mr-2 flex-none'
+          />
+        </Droppable>
+      )}
       <div
-        className='relative z-30 h-10 w-10 flex-none'
+        className='relative h-10 w-10 flex-none'
         {...attributes}
         {...listeners}
         ref={setNodeRef}
       >
         <Button
-          className='h-full w-full cursor-grab rounded-full bg-accent child:invert'
+          className='h-full w-full cursor-grab !rounded-full bg-accent child:invert'
           src='plus'
         />
       </div>
@@ -145,7 +158,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
 

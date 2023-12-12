@@ -1,16 +1,13 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { DateTime } from 'luxon'
+import { useEffect } from 'react'
+import { getters, setters, useAppStore } from '../app/store'
 import {
   isLengthType,
   roundMinutes,
   toISO,
   useHourDisplay,
 } from '../services/util'
-import ObsidianAPI from '../services/obsidianApi'
-import { getters, setters, useAppStore } from '../app/store'
-import Button from './Button'
-import Droppable from './Droppable'
-import { Fragment, useEffect } from 'react'
 
 export type TimeSpanTypes = 'minutes' | 'hours'
 export default function Minutes({
@@ -52,6 +49,7 @@ export default function Minutes({
   }
   const now = roundMinutes(DateTime.now())
   const nowISO = toISO(now)
+
   if (chopStart && !(start <= now && end > now))
     start = start.plus(modifier[type])
   if (chopEnd) end = end.minus(modifier[type])
@@ -91,8 +89,6 @@ export type TimeProps = {
 function Time({ time, type, dragContainer }: TimeProps) {
   const minutes = time.minute
   const hours = time.hour
-  const day = time.weekday
-  const date = time.day
   const iso = toISO(time)
 
   const { isOver, setNodeRef } = useDroppable({
@@ -191,22 +187,24 @@ function Time({ time, type, dragContainer }: TimeProps) {
 
 export function NowTime({ dragContainer }: { dragContainer: string }) {
   const startISO = toISO(roundMinutes(DateTime.now()))
-  const { isOver, setNodeRef } = useDroppable({
-    id: `${dragContainer}::now`,
+  const { isOver, setNodeRef: setDropNodeRef } = useDroppable({
+    id: `${dragContainer}::now::drop`,
     data: { scheduled: startISO } as DropData,
   })
 
-  // const dragData: DragData = {
-  //   dragType: 'now',
-  // }
-  // const {
-  //   setNodeRef: setDragNodeRef,
-  //   attributes,
-  //   listeners,
-  // } = useDraggable({
-  //   data: dragData,
-  //   id: `${dragContainer}::now`,
-  // })
+  const dragData: DragData = {
+    dragType: 'now',
+  }
+
+  const {
+    setNodeRef: setDragNodeRef,
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+  } = useDraggable({
+    data: dragData,
+    id: `${dragContainer}::now::drag`,
+  })
 
   const nowTime = roundMinutes(DateTime.now())
   const hourDisplay = useHourDisplay(nowTime.hour)
@@ -216,16 +214,19 @@ export function NowTime({ dragContainer }: { dragContainer: string }) {
       className={`group flex w-full items-center rounded-lg pl-9 pr-2 hover:bg-selection transition-colors duration-300 ${
         isOver ? 'bg-selection' : ''
       }`}
-      ref={setNodeRef}
+      ref={(node) => {
+        setDragNodeRef(node)
+        setDropNodeRef(node)
+      }}
     >
-      {/* <div
+      <div
         className='cursor-grab hidden group-hover:block text-xs ml-1 text-accent flex-none'
-        // {...attributes}
-        // {...listeners}
-        // ref={setDragNodeRef}
+        {...attributes}
+        {...listeners}
+        ref={setActivatorNodeRef}
       >
         Shift all
-      </div> */}
+      </div>
       <div className='h-1 w-1 rounded-full bg-red-800'></div>
       <div className='w-full border-0 border-b border-solid border-red-800'></div>
 

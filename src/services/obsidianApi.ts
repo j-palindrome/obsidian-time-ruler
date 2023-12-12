@@ -22,14 +22,15 @@ import {
   textToTask,
 } from './parser'
 import {
-  findScheduledInParents,
   parseDateFromPath,
   parseFileFromPath,
   parseHeadingFromPath,
   parsePathFromDate,
+  queryTasks,
   scrollToSection,
   toISO,
 } from './util'
+import invariant from 'tiny-invariant'
 
 let dv: DataviewApi
 
@@ -272,6 +273,51 @@ export default class ObsidianAPI extends Component {
 
     if (!updated) return
 
+    const queries = _.sortBy(
+      _.filter(updatedTasks, (task) => !task.completed && !!task.query),
+      (task) => task.scheduled ?? '99999'
+    )
+
+    if (queries.length > 0) {
+      const queriedIds = _.groupBy(
+        _.keys(updatedTasks),
+        (id) => updatedTasks[id].queryParent
+      )
+
+      // queries "steal" children, with most earlier scheduled overriding later scheduled
+      for (let i = queries.length - 1; i >= 0; i--) {
+        const task = queries[i]
+        invariant(task.query)
+
+        const queriedTasks = queryTasks(task.id, task.query, updatedTasks)
+        for (let queriedTask of queriedTasks) {
+          if (
+            queriedTask.queryParent === task.id ||
+            (queriedTask.scheduled &&
+              (!task.scheduled || queriedTask.scheduled > task.scheduled))
+          )
+            continue
+          updatedTasks[queriedTask.id] = {
+            ...updatedTasks[queriedTask.id],
+            queryParent: task.id,
+          }
+        }
+
+        if (queriedIds[task.id]) {
+          const unQueriedIds = _.difference(
+            queriedIds[task.id],
+            queriedTasks.map((x) => x.id)
+          )
+          for (let unQueriedId of unQueriedIds) {
+            updatedTasks[unQueriedId] = {
+              ...updatedTasks[unQueriedId],
+              queryParent: undefined,
+            }
+          }
+        }
+      }
+    }
+
     setters.set({ tasks: updatedTasks, fileOrder: this.settings.fileOrder })
   }
 
@@ -435,6 +481,17 @@ export default class ObsidianAPI extends Component {
       task.position.end.line + 1 - task.position.start.line
     )
 
+    if (task.query) {
+      const updatedTasks = {}
+      for (let queriedTask of _.filter(
+        getters.get('tasks'),
+        (queriedTask) => queriedTask.queryParent === task.id
+      )) {
+        updatedTasks[queriedTask.id] = _.omit(queriedTask, 'queryParent')
+      }
+      setters.set(updatedTasks)
+    }
+
     await app.vault.modify(file, lines.join('\n'))
   }
 
@@ -537,7 +594,7 @@ export function openTaskInRuler(id: string) {
     return
   }
 
-  const scheduled = findScheduledInParents(task.id, getters.get('tasks'))
+  const scheduled = findScheduledInParents(task.id, getters.get('tasks'), false)
 
   if (scheduled) {
     const showingPastDates = getters.get('showingPastDates')

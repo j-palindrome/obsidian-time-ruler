@@ -1,11 +1,10 @@
-import { setters, useAppStore } from 'src/app/store'
-import Block from './Block'
 import _ from 'lodash'
-import Event from './Event'
-import Droppable from './Droppable'
 import { memo } from 'react'
-import { useCollapsed } from 'src/services/util'
+import { setters, useAppStore } from 'src/app/store'
+import { findScheduledInParents, useCollapsed } from 'src/services/util'
+import Block from './Block'
 import Button from './Button'
+import Droppable from './Droppable'
 
 const Unscheduled = memo(_Unscheduled, () => true)
 export default Unscheduled
@@ -17,10 +16,9 @@ function _Unscheduled() {
     _.filter(
       state.tasks,
       (task) =>
-        !task.scheduled &&
         (showCompleted ||
           (showingPastDates ? task.completed : !task.completed)) &&
-        !task.parent
+        !findScheduledInParents(task.id, state.tasks, showingPastDates)
     )
   )
   const childWidth = useAppStore((state) =>
@@ -44,7 +42,7 @@ function _Unscheduled() {
         </Droppable>
       </div>
       <div
-        className={`h-0 grow w-full p-1 rounded-lg bg-secondary-alt mt-1 ${
+        className={`h-0 grow w-full mt-1 rounded-lg ${
           childWidth > 1
             ? `child:flex child:overflow-y-hidden child:overflow-x-auto child:flex-col child:flex-wrap child:h-full child:snap-x child:snap-mandatory child:child:max-h-full child:child:overflow-y-auto child:child:snap-start ${
                 [
@@ -57,10 +55,12 @@ function _Unscheduled() {
               }`
             : 'overflow-x-hidden overflow-y-auto'
         }`}
-        data-auto-scroll={'y'}
+        data-auto-scroll={childWidth > 1 ? 'x' : 'y'}
       >
         <Block
           startISO={undefined}
+          blocks={[]}
+          events={[]}
           type='unscheduled'
           dragContainer='unscheduled'
           tasks={tasks}

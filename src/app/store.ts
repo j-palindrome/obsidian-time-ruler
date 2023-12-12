@@ -27,7 +27,7 @@ export type AppState = {
   findingTask: string | null
   inScroll: number
   searchStatus: boolean
-  viewMode: 'hour' | 'day' | 'week'
+  viewMode: 'now' | 'hour' | 'day' | 'week'
   dailyNoteInfo: {
     format: string
     folder: string

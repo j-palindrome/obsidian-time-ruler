@@ -295,6 +295,13 @@ export function textToTask(
     return item['repeat'] ?? titleLine.match(TASKS_REPEAT_SEARCH)?.[1]
   }
 
+  const parseQuery = () => {
+    if (!item.query) return undefined
+    if (!item.query.includes('"') && !/(^|\s)#|WHERE/.test(item.query))
+      return `"${item.query}"`
+    return item.query
+  }
+
   const { length, scheduled } = parseScheduledAndLength()
   const due = parseDateKey('due')
   const completion = item.completed ? parseDateKey('completion') : undefined
@@ -303,6 +310,8 @@ export function textToTask(
   const repeat = parseRepeat()
   const priority = parsePriority()
   const reminder = parseReminder()
+
+  const query = parseQuery()
 
   return {
     id: parseId(item),
@@ -333,6 +342,7 @@ export function textToTask(
     created,
     blockReference: titleLine.match(BLOCK_REFERENCE)?.[0],
     completed: item.completed,
+    query,
   }
 }
 
@@ -445,6 +455,7 @@ export function pageToTask(
     created: testDateTime(item.created),
     blockReference: undefined,
     fieldFormat,
+    query: (item.query as string) ?? undefined,
   }
 }
 
@@ -560,15 +571,10 @@ export function taskToText(
         }${task.length.minute ? `${task.length.minute}m` : ''}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
-      if (task.start) {
-        draft += `  [start:: ${task.start}]`
-      }
-      if (task.created) {
-        draft += `  [created:: ${task.created}]`
-      }
-      if (task.completion) {
-        draft += `  [completion:: ${task.completion}]`
-      }
+      if (task.start) draft += `  [start:: ${task.start}]`
+      if (task.created) draft += `  [created:: ${task.created}]`
+      if (task.query) draft += `  [query:: ${task.query}]`
+      if (task.completion) draft += `  [completion:: ${task.completion}]`
       break
     case 'kanban':
       if (task.scheduled) {
@@ -588,18 +594,13 @@ export function taskToText(
         }${task.length.minute ? `${task.length.minute}m` : ''}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
-      if (task.start) {
-        draft += `  [start:: ${task.start}]`
-      }
-      if (task.created) {
-        draft += `  [created:: ${task.created}]`
-      }
+      if (task.start) draft += `  [start:: ${task.start}]`
+      if (task.created) draft += `  [created:: ${task.created}]`
       if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
         draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
       }
-      if (task.completion) {
-        draft += `  [completion:: ${task.completion}]`
-      }
+      if (task.query) draft += `  [query:: ${task.query}]`
+      if (task.completion) draft += `  [completion:: ${task.completion}]`
       break
     case 'dataview':
       if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
@@ -611,18 +612,12 @@ export function taskToText(
         }${task.length.minute ? `${task.length.minute}m` : ''}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
-      if (task.start) {
-        draft += `  [start:: ${task.start}]`
-      }
-      if (task.created) {
-        draft += `  [created:: ${task.created}]`
-      }
-      if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
+      if (task.start) draft += `  [start:: ${task.start}]`
+      if (task.created) draft += `  [created:: ${task.created}]`
+      if (task.priority && task.priority !== TaskPriorities.DEFAULT)
         draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
-      }
-      if (task.completion) {
-        draft += `  [completion:: ${task.completion}]`
-      }
+      if (task.query) draft += `  [query:: ${task.query}]`
+      if (task.completion) draft += `  [completion:: ${task.completion}]`
       break
     case 'full-calendar':
       if (task.scheduled) {
@@ -642,18 +637,13 @@ export function taskToText(
         draft += `  [endTime:: ${endTime.hour}:${endTime.minute}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
-      if (task.start) {
-        draft += `  [start:: ${task.start}]`
-      }
-      if (task.created) {
-        draft += `  [created:: ${task.created}]`
-      }
-      if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
+      if (task.start) draft += `  [start:: ${task.start}]`
+      if (task.created) draft += `  [created:: ${task.created}]`
+      if (task.priority && task.priority !== TaskPriorities.DEFAULT)
         draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
-      }
-      if (task.completion) {
-        draft += `  [completion:: ${task.completion}]`
-      }
+      if (task.query) draft += `  [query:: ${task.query}]`
+      if (task.completion) draft += `  [completion:: ${task.completion}]`
+
       break
     case 'tasks':
       if (task.length && task.length.hour + task.length.minute > 0)
@@ -672,6 +662,8 @@ export function taskToText(
         draft += ` ${keyToTasksEmoji.scheduled} ${task.scheduled.slice(0, 10)}`
       if (task.due) draft += ` ${keyToTasksEmoji.due} ${task.due}`
       if (task.created) draft += ` ${keyToTasksEmoji.created} ${task.created}`
+      if (task.query) draft += `  [query:: ${task.query}]`
+
       if (task.completion)
         draft += ` ${keyToTasksEmoji.completion} ${task.completion}`
       break
@@ -705,37 +697,32 @@ export function taskToPage(task: TaskProps, frontmatter: Record<string, any>) {
       delete frontmatter['allDay']
       delete frontmatter['date']
     }
-
-    for (let property of [
-      'due',
-      'completion',
-      'reminder',
-    ] as (keyof typeof propertyIndex)[]) {
-      setProperty(frontmatter, property, task[property])
-    }
   } else {
-    for (let property of [
-      'due',
-      'scheduled',
-      'completion',
-      'reminder',
-    ] as (keyof typeof propertyIndex)[]) {
-      setProperty(frontmatter, property, task[property])
-    }
+    setProperty(frontmatter, 'scheduled', task['scheduled'])
 
     if (task.length && task.length.hour + task.length.minute) {
-      frontmatter['length'] = `${task.length.hour}h${task.length.minute}m`
+      setProperty(
+        frontmatter,
+        'length',
+        `${task.length.hour}h${task.length.minute}m`
+      )
     }
+  }
+
+  for (let property of [
+    'due',
+    'completion',
+    'reminder',
+    'completed',
+    'completion',
+    'query',
+    'reminder',
+  ] as (keyof typeof propertyIndex)[]) {
+    setProperty(frontmatter, property, task[property])
   }
 
   if (task.priority !== TaskPriorities.DEFAULT) {
-    frontmatter.priority = priorityNumberToKey[task.priority]
-  }
-
-  if (task.completion) {
-    setProperty(frontmatter, 'completed', true)
-  } else {
-    setProperty(frontmatter, 'completed', false)
+    setProperty(frontmatter, 'priority', priorityNumberToKey[task.priority])
   }
 }
 
@@ -745,6 +732,9 @@ export const propertyIndex = {
   due: ['due', 'Due', 'deadline', 'Deadline'],
   reminder: ['reminder', 'Reminder'],
   completion: ['Completion', 'completion'],
+  query: ['Query', 'query'],
+  length: ['Length', 'length'],
+  priority: ['priority', 'Priority'],
 }
 
 export function setProperty(

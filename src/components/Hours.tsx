@@ -1,13 +1,8 @@
-import _, { toSafeInteger } from 'lodash'
-import { DateTime } from 'luxon'
-import { Fragment, useEffect, useState } from 'react'
-import { shallow } from 'zustand/shallow'
-import { setters, useAppStore, ViewMode } from '../app/store'
-import { openTaskInRuler } from '../services/obsidianApi'
-import { isDateISO, processLength, toISO } from '../services/util'
-import Button from './Button'
-import Droppable from './Droppable'
-import Event from './Event'
+import { Fragment } from 'react'
+import { useAppStore } from '../app/store'
+import { getEndISO } from '../services/util'
+
+import Block, { BlockProps } from './Block'
 import Minutes, { TimeSpanTypes } from './Minutes'
 
 export default function Hours({
@@ -15,64 +10,40 @@ export default function Hours({
   endISO,
   blocks,
   type,
-  startWithHours = false,
   chopStart = false,
   dragContainer = '',
   noExtension = false,
 }: {
   startISO: string
   endISO: string
-  blocks: BlockData[]
+  blocks: BlockProps[]
   type: TimeSpanTypes
   startWithHours?: boolean
   chopStart?: boolean
   dragContainer?: string
   noExtension?: boolean
 }) {
-  const formattedBlocks: {
-    startISO: string
-    endISO: string
-    tasks: TaskProps[]
-    events: EventProps[]
-    blocks: BlockData[]
-  }[] = []
+  const formattedBlocks: BlockProps[] = []
 
   const dayStartEnd = useAppStore((state) => state.settings.dayStartEnd)
   const extendBlocks = useAppStore((state) => state.settings.extendBlocks)
-  let maxStart = startISO
-  let minEnd = [
-    endISO,
-    toISO(DateTime.fromISO(endISO).set({ hour: dayStartEnd[1] })),
-  ].sort()[0]
 
   for (let i = 0; i < blocks.length; i++) {
-    const [startISO, _tasks] = blocks[i]
-
-    let { events, tasks, endISO: blockEndISO } = processLength(blocks[i])
-
-    const includeNextBlocks = blocks
-      .slice(i + 1)
-      .filter(([time, _items]) => time < blockEndISO)
-    i += includeNextBlocks.length
-
-    const lastChildBlock = includeNextBlocks.last()
-    if (lastChildBlock) {
-      const { endISO: lastChildEndISO } = processLength(lastChildBlock)
-      blockEndISO = [lastChildEndISO, blockEndISO].sort()[1]
-    }
-
-    if (blockEndISO === startISO && extendBlocks) {
-      const nextBlock = blocks[i + 1]
-      if (nextBlock) blockEndISO = nextBlock[0]
-      else blockEndISO = endISO
+    let nestedBlocks: BlockProps[] = []
+    const thisBlock = blocks[i]
+    const thisEndISO = getEndISO(thisBlock)
+    while (blocks[i + 1] && (blocks[i + 1].startISO as string) < thisEndISO) {
+      nestedBlocks.push(blocks[i + 1])
+      i++
     }
 
     formattedBlocks.push({
-      startISO,
-      endISO: blockEndISO,
-      tasks,
-      events,
-      blocks: includeNextBlocks,
+      ...thisBlock,
+      endISO:
+        extendBlocks && thisEndISO === thisBlock.startISO
+          ? blocks[i + 1]?.startISO ?? endISO
+          : thisEndISO,
+      blocks: nestedBlocks,
     })
   }
 
@@ -80,57 +51,63 @@ export default function Hours({
     (state) => state.settings.hideTimes || state.viewMode === 'week'
   )
 
+  const event = blocks[0]?.events?.[0]
   return (
     <div className={`pb-1 ${hideTimes ? 'space-y-1' : ''}`}>
-      {!hideTimes && (
-        <Minutes
-          dragContainer={dragContainer + '::' + startISO}
-          type={startWithHours ? 'hours' : type}
-          startISO={maxStart}
-          endISO={blocks[0]?.[0] ?? minEnd}
-          chopStart={chopStart}
-          chopEnd
-          noExtension={noExtension}
-        />
-      )}
+      <Minutes
+        dragContainer={dragContainer + '::' + startISO}
+        type={type}
+        startISO={startISO}
+        endISO={formattedBlocks[0]?.startISO ?? endISO}
+        chopEnd
+        chopStart={
+          chopStart || startISO === (formattedBlocks[0]?.startISO ?? endISO)
+        }
+        noExtension={noExtension}
+      />
 
       {formattedBlocks.map(
         (
           {
-            startISO: thisStartISO,
-            endISO: thisEndISO,
-            tasks: thisTasks,
-            events: thisEvents,
-            blocks: thisBlocks,
+            startISO: blockStartISO,
+            endISO: blockEndISO,
+            tasks,
+            events,
+            blocks,
           },
           i
-        ) => {
-          return (
-            <Fragment key={`${thisStartISO}::${thisEvents[0]?.id}`}>
-              <Event
-                startISO={thisStartISO}
-                endISO={thisEndISO}
-                tasks={thisTasks}
-                id={thisEvents[0]?.id}
-                type={type}
-                nestedBlocks={thisBlocks}
-                dragContainer={dragContainer}
-              />
+        ) => (
+          <Fragment key={`${blockStartISO}::${events[0]?.id}`}>
+            <Block
+              startISO={blockStartISO}
+              endISO={blockEndISO}
+              tasks={tasks}
+              events={events}
+              blocks={blocks}
+              dragContainer={dragContainer + '::' + blockStartISO}
+              type='event'
+            />
 
-              {!hideTimes && (
-                <Minutes
-                  dragContainer={dragContainer + '::' + startISO}
-                  type={type}
-                  startISO={_.max([maxStart, thisEndISO]) as string}
-                  endISO={formattedBlocks[i + 1]?.startISO ?? minEnd}
-                  chopEnd
-                  chopStart={thisStartISO === thisEndISO}
-                  noExtension={noExtension}
-                />
-              )}
-            </Fragment>
-          )
-        }
+            {!hideTimes && (
+              <Minutes
+                dragContainer={dragContainer + '::' + blockStartISO}
+                type={type}
+                startISO={blockEndISO as string}
+                endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
+                chopEnd
+                chopStart={blockStartISO === blockEndISO}
+                noExtension={noExtension}
+              />
+            )}
+          </Fragment>
+        )
+      )}
+
+      {event && (event.location || event.notes) && (
+        <div className='py-2 pl-6 text-xs'>
+          <div className='w-full truncate'>{event.location}</div>
+          <div className='w-full truncate text-muted'>{event.notes}</div>
+        </div>
       )}
     </div>
   )

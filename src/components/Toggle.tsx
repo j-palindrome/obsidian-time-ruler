@@ -1,4 +1,3 @@
-import { useRect } from '@dnd-kit/core/dist/hooks/utilities'
 import { Setting, ToggleComponent } from 'obsidian'
 import { useEffect, useRef } from 'react'
 import invariant from 'tiny-invariant'
@@ -6,7 +5,7 @@ import invariant from 'tiny-invariant'
 export default function Toggle({
   callback,
   title,
-  value
+  value,
 }: {
   callback: (state: boolean) => void
   title: string
@@ -21,10 +20,10 @@ export default function Toggle({
     if (!thisSetting.current) {
       thisSetting.current = new Setting(frame.current).setName('tasks')
     }
-    thisSetting.current.addToggle(toggle => {
+    thisSetting.current.addToggle((toggle) => {
       thisToggle.current = toggle
       toggle.setValue(value)
-      toggle.onChange(state => callback(state))
+      toggle.onChange((state) => callback(state))
     })
     return () => {
       thisSetting.current?.clear()
