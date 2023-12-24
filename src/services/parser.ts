@@ -11,7 +11,13 @@ import {
   simplePriorityToNumber,
 } from '../types/enums'
 import _ from 'lodash'
-import { isDateISO, parseDateFromPath, parseFileFromPath, toISO } from './util'
+import {
+  hasPriority,
+  isDateISO,
+  parseDateFromPath,
+  parseFileFromPath,
+  toISO,
+} from './util'
 import { AppState, getters } from '../app/store'
 import { startTransition } from 'react'
 import { create } from 'zustand'
@@ -596,7 +602,7 @@ export function taskToText(
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
       if (task.created) draft += `  [created:: ${task.created}]`
-      if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
+      if (hasPriority(task)) {
         draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
       }
       if (task.query) draft += `  [query:: ${task.query}]`
@@ -614,7 +620,7 @@ export function taskToText(
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
       if (task.created) draft += `  [created:: ${task.created}]`
-      if (task.priority && task.priority !== TaskPriorities.DEFAULT)
+      if (hasPriority(task))
         draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
       if (task.query) draft += `  [query:: ${task.query}]`
       if (task.completion) draft += `  [completion:: ${task.completion}]`
@@ -639,7 +645,7 @@ export function taskToText(
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
       if (task.created) draft += `  [created:: ${task.created}]`
-      if (task.priority && task.priority !== TaskPriorities.DEFAULT)
+      if (hasPriority(task))
         draft += `  [priority:: ${priorityNumberToKey[task.priority]}]`
       if (task.query) draft += `  [query:: ${task.query}]`
       if (task.completion) draft += `  [completion:: ${task.completion}]`
@@ -654,7 +660,7 @@ export function taskToText(
         draft += `  [startTime:: ${task.scheduled.slice(11)}]`
       }
       draft += formatReminder()
-      if (task.priority && task.priority !== TaskPriorities.DEFAULT)
+      if (hasPriority(task))
         draft += ` ${keyToTasksEmoji[priorityNumberToKey[task.priority]]}`
       if (task.repeat) draft += ` ${keyToTasksEmoji.repeat} ${task.repeat}`
       if (task.start) draft += ` ${keyToTasksEmoji.start} ${task.start}`

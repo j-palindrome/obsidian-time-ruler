@@ -6,16 +6,21 @@ import { shallow } from 'zustand/shallow'
 import { setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
 import {
-  findScheduledInParents,
+  formatHeadingTitle,
+  getParents,
+  getToday,
   isDateISO,
-  useCollapsed,
+  nestedScheduled,
+  parseHeadingFromPath,
+  parseTaskDate,
 } from '../services/util'
-import Block, { BlockProps } from './Block'
+import Block, { BlockProps, UNGROUPED } from './Block'
 import Button from './Button'
 import Droppable from './Droppable'
 import Hours from './Hours'
 import { TimeSpanTypes } from './Minutes'
 import Task from './Task'
+import { TaskPriorities } from '../types/enums'
 
 export default function Day({
   startISO,
@@ -32,7 +37,7 @@ export default function Day({
   const now = DateTime.now().toISO() as string
 
   const startDate = startISO.slice(0, 10)
-  const isToday = startDate === DateTime.now().toISODate()
+  const isToday = startDate === getToday()
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
   /**
@@ -48,38 +53,27 @@ export default function Day({
         events: [],
       },
     }
-    const dueTasks: TaskProps[] = []
+    const deadlines: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
       const isShown =
-        showCompleted || (showingPastDates ? task.completed : !task.completed)
+        (task.due || (task.scheduled && !task.queryParent)) &&
+        (showCompleted || (showingPastDates ? task.completed : !task.completed))
       if (!isShown) return
 
-      const scheduled = findScheduledInParents(
-        task.id,
-        state.tasks,
-        showingPastDates
-      )
+      const scheduled = parseTaskDate(task)
 
       const scheduledForToday = !scheduled
         ? false
+        : isToday
+        ? scheduled <= endISO
         : isDateISO(scheduled)
-        ? scheduled === startDate ||
-          (isToday && !showingPastDates && scheduled < startDate)
-        : ((isToday && !showingPastDates) || scheduled >= startISO) &&
-          scheduled < endISO
+        ? scheduled === startDate
+        : scheduled >= startISO && scheduled < endISO
 
-      const dueToday = !task.due
-        ? false
-        : scheduled &&
-          (isDateISO(scheduled) ? scheduled > startDate : scheduled >= endISO)
-        ? false
-        : isDateISO(task.due)
-        ? task.due >= startDate ||
-          (isToday && !showingPastDates && task.due < startDate)
-        : task.due >= startISO && task.due < endISO
+      const dueToday = !task.due ? false : task.due >= startDate
 
-      if (!scheduledForToday && dueToday) {
-        dueTasks.push(task)
+      if (dueToday) {
+        deadlines.push(task)
       } else if (scheduledForToday) {
         invariant(scheduled)
         if (isDateISO(scheduled) || scheduled < startISO) {
@@ -118,7 +112,7 @@ export default function Day({
         }
     }
 
-    return [blocksByTime, dueTasks]
+    return [blocksByTime, deadlines]
   }, shallow)
 
   const blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
@@ -183,26 +177,11 @@ export default function Day({
     resizeHeight()
   }, [calendarMode])
 
-  const { collapsed, allHeadings } = useCollapsed(
-    blocks.flatMap((block) => block.tasks.filter((x) => !x.parent))
-  )
-
   const wide = useAppStore((state) => state.childWidth > 1)
-  const hideTimes = useAppStore(
-    (state) => state.settings.hideTimes || state.viewMode === 'week'
-  )
 
   return (
     <div className={`flex flex-col overflow-hidden relative`}>
-      <div className='flex items-center group relative z-10'>
-        <div className='w-indent px-1 flex-none'>
-          <Button
-            className='w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300'
-            onClick={() => setters.patchCollapsed(allHeadings, !collapsed)}
-            src={collapsed ? 'chevron-right' : 'chevron-down'}
-          />
-        </div>
-
+      <div className='flex items-center group relative z-10 pl-indent'>
         <Droppable
           data={{ scheduled: startDate }}
           id={dragContainer + '::' + startISO + '::timeline'}
@@ -256,10 +235,10 @@ export default function Day({
                 {_.sortBy(deadlines, 'due', 'scheduled').map((task) => (
                   <Task
                     key={task.id}
-                    task={task}
-                    type='deadline'
+                    renderType='deadline'
                     subtasks={[]}
                     dragContainer={dragContainer}
+                    {...task}
                   />
                 ))}
               </div>

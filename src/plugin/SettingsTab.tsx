@@ -136,16 +136,6 @@ export default class SettingsTab extends PluginSettingTab {
           })
       })
 
-    new Setting(containerEl)
-      .setName('Hide Hour/Minute Lines')
-      .setDesc('Hide hour/minute tic marks in the Time Ruler.')
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.hideTimes).onChange((value) => {
-          this.plugin.settings.hideTimes = value
-          this.plugin.saveSettings()
-        })
-      })
-
     const dayStartEnd = new Setting(containerEl)
       .setName('Day Start & End')
       .setDesc('Choose the boundaries of the Time Ruler hour tick-marks.')
@@ -268,16 +258,6 @@ export default class SettingsTab extends PluginSettingTab {
           this.plugin.saveSettings()
         })
     })
-
-    new Setting(containerEl)
-      .setName('Hide Headings')
-      .setDesc('Hide file name headings to save space')
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.hideHeadings).onChange((value) => {
-          this.plugin.settings.hideHeadings = value
-          this.plugin.saveSettings()
-        })
-      )
 
     new Setting(containerEl)
       .setName('Show Completed')

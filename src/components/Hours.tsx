@@ -9,7 +9,6 @@ export default function Hours({
   startISO,
   endISO,
   blocks,
-  type,
   chopStart = false,
   dragContainer = '',
   noExtension = false,
@@ -17,7 +16,6 @@ export default function Hours({
   startISO: string
   endISO: string
   blocks: BlockProps[]
-  type: TimeSpanTypes
   startWithHours?: boolean
   chopStart?: boolean
   dragContainer?: string
@@ -53,10 +51,9 @@ export default function Hours({
 
   const event = blocks[0]?.events?.[0]
   return (
-    <div className={`pb-1 ${hideTimes ? 'space-y-1' : ''}`}>
+    <div className={`pb-1 relative ${hideTimes ? 'space-y-1' : ''}`}>
       <Minutes
         dragContainer={dragContainer + '::' + startISO}
-        type={type}
         startISO={startISO}
         endISO={formattedBlocks[0]?.startISO ?? endISO}
         chopEnd
@@ -88,26 +85,16 @@ export default function Hours({
               type='event'
             />
 
-            {!hideTimes && (
-              <Minutes
-                dragContainer={dragContainer + '::' + blockStartISO}
-                type={type}
-                startISO={blockEndISO as string}
-                endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
-                chopEnd
-                chopStart={blockStartISO === blockEndISO}
-                noExtension={noExtension}
-              />
-            )}
+            <Minutes
+              dragContainer={dragContainer + '::' + blockStartISO}
+              startISO={blockEndISO as string}
+              endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
+              chopEnd
+              chopStart={blockStartISO === blockEndISO}
+              noExtension={noExtension}
+            />
           </Fragment>
         )
-      )}
-
-      {event && (event.location || event.notes) && (
-        <div className='py-2 pl-6 text-xs'>
-          <div className='w-full truncate'>{event.location}</div>
-          <div className='w-full truncate text-muted'>{event.notes}</div>
-        </div>
       )}
     </div>
   )

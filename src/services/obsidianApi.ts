@@ -22,10 +22,14 @@ import {
   textToTask,
 } from './parser'
 import {
+  formatHeadingTitle,
+  getParentScheduled,
+  getParents,
   parseDateFromPath,
   parseFileFromPath,
   parseHeadingFromPath,
   parsePathFromDate,
+  parseTaskDate,
   queryTasks,
   scrollToSection,
   toISO,
@@ -40,16 +44,16 @@ export default class ObsidianAPI extends Component {
   dailyNotePath: RegExp
   private settings: TimeRulerPlugin['settings']
   app: App
-  saveSettings: () => void
+  setSetting: (settings: Partial<TimeRulerPlugin['settings']>) => void
 
   constructor(
     settings: ObsidianAPI['settings'],
-    saveSettings: ObsidianAPI['saveSettings']
+    setSetting: ObsidianAPI['setSetting']
   ) {
     super()
     dv = getAPI() as DataviewApi
     this.settings = settings
-    this.saveSettings = saveSettings
+    this.setSetting = setSetting
   }
 
   getSetting = <T extends keyof TimeRulerPlugin['settings']>(setting: T) =>
@@ -97,7 +101,10 @@ export default class ObsidianAPI extends Component {
         const dateString = toISO(taskDate)
         if (!dateString) return true
 
-        return dateString >= dateBounds[0] && dateString <= dateBounds[1]
+        return (
+          (!completed || dateString >= dateBounds[0]) &&
+          dateString <= dateBounds[1]
+        )
       }
 
       taskSearch = (basicSearch['file']['tasks'] as DataArray<STask>).where(
@@ -246,8 +253,9 @@ export default class ObsidianAPI extends Component {
         if (afterFile === -1) newHeadingOrder.push(heading)
         else newHeadingOrder.splice(afterFile, 0, heading)
       }
-      this.settings.fileOrder = newHeadingOrder
-      this.saveSettings()
+      this.setSetting({
+        fileOrder: newHeadingOrder,
+      })
     }
 
     let updated = false
@@ -275,46 +283,53 @@ export default class ObsidianAPI extends Component {
 
     const queries = _.sortBy(
       _.filter(updatedTasks, (task) => !task.completed && !!task.query),
-      (task) => task.scheduled ?? '99999'
+      (task) => getParentScheduled(task, updatedTasks) ?? '99999'
     )
 
-    if (queries.length > 0) {
-      const queriedIds = _.groupBy(
-        _.keys(updatedTasks),
-        (id) => updatedTasks[id].queryParent
-      )
+    const queriedIds = _.groupBy(
+      _.keys(updatedTasks),
+      (id) => updatedTasks[id].queryParent
+    )
 
-      // queries "steal" children, with most earlier scheduled overriding later scheduled
-      for (let i = queries.length - 1; i >= 0; i--) {
-        const task = queries[i]
-        invariant(task.query)
+    const alreadyQueried: Set<string> = new Set()
+    // queries "steal" children, with most earlier scheduled overriding later scheduled
+    for (const task of queries) {
+      invariant(task.query)
 
-        const queriedTasks = queryTasks(task.id, task.query, updatedTasks)
-        for (let queriedTask of queriedTasks) {
-          if (
-            queriedTask.queryParent === task.id ||
-            (queriedTask.scheduled &&
-              (!task.scheduled || queriedTask.scheduled > task.scheduled))
-          )
-            continue
-          updatedTasks[queriedTask.id] = {
-            ...updatedTasks[queriedTask.id],
-            queryParent: task.id,
+      const queriedTasks = queryTasks(task.id, task.query, updatedTasks)
+
+      const queryChildren: string[] = []
+      for (let queriedTask of queriedTasks) {
+        if (alreadyQueried.has(queriedTask.id)) {
+          continue
+        }
+        alreadyQueried.add(queriedTask.id)
+        queryChildren.push(queriedTask.id)
+        if (queriedTask.queryParent === task.id) continue
+
+        alreadyQueried.add(queriedTask.id)
+        updatedTasks[queriedTask.id] = {
+          ...updatedTasks[queriedTask.id],
+          queryParent: task.id,
+        }
+      }
+
+      if (queriedIds[task.id]) {
+        const unQueriedIds = _.difference(
+          queriedIds[task.id],
+          queriedTasks.map((x) => x.id)
+        )
+        for (let unQueriedId of unQueriedIds) {
+          updatedTasks[unQueriedId] = {
+            ...updatedTasks[unQueriedId],
+            queryParent: undefined,
           }
         }
+      }
 
-        if (queriedIds[task.id]) {
-          const unQueriedIds = _.difference(
-            queriedIds[task.id],
-            queriedTasks.map((x) => x.id)
-          )
-          for (let unQueriedId of unQueriedIds) {
-            updatedTasks[unQueriedId] = {
-              ...updatedTasks[unQueriedId],
-              queryParent: undefined,
-            }
-          }
-        }
+      updatedTasks[task.id] = {
+        ...updatedTasks[task.id],
+        queryChildren,
       }
     }
 
@@ -328,8 +343,7 @@ export default class ObsidianAPI extends Component {
     const newFileOrder = [...this.settings.fileOrder]
     _.pull(newFileOrder, file)
     newFileOrder.splice(beforeIndex, 0, file)
-    this.settings.fileOrder = newFileOrder
-    this.saveSettings()
+    this.setSetting({ fileOrder: newFileOrder })
     setters.set({ fileOrder: newFileOrder })
   }
 
@@ -338,12 +352,20 @@ export default class ObsidianAPI extends Component {
     selectedHeading: string | null,
     dailyNoteInfo: AppState['dailyNoteInfo']
   ) => {
-    if (!selectedHeading) {
+    if (!selectedHeading || selectedHeading.startsWith('Daily')) {
       const date = !newTask.scheduled
         ? (DateTime.now().toISODate() as string)
         : (DateTime.fromISO(newTask.scheduled).toISODate() as string)
 
-      const path = parsePathFromDate(date, dailyNoteInfo)
+      let path = parsePathFromDate(date, dailyNoteInfo)
+      if (selectedHeading && selectedHeading.includes('#'))
+        path +=
+          '#' +
+          formatHeadingTitle(
+            selectedHeading,
+            'path',
+            getters.get('dailyNoteInfo')
+          )[0]
       this.createTaskInPath(path, newTask, getters.get('showingPastDates'))
     } else {
       this.createTaskInPath(
@@ -594,7 +616,7 @@ export function openTaskInRuler(id: string) {
     return
   }
 
-  const scheduled = findScheduledInParents(task.id, getters.get('tasks'), false)
+  const scheduled = getParentScheduled(task, getters.get('tasks'))
 
   if (scheduled) {
     const showingPastDates = getters.get('showingPastDates')
@@ -603,20 +625,18 @@ export function openTaskInRuler(id: string) {
       DateTime.now().diff(DateTime.fromISO(scheduled)).as('weeks')
     )
     if (showingPastDates || weeksAhead > searchWithinWeeks[1]) {
-      setters.set({
-        showingPastDates: false,
-        searchWithinWeeks: [searchWithinWeeks[0], weeksAhead],
-      })
     }
+    setters.set({
+      showingPastDates: task.completed,
+      searchWithinWeeks: [
+        searchWithinWeeks[0],
+        _.max([weeksAhead, searchWithinWeeks[1]]) as number,
+      ],
+    })
   }
 
   setTimeout(async () => {
-    const today = DateTime.now().toISODate()
-    let section = !scheduled
-      ? 'unscheduled'
-      : scheduled <= today
-      ? today
-      : scheduled.slice(0, 10)
+    let section = !scheduled ? 'unscheduled' : scheduled.slice(0, 10)
 
     await scrollToSection(section)
 

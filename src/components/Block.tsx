@@ -5,37 +5,36 @@ import { openTask } from 'src/services/obsidianApi'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import {
-  assembleSubtasks,
   isDateISO,
   parseFileFromPath,
   parseHeadingFromPath,
-  useCollapsed,
+  formatHeadingTitle,
+  getChildren,
+  roundMinutes,
+  toISO,
+  parseHeadingFromTask,
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
 import Group from './Group'
 import Hours from './Hours'
 import { TaskComponentProps } from './Task'
+import Minutes from './Minutes'
+import { useMemo } from 'react'
+import { TaskPriorities, priorityNumberToKey } from 'src/types/enums'
+import { priorityKeyToNumber } from '../types/enums'
 
-export type BlockComponentProps = {
+export type BlockComponentProps = BlockProps & {
   hidePaths?: string[]
-  titles: {
-    title: string
-    id: string
-  }[]
-  tasks: TaskComponentProps[]
   type: BlockType
   id?: string
   dragContainer: string
   parentId?: string
   dragging?: true
-  startISO?: string
-  endISO?: string
-  blocks: BlockProps[]
 }
 
 export const UNGROUPED = '__ungrouped'
-export type BlockType = 'child' | 'event' | 'unscheduled'
+export type BlockType = 'event' | 'unscheduled' | 'child'
 export type BlockProps = {
   startISO?: string
   endISO?: string
@@ -46,135 +45,106 @@ export type BlockProps = {
 
 export default function Block({
   hidePaths = [],
+  tasks,
   type,
   id,
   dragContainer,
+  startISO,
+  endISO,
   parentId,
-  tasks,
   events,
-  startISO,
-  endISO,
-  blocks,
-}: Omit<BlockComponentProps, 'tasks' | 'titles'> & BlockProps) {
-  let allTasks = [...tasks]
-
-  const queryParents: TaskComponentProps[] = allTasks
-    .filter((task) => task.query && (!task.parent || task.parent === parentId))
-    .map((task): TaskComponentProps => {
-      const queryChildren = allTasks.filter(
-        (queriedTask) => queriedTask.queryParent === task.id
-      )
-      const queryAncestors = queryChildren.flatMap((child) =>
-        assembleSubtasks(child, allTasks)
-      )
-      return {
-        task,
-        subtasks: queryChildren.concat(queryAncestors),
-        dragContainer,
-        type: 'query',
-      }
-    })
-
-  allTasks = _.difference(
-    allTasks,
-    queryParents.flatMap((x) => [x.task, ...x.subtasks])
-  )
-
-  let unscheduledParents: TaskProps[] = useAppStore((state) => {
-    if (type === 'child') return []
-    const taskIds = _.map(allTasks, 'id')
-    const unscheduledParents: TaskProps[] = []
-    for (let task of allTasks) {
-      if (task.parent && !taskIds.includes(task.parent)) {
-        taskIds.push(task.parent)
-        unscheduledParents.push(state.tasks[task.parent])
-      }
-    }
-    return unscheduledParents
-  }, shallow)
-
-  const parents: TaskComponentProps[] = allTasks
-    .filter(
-      (task) =>
-        !task.parent ||
-        task.parent === parentId ||
-        (task.queryParent && task.queryParent === parentId)
-    )
-    .concat(unscheduledParents)
-    .map((task) => {
-      return {
-        task,
-        subtasks: assembleSubtasks(task, allTasks),
-        dragContainer,
-        type: unscheduledParents.includes(task) ? 'parent' : 'task',
-      }
-    })
-
-  const topLevel = _.sortBy(queryParents.concat(parents), 'task.id')
-
-  const titles: BlockComponentProps['titles'] = (events ?? []).map((event) => ({
-    title: event.title,
-    id: event.id,
-  }))
-
-  return (
-    <DraggableBlock
-      tasks={topLevel}
-      {...{
-        titles,
-        hidePaths,
-        startISO,
-        endISO,
-        type,
-        id,
-        dragContainer,
-        parentId,
-        blocks,
-      }}
-    />
-  )
-}
-
-export function DraggableBlock({
-  hidePaths = [],
-  tasks,
-  type,
-  id,
-  dragContainer,
-  startISO,
-  endISO,
-  parentId,
-  titles,
   dragging,
   blocks,
 }: BlockComponentProps) {
-  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const groupedTasks = _.groupBy(tasks, (task) => {
-    const heading = parseHeadingFromPath(
-      task.task.path,
-      task.task.page,
-      dailyNoteInfo
-    )
-    if (hidePaths.includes(heading)) return UNGROUPED
-    return heading
+  let showingTasks = useAppStore((state) => {
+    const children = _.flatMap(tasks, (task) => getChildren(task, state.tasks))
+    return tasks.filter((task) => !children.includes(task.id))
+  }, shallow)
+
+  const topLevel = _.sortBy(showingTasks, 'id')
+
+  const groupedTasks = useAppStore((state) => {
+    const groupBy = state.settings.groupBy
+    switch (groupBy) {
+      case false:
+        return { [UNGROUPED]: topLevel }
+      case 'path':
+        return _.groupBy(
+          topLevel,
+          (task) =>
+            parseHeadingFromTask(
+              task,
+              state.tasks,
+              state.dailyNoteInfo,
+              hidePaths,
+              parentId
+            ) ?? UNGROUPED
+        )
+      case 'priority':
+        return _.groupBy(topLevel, (task) =>
+          task.priority === TaskPriorities.DEFAULT ? UNGROUPED : task.priority
+        )
+      case 'hybrid':
+        return _.groupBy(topLevel, (task) =>
+          task.priority === TaskPriorities.DEFAULT
+            ? parseHeadingFromTask(
+                task,
+                state.tasks,
+                state.dailyNoteInfo,
+                hidePaths,
+                parentId
+              ) ?? UNGROUPED
+            : task.priority
+        )
+    }
   })
 
-  const sortedGroups = useAppStore(
-    (state) =>
-      _.sortBy(_.entries(groupedTasks), [
-        ([group, _tasks]) => state.fileOrder.indexOf(parseFileFromPath(group)),
-        (group) => (group.includes('#') ? '1' : '0'),
-        '1.0.id',
-      ]),
-    shallow
-  )
+  const sortedGroups = useAppStore((state) => {
+    switch (state.settings.groupBy) {
+      case 'priority':
+        return _.sortBy(
+          _.entries(groupedTasks),
+          ([group]) => (group === UNGROUPED ? 0 : 1),
+          0
+        )
+      case 'path':
+        return _.sortBy(_.entries(groupedTasks), [
+          ([group, _tasks]) =>
+            state.fileOrder.indexOf(parseFileFromPath(group)),
+          ([group, _tasks]) =>
+            group.includes('>') ? '2' : group.includes('#') ? '1' : '0',
+          '1.0.id',
+        ])
+      case 'hybrid':
+        return _.sortBy(_.entries(groupedTasks), [
+          ([group, _tasks]) =>
+            group === UNGROUPED
+              ? 0
+              : priorityNumberToKey[group] !== undefined
+              ? 1
+              : 2,
+          ([group, _tasks]) =>
+            priorityNumberToKey[group] !== undefined
+              ? group
+              : state.fileOrder.indexOf(parseFileFromPath(group)),
+          ([group, _tasks]) =>
+            group.includes('>') ? '2' : group.includes('#') ? '1' : '0',
+          '1.0.id',
+        ])
+      case false:
+        return _.entries(groupedTasks)
+    }
+  }, shallow)
 
-  const { collapsed, allHeadings } = useCollapsed(tasks.map((x) => x.task))
+  const collapsed = useAppStore(
+    (state) =>
+      !_.map(sortedGroups, ([group]) => state.collapsed[group]).includes(false)
+  )
 
   const dragData: DragData = {
     dragType: 'block',
     hidePaths,
-    tasks,
+    tasks: showingTasks,
     type,
     id,
     dragContainer,
@@ -182,7 +152,7 @@ export function DraggableBlock({
     endISO,
     blocks: [],
     parentId,
-    titles,
+    events,
   }
   const { setNodeRef, attributes, listeners, setActivatorNodeRef } =
     useDraggable({
@@ -204,24 +174,49 @@ export function DraggableBlock({
   const calendarMode = useAppStore((state) => state.viewMode === 'week')
   const draggable = tasks.length > 0
 
+  const onlyPath: string | undefined =
+    events.length === 0 &&
+    type === 'event' &&
+    sortedGroups.length === 1 &&
+    sortedGroups[0][0] !== UNGROUPED
+      ? sortedGroups[0][0]
+      : undefined
+  const onlyPathTitle = useAppStore(
+    (state) =>
+      onlyPath &&
+      formatHeadingTitle(
+        onlyPath,
+        state.settings.groupBy,
+        state.dailyNoteInfo
+      )[0]
+  )
+
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
+  const firstEndISO = blocks[0]?.startISO || endISO
+  const firstStartISO =
+    showingPastDates || !startISO
+      ? startISO
+      : _.max([startISO, toISO(roundMinutes(DateTime.now()))])
+
   return (
     <div
       id={id}
       data-role='block'
-      data-info={hidePaths}
-      className={`w-full rounded-lg px-1 ${
+      className={`relative w-full rounded-lg ${
         dragging
           ? 'opacity-50 ancestor:!bg-transparent'
           : ['event', 'unscheduled'].includes(type)
           ? 'bg-secondary-alt'
           : ''
-      } ${type === 'event' ? 'py-1' : ''}`}
+      } `}
       ref={draggable ? setNodeRef : undefined}
     >
       {type === 'event' && (
         <Droppable
           data={{ scheduled: startISO ?? '' }}
-          id={`${dragContainer}::${type}::${startISO}::${tasks[0]?.task.id}::${titles?.[0]?.id}`}
+          id={`${dragContainer}::${type}::${startISO}::${
+            tasks[0]?.id ?? events?.[0]?.id
+          }`}
         >
           <div
             className={`selectable flex rounded-lg font-menu text-xs group w-full`}
@@ -231,7 +226,10 @@ export function DraggableBlock({
                 className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 h-4 py-0.5 flex-none'
                 src={collapsed ? 'chevron-right' : 'chevron-down'}
                 onClick={() => {
-                  setters.patchCollapsed(allHeadings, !collapsed)
+                  setters.patchCollapsed(
+                    _.map(sortedGroups, 0).filter((x) => x !== UNGROUPED),
+                    !collapsed
+                  )
                   return false
                 }}
                 onPointerDown={() => false}
@@ -239,15 +237,20 @@ export function DraggableBlock({
             </div>
 
             <div className='w-full flex'>
-              {titles.length > 0 && (
-                <div className={`w-fit flex-none max-w-[80%] mr-2`}>
-                  {titles.map(({ title, id }) => (
-                    <div key={id}>
-                      {title.slice(0, 40) + (title.length > 40 ? '...' : '')}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className={`w-fit flex-none max-w-[80%] mr-2`}>
+                {onlyPathTitle && (
+                  <div>
+                    {onlyPathTitle.slice(0, 40) +
+                      (onlyPathTitle.length > 40 ? '...' : '')}
+                  </div>
+                )}
+                {events.map(({ title, id }) => (
+                  <div key={id}>
+                    {title.slice(0, 40) + (title.length > 40 ? '...' : '')}
+                  </div>
+                ))}
+              </div>
+
               <div
                 className='w-full flex items-center cursor-grab pr-2'
                 {...attributes}
@@ -277,21 +280,47 @@ export function DraggableBlock({
           </div>
         </Droppable>
       )}
+      <div className='flex relative w-full'>
+        <div
+          className={`time-ruler-groups w-full relative z-10 h-fit ${
+            type === 'event' ? 'pt-1 pl-1 pb-1' : ''
+          }`}
+        >
+          {sortedGroups.map(([path, tasks]) => (
+            <Group
+              key={path}
+              {...{
+                path,
+                tasks,
+                type,
+                hidePaths: onlyPath ? [...hidePaths, onlyPath] : hidePaths,
+                dragContainer: `${dragContainer}::${startISO}`,
+              }}
+            />
+          ))}
+        </div>
+        {firstStartISO && firstEndISO && firstStartISO < firstEndISO && (
+          <div className='w-10 flex-none'>
+            <Minutes
+              nested
+              startISO={firstStartISO}
+              endISO={firstEndISO}
+              dragContainer={dragContainer}
+              chopStart
+              chopEnd
+            />
+          </div>
+        )}
+      </div>
+      {events[0] && (events[0].location || events[0].notes) && (
+        <div className='py-2 pl-indent text-xs'>
+          <div className='w-full truncate'>{events[0].location}</div>
+          <div className='w-full truncate text-muted'>{events[0].notes}</div>
+        </div>
+      )}
 
-      {sortedGroups.map(([path, tasks]) => (
-        <Group
-          key={tasks[0].task.id}
-          {...{
-            path,
-            tasks,
-            type,
-            hidePaths,
-            dragContainer: `${dragContainer}::${startISO}`,
-          }}
-        />
-      ))}
-      {startISO && endISO && (startISO < endISO || blocks.length > 0) && (
-        <Hours {...{ startISO, endISO, blocks }} type='minutes' chopStart />
+      {blocks.length > 0 && blocks[0].startISO && endISO && (
+        <Hours {...{ endISO, blocks }} startISO={blocks[0].startISO} />
       )}
     </div>
   )

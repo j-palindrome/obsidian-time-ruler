@@ -13,41 +13,51 @@ export type TimeSpanTypes = 'minutes' | 'hours'
 export default function Minutes({
   startISO,
   endISO,
-  type = 'minutes',
   chopEnd,
   chopStart,
   dragContainer,
   noExtension,
+  nested,
 }: {
   startISO: string
   endISO: string
-  type: TimeSpanTypes
   chopEnd?: boolean
   chopStart?: boolean
   dragContainer: string
   noExtension?: boolean
+  nested?: boolean
 }) {
   const times: DateTime[] = []
   const givenStart = DateTime.fromISO(startISO)
   const givenEnd = DateTime.fromISO(endISO)
   const showingPastDates = useAppStore((state) => state.showingPastDates)
+  const hideTimes = useAppStore((state) => state.settings.hideTimes)
+  const calendarMode = useAppStore((state) => state.viewMode === 'week')
+  const type: TimeSpanTypes = calendarMode ? 'hours' : 'minutes'
+  if (hideTimes) return <></>
 
-  let start = roundMinutes(
-    showingPastDates || noExtension
-      ? givenStart
-      : DateTime.max(givenStart, DateTime.now())
-  )
-  let end = roundMinutes(
-    !showingPastDates || noExtension
-      ? givenEnd
-      : DateTime.min(givenEnd, DateTime.now())
-  )
+  let start = roundMinutes(givenStart)
+  let end = roundMinutes(givenEnd)
+  const dayEnd = useAppStore((state) => state.settings.dayStartEnd[1])
+  let dayEndTime = start.set({ hour: dayEnd })
+  if (dayEnd < 12 && end.get('hour') >= dayEnd)
+    dayEndTime = dayEndTime.plus({ days: 1 })
+
+  const now = roundMinutes(DateTime.now())
+  if (showingPastDates) {
+    start = DateTime.min(now, start)
+    end = DateTime.min(now, end)
+  } else {
+    start = DateTime.max(now, start)
+    end = DateTime.max(now, end)
+  }
+  end = DateTime.min(end, dayEndTime)
 
   const modifier: { [K in TimeSpanTypes]: Parameters<DateTime['plus']>[0] } = {
     minutes: { minutes: 15 },
     hours: { hours: 1 },
   }
-  const now = roundMinutes(DateTime.now())
+
   const nowISO = toISO(now)
 
   if (chopStart && !(start <= now && end > now))
@@ -131,55 +141,57 @@ function Time({ time, type, dragContainer }: TimeProps) {
       return ''
     return `${
       state.dragData['start'] <= iso && state.dragData['end'] >= iso
-        ? 'bg-accent'
+        ? 'border-0 border-l-2 border-solid border-l-accent'
         : ''
-    } ${state.dragData['end'] === iso ? 'rounded-b-lg' : ''} ${
-      state.dragData['start'] === iso ? 'rounded-t-lg' : ''
     }`
   })
 
   const hourDisplay = useHourDisplay(hours)
 
   return (
-    <div
-      className={`group flex h-[16px] items-center justify-end ${selectedClassName}`}
-      key={iso}
-      {...attributes}
-      {...listeners}
-      ref={(node) => {
-        setNodeRef(node)
-        setDragNodeRef(node)
-      }}
-    >
-      <hr
-        className={`border-t border-faint ${
-          isOver ? '!w-full' : 'active:!w-full'
-        } ${
-          type === 'hours'
-            ? hours === 0
-              ? 'w-16'
-              : hours % 6 === 0
-              ? 'w-8'
-              : hours % 3 === 0
-              ? 'w-4'
+    <div className={`group flex h-[16px] items-center justify-end`} key={iso}>
+      <div
+        className={`w-10 h-full flex flex-none items-center justify-end ${selectedClassName}`}
+        {...attributes}
+        {...listeners}
+        ref={(node) => {
+          setNodeRef(node)
+          setDragNodeRef(node)
+        }}
+      >
+        <hr
+          className={`${
+            isOver ? 'border-accent border-t-2' : 'border-faint border-t'
+          } ${
+            type === 'hours'
+              ? hours % 6 === 0
+                ? 'w-6'
+                : hours % 3 === 0
+                ? 'w-4'
+                : 'w-1'
+              : minutes === 0
+              ? hours % 3 === 0
+                ? 'w-6'
+                : 'w-4'
+              : minutes % 30 === 0
+              ? 'w-2'
               : 'w-1'
-            : minutes === 0
-            ? hours % 12 === 0
-              ? 'w-16'
-              : hours % 3 === 0
-              ? 'w-8'
-              : 'w-4'
-            : minutes % 30 === 0
-            ? 'w-2'
-            : 'w-1'
-        }`}
-      ></hr>
-
-      <div className={`ml-1 flex-none font-menu text-xs text-muted w-4`}>
-        {(type === 'minutes' && minutes === 0) ||
-        (type === 'hours' && hours % 3 === 0)
-          ? hourDisplay
-          : ''}
+          }`}
+        ></hr>
+        <div
+          className={`ml-1 h-full flex-none font-menu text-xs w-4 ${
+            isOver ? 'text-accent' : 'text-muted'
+          }`}
+        >
+          {(type === 'minutes' && minutes === 0) ||
+          (type === 'hours' && hours % 3 === 0)
+            ? hourDisplay
+            : isOver
+            ? minutes > 0
+              ? ':' + minutes
+              : hours
+            : ''}
+        </div>
       </div>
     </div>
   )
@@ -196,16 +208,6 @@ export function NowTime({ dragContainer }: { dragContainer: string }) {
     dragType: 'now',
   }
 
-  const {
-    setNodeRef: setDragNodeRef,
-    setActivatorNodeRef,
-    attributes,
-    listeners,
-  } = useDraggable({
-    data: dragData,
-    id: `${dragContainer}::now::drag`,
-  })
-
   const nowTime = roundMinutes(DateTime.now())
   const hourDisplay = useHourDisplay(nowTime.hour)
 
@@ -215,18 +217,9 @@ export function NowTime({ dragContainer }: { dragContainer: string }) {
         isOver ? 'bg-selection' : ''
       }`}
       ref={(node) => {
-        setDragNodeRef(node)
         setDropNodeRef(node)
       }}
     >
-      <div
-        className='cursor-grab hidden group-hover:block text-xs ml-1 text-accent flex-none'
-        {...attributes}
-        {...listeners}
-        ref={setActivatorNodeRef}
-      >
-        Shift all
-      </div>
       <div className='h-1 w-1 rounded-full bg-red-800'></div>
       <div className='w-full border-0 border-b border-solid border-red-800'></div>
 

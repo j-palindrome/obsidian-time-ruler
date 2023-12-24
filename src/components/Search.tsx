@@ -15,8 +15,7 @@ export default function Search() {
         'id'
       ).map((task) => [
         [
-          task.title,
-          task.path,
+          task.path + task.title,
           task.tags.map((x) => '#' + x).join(' '),
           task.notes ?? '',
           priorityNumberToKey[task.priority],
@@ -36,7 +35,7 @@ export default function Search() {
   useEffect(() => input.current?.focus(), [])
 
   return createPortal(
-    <div className='modal-container mod-dim !px-2'>
+    <div className='modal-container mod-dim'>
       <div
         className='modal-bg'
         onClick={() => setters.set({ searchStatus: false })}
@@ -62,17 +61,33 @@ export default function Search() {
           {foundTasks.map(([_strings, task]) => (
             <div
               key={task.id}
-              className='suggestion-item mod-complex'
+              className='clickable-icon suggestion-item mod-complex'
               onClick={() => {
                 openTaskInRuler(task.id)
                 setters.set({ searchStatus: false })
               }}
             >
-              <div className='suggestion-content'>{task.title}</div>
+              <div
+                className='suggestion-content'
+                style={{
+                  color: 'var(--text-normal)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {task.title}
+              </div>
               <div
                 className='suggestion-aux'
                 style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '40%',
+                  whiteSpace: 'nowrap',
+                  fontSize: '0.875rem',
                   color: 'var(--text-faint)',
+                  flex: 'none',
                 }}
               >
                 {task.path.replace('#', ' # ').replace('.md', '')}

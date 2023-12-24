@@ -4,20 +4,27 @@ import {
   parseFileFromPath,
   parseFolderFromPath,
   parseHeadingFromPath,
-  parseHeadingTitle,
+  formatHeadingTitle,
+  getParents,
 } from 'src/services/util'
 import { setters, useAppStore } from '../app/store'
 import { BlockType } from './Block'
 import Button from './Button'
 import Droppable from './Droppable'
 import Task, { TaskComponentProps } from './Task'
+import _ from 'lodash'
+import {
+  TaskPriorities,
+  priorityNumberToKey,
+  priorityNumberToSimplePriority,
+} from 'src/types/enums'
 
 const UNGROUPED = '__ungrouped'
 
 export type GroupComponentProps = {
   hidePaths: string[]
   path: string
-  tasks: TaskComponentProps[]
+  tasks: TaskProps[]
   type: BlockType
   dragContainer: string
 }
@@ -29,8 +36,6 @@ export default function Group({
   hidePaths,
   dragContainer,
 }: GroupComponentProps) {
-  const collapsed = useAppStore((state) => state.collapsed[path] ?? false)
-
   const dragData: DragData = {
     dragType: 'group',
     tasks,
@@ -46,39 +51,30 @@ export default function Group({
       data: dragData,
     })
 
-  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const name = useMemo(
-    () => parseHeadingFromPath(path, tasks[0]?.task.page, dailyNoteInfo),
-    [path]
+  const [heading, container] = useAppStore((state) =>
+    formatHeadingTitle(
+      path,
+      state.settings.groupBy,
+      state.dailyNoteInfo,
+      !tasks[0] ? false : getParents(tasks[0], state.tasks).last()?.page
+    )
   )
-  const [fileName, heading] = useMemo(() => {
-    const headingName = path
-      .slice(path.includes('/') ? path.lastIndexOf('/') + 1 : 0)
-      .replace('.md', '')
-    return headingName.split('#')
-  }, [name])
 
-  const hideHeadings = useAppStore((state) => state.settings.hideHeadings)
+  const collapsed = useAppStore((state) => state.collapsed[path] ?? false)
 
   const dragging = useAppStore(
     (state) =>
+      state.settings.groupBy === 'path' &&
       state.dragData &&
       state.dragData.dragType === 'group' &&
-      parseFileFromPath(state.dragData.path) !== fileName
+      parseFileFromPath(state.dragData.path) !== heading
   )
-  if (hideHeadings) return <></>
-  const title = parseHeadingTitle(path)
-
-  const container = heading
-    ? parseFileFromPath(path)
-    : parseFolderFromPath(path)
 
   return (
     <div
       ref={setNodeRef}
-      className={`w-full overflow-hidden`}
+      className={`w-full overflow-hidden time-ruler-group`}
       data-id={`${path}::${dragContainer}::${type}`}
-      data-info={`${tasks.map((x) => x.task.title).join('; ')}`}
     >
       {path && path !== UNGROUPED && !hidePaths.includes(path) && (
         <>
@@ -86,7 +82,7 @@ export default function Group({
             <Droppable
               data={{
                 type: 'heading',
-                heading: parseFileFromPath(name),
+                heading: parseFileFromPath(path),
               }}
               id={`${dragContainer}::${path}::droppable`}
             >
@@ -116,12 +112,8 @@ export default function Group({
               {...listeners}
               ref={setActivatorNodeRef}
             >
-              <div
-                className={`w-fit flex-none max-w-[50%] ${
-                  path.includes('#') ? 'text-normal' : 'text-accent'
-                }`}
-              >
-                {title.slice(0, 40) + (title.length > 40 ? '...' : '')}
+              <div className={`w-fit flex-none max-w-[50%] text-normal`}>
+                {heading.slice(0, 40) + (heading.length > 40 ? '...' : '')}
               </div>
               <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
               <div className='w-fit flex-none text-right pr-2'>
@@ -137,7 +129,14 @@ export default function Group({
         </>
       )}
 
-      {!collapsed && tasks.map((task) => <Task key={task.task.id} {...task} />)}
+      {!collapsed &&
+        _.sortBy(
+          tasks,
+          (task) => parseFileFromPath(task.path),
+          'position.start.line'
+        ).map((task) => (
+          <Task key={task.id} dragContainer={dragContainer} {...task} />
+        ))}
     </div>
   )
 }

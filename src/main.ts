@@ -34,7 +34,7 @@ type TimeRulerSettings = {
   }
   showCompleted: boolean
   dayStartEnd: [number, number]
-  hideHeadings: boolean
+  groupBy: false | 'priority' | 'path' | 'hybrid'
   twentyFourHourFormat: boolean
   filterFunction: string
   addTaskToEnd: boolean
@@ -55,7 +55,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
     statuses: '-',
   },
   showCompleted: false,
-  hideHeadings: false,
+  groupBy: 'path',
   dayStartEnd: [0, 24],
   twentyFourHourFormat: false,
   filterFunction: '',

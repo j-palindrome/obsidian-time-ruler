@@ -25,9 +25,14 @@ import {
   useAppStoreRef,
 } from '../app/store'
 import { useAutoScroll } from '../services/autoScroll'
-import { getDailyNoteInfo } from '../services/obsidianApi'
-import { scrollToSection, toISO, useChildWidth } from '../services/util'
-import { DraggableBlock } from './Block'
+import ObsidianAPI, { getDailyNoteInfo } from '../services/obsidianApi'
+import {
+  getToday,
+  scrollToSection,
+  toISO,
+  useChildWidth,
+} from '../services/util'
+import Block from './Block'
 import Button from './Button'
 import Day from './Day'
 import Deadline from './Deadline'
@@ -40,6 +45,7 @@ import Search from './Search'
 import Task from './Task'
 import { Timer } from './Timer'
 import Unscheduled from './Unscheduled'
+import { ViewMode } from '../app/store'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -63,7 +69,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     const settings: AppState['settings'] = {
       muted: apis.obsidian.getSetting('muted'),
       twentyFourHourFormat: apis.obsidian.getSetting('twentyFourHourFormat'),
-      hideHeadings: apis.obsidian.getSetting('hideHeadings'),
+      groupBy: apis.obsidian.getSetting('groupBy'),
       dayStartEnd: apis.obsidian.getSetting('dayStartEnd'),
       showCompleted: apis.obsidian.getSetting('showCompleted'),
       extendBlocks: apis.obsidian.getSetting('extendBlocks'),
@@ -95,10 +101,11 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const showingPastDates = useAppStore((state) => state.showingPastDates)
 
-  const today = now.startOf('day')
+  const today = DateTime.fromISO(getToday())
   const [weeksShownState, setWeeksShown] = useState(1)
-
-  const datesShown = weeksShownState * 7 * (showingPastDates ? -1 : 1)
+  const viewMode = useAppStore((state) => state.viewMode)
+  const datesShown =
+    viewMode === 'now' ? 0 : weeksShownState * 7 * (showingPastDates ? -1 : 1)
 
   const dayStart = useAppStore((state) => state.settings.dayStartEnd[0])
   const times: (Parameters<typeof Day>[0] | { type: 'unscheduled' })[] = [
@@ -184,7 +191,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       case 'group':
         return <Group {...activeDrag} />
       case 'block':
-        return <DraggableBlock {...activeDrag} dragging />
+        return <Block {...activeDrag} dragging />
       case 'due':
         return <Deadline {...activeDrag} isDragging />
       case 'new_button':
@@ -198,16 +205,16 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const [scrollViews, setScrollViews] = useState([-1, 1])
 
   const container = useRef<HTMLDivElement>(null)
-
-  const viewMode = useAppStore((state) => state.viewMode)
   const calendarMode = viewMode === 'week'
 
   const { childWidth, childClass } = useChildWidth({
     container,
   })
 
+  const trueChildWidth = useAppStore((state) => state.childWidth)
+
   const updateScroll = () => {
-    invariant(scroller.current)
+    if (!scroller.current) return
     const scrollWidth = scroller.current.getBoundingClientRect().width
     if (scrollWidth === 0) return
     const scrolledToChild =
@@ -311,7 +318,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           <DragOverlay
             dropAnimation={null}
             style={{
-              width: `calc((100% - 48px) / ${childWidth})`,
+              width: `calc((100% - 48px) / ${trueChildWidth})`,
             }}
           >
             {getDragElement()}
@@ -332,49 +339,49 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           <div className='w-full flex items-center h-5 flex-none my-1'>
             <Timer />
           </div>
-          {viewMode !== 'now' && (
-            <div
-              className={`flex h-full w-full snap-mandatory rounded-lg text-base child:flex-none child:snap-start ${childClass} ${
-                calendarMode
-                  ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
-                  : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
-              }`}
-              id='time-ruler-times'
-              data-auto-scroll={calendarMode ? 'y' : 'x'}
-              ref={scroller}
-              onScroll={updateScroll}
-            >
-              {times.map((time, i) => {
-                const isShowing =
-                  calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
-                return time.type === 'unscheduled' ? (
+
+          <div
+            className={`flex h-full w-full snap-mandatory rounded-lg text-base child:flex-none child:snap-start ${childClass} ${
+              calendarMode
+                ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
+                : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
+            }`}
+            id='time-ruler-times'
+            data-auto-scroll={calendarMode ? 'y' : 'x'}
+            ref={scroller}
+            onScroll={updateScroll}
+          >
+            {times.map((time, i) => {
+              const isShowing =
+                calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
+              return time.type === 'unscheduled' ? (
+                <div
+                  key='unscheduled'
+                  id='time-ruler-unscheduled'
+                  className={`${frameClass} ${calendarMode ? '!w-full' : ''}`}
+                >
+                  {isShowing && <Unscheduled />}
+                </div>
+              ) : (
+                <Fragment key={time.startISO + '::' + time.type}>
+                  {calendarMode &&
+                    i === (showingPastDates ? 0 : 1) &&
+                    childWidth > 1 &&
+                    dayPadding(time)}
                   <div
-                    key='unscheduled'
-                    id='time-ruler-unscheduled'
-                    className={`${frameClass} ${calendarMode ? '!w-full' : ''}`}
+                    id={`time-ruler-${time.startISO.slice(0, 10)}`}
+                    className={frameClass}
                   >
-                    {isShowing && <Unscheduled />}
+                    {isShowing && <Day {...time} dragContainer='app' />}
                   </div>
-                ) : (
-                  <Fragment key={time.startISO + '::' + time.type}>
-                    {calendarMode &&
-                      i === (showingPastDates ? 0 : 1) &&
-                      dayPadding(time)}
-                    <div
-                      id={`time-ruler-${time.startISO.slice(0, 10)}`}
-                      className={frameClass}
-                    >
-                      {isShowing && <Day {...time} dragContainer='app' />}
-                    </div>
-                    {calendarMode &&
-                    DateTime.fromISO(time.startISO).weekday === 7 ? (
-                      <div className='!h-0 !w-1'></div>
-                    ) : null}
-                  </Fragment>
-                )
-              })}
-            </div>
-          )}
+                  {calendarMode &&
+                  DateTime.fromISO(time.startISO).weekday === 7 ? (
+                    <div className='!h-0 !w-1'></div>
+                  ) : null}
+                </Fragment>
+              )
+            })}
+          </div>
         </div>
       </DndContext>
       {searchStatus && <Search />}
@@ -394,25 +401,11 @@ const Buttons = ({
   const viewMode = useAppStore((state) => state.viewMode)
 
   useEffect(() => {
-    scrollToSection(DateTime.now().toISODate())
+    $(`#time-ruler-${getToday()}`)[0]?.scrollIntoView()
   }, [viewMode, showingPastDates])
 
   useEffect(() => {
-    const checkScroll = () => {
-      const times = $('#time-ruler-times')
-      if (!times[0]) {
-        setTimeout(checkScroll, 100)
-        return
-      }
-      const offsetLeft = times.children()[1].offsetLeft
-      if (times[0].scrollLeft < offsetLeft - 20) {
-        times[0].scrollTo({ left: offsetLeft })
-
-        setTimeout(checkScroll, 250)
-      }
-    }
-
-    checkScroll()
+    scrollToSection(getToday())
   }, [])
 
   const nextButton = (
@@ -485,22 +478,31 @@ const Buttons = ({
       </Droppable>
     )
   }
+
+  const hideTimes = useAppStore((state) => state.settings.hideTimes)
+
   return (
     <>
       <div className={`flex w-full items-center space-x-1 rounded-lg`}>
-        <div className='group relative'>
-          <Button
-            src='more-horizontal'
-            onClick={(ev) => setShowingModal(!showingModal)}
-          />
+        <div
+          className='group relative'
+          onClick={(ev) => setShowingModal(!showingModal)}
+          ref={modalFrame}
+        >
+          <Button src='more-horizontal' />
           {showingModal && (
-            <div className='tr-menu' ref={modalFrame}>
-              <div className=''>
+            <div
+              className='tr-menu'
+              onClick={(ev) => {
+                ev.stopPropagation()
+                ev.preventDefault()
+              }}
+            >
+              <div className='flex flex-col items-center'>
                 <div
-                  className='clickable-icon'
+                  className='clickable-icon w-full'
                   onClick={() => {
                     setters.set({ showingPastDates: !showingPastDates })
-                    setShowingModal(false)
                   }}
                 >
                   <Logo
@@ -512,50 +514,83 @@ const Buttons = ({
                   </span>
                 </div>
                 <div
-                  className='clickable-icon'
+                  className='clickable-icon w-full'
                   onClick={async () => {
                     setupStore()
-                    setShowingModal(false)
                   }}
                 >
                   <Logo src={'rotate-cw'} className='w-6 flex-none' />
                   <span className='whitespace-nowrap'>Reload</span>
                 </div>
-                <div className='pl-1 text-muted'>Layout</div>
-                <div className='flex'>
-                  <Button
-                    src={'square'}
-                    title='One'
-                    className='w-6 flex-none'
-                    onClick={() => {
-                      setters.set({
-                        viewMode: 'hour',
-                      })
-                      setShowingModal(false)
-                    }}
-                  />
-                  <Button
-                    title='Row'
-                    src={'gallery-horizontal'}
-                    className='w-6 flex-none'
-                    onClick={() => {
-                      setters.set({
-                        viewMode: 'day',
-                      })
-                      setShowingModal(false)
-                    }}
-                  />
-                  <Button
-                    title='Grid'
-                    src={'layout-grid'}
-                    className='w-6 flex-none'
-                    onClick={() => {
-                      setters.set({
-                        viewMode: 'week',
-                      })
-                      setShowingModal(false)
-                    }}
-                  />
+                <div
+                  className='clickable-icon w-full'
+                  onClick={() => {
+                    getters.getObsidianAPI().setSetting({
+                      hideTimes: !hideTimes,
+                    })
+                  }}
+                >
+                  <Logo src={'kanban'} className='w-6 flex-none rotate-90' />
+                  <span className='whitespace-nowrap'>
+                    {hideTimes ? 'Show' : 'Hide'} Times
+                  </span>
+                </div>
+                <div className='text-muted my-1 w-fit'>Group By</div>
+                <div className='flex w-fit'>
+                  {[
+                    ['path', 'Path', 'folder-tree'],
+                    ['priority', 'Priority', 'alert-circle'],
+                    ['hybrid', 'Hybrid', 'arrow-down-narrow-wide'],
+                    [false, 'None', 'x'],
+                  ].map(
+                    ([groupBy, title, src]: [
+                      AppState['settings']['groupBy'],
+                      string,
+                      string
+                    ]) => (
+                      <div className='flex flex-col items-center'>
+                        <Button
+                          src={src}
+                          title={title}
+                          className='w-6 flex-none'
+                          onClick={() => {
+                            getters.getObsidianAPI().setSetting({
+                              groupBy: groupBy,
+                            })
+                          }}
+                        />
+                        <div className='text-xs text-faint'>{title}</div>
+                      </div>
+                    )
+                  )}
+                </div>
+                <div className='text-muted my-1 w-fit'>Layout</div>
+                <div className='flex w-fit'>
+                  {[
+                    ['hour', 'Hours', 'square'],
+                    ['day', 'Days', 'gallery-horizontal'],
+                    ['week', 'Weeks', 'layout-grid'],
+                  ].map(
+                    ([viewMode, title, src]: [
+                      AppState['viewMode'],
+                      string,
+                      string
+                    ]) => (
+                      <div className='flex flex-col items-center'>
+                        <Button
+                          src={src}
+                          title={title}
+                          className='w-6 flex-none'
+                          onClick={() => {
+                            setters.set({
+                              viewMode,
+                            })
+                          }}
+                        />
+                        <div className='text-xs text-faint'>{title}</div>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </div>

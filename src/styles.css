@@ -24,6 +24,13 @@
   .tr-menu > div > div {
     @apply flex items-center !justify-start space-x-2;
   }
+  div.unscheduled div.time-ruler-groups {
+    @apply flex overflow-y-hidden overflow-x-auto flex-col flex-wrap !w-full !h-full snap-x snap-mandatory;
+  }
+
+  div.unscheduled div.time-ruler-group {
+    @apply max-h-full !overflow-y-auto snap-start;
+  }
 }
 
 @layer utilities {

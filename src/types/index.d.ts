@@ -45,7 +45,7 @@ declare global {
     completed: boolean
     query?: string
     queryParent?: string
-    queryChildren?: string
+    queryChildren?: string[]
 
     // Obsidian Reminder
     reminder?: string

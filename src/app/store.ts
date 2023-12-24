@@ -38,7 +38,7 @@ export type AppState = {
   settings: Pick<
     TimeRulerPlugin['settings'],
     | 'dayStartEnd'
-    | 'hideHeadings'
+    | 'groupBy'
     | 'muted'
     | 'twentyFourHourFormat'
     | 'showCompleted'
@@ -70,7 +70,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
   collapsed: {},
   settings: {
     dayStartEnd: [0, 24],
-    hideHeadings: false,
+    groupBy: 'path',
     muted: false,
     twentyFourHourFormat: false,
     showCompleted: false,

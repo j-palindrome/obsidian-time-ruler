@@ -5,6 +5,7 @@ import { setters, useAppStore } from '../app/store'
 import { openTask, openTaskInRuler } from '../services/obsidianApi'
 import {
   isDateISO,
+  nestedScheduled,
   parseHeadingFromPath,
   roundMinutes,
   toISO,
@@ -15,23 +16,19 @@ import Button from './Button'
 import Deadline from './Deadline'
 import Logo from './Logo'
 
-/**
- * subtasks are a FLAT list of all tasks to include in the nested block. Grouping is done recursively by Group.
- */
-export type TaskComponentProps = {
-  task: TaskProps
-  subtasks: TaskProps[]
-  type: 'deadline' | 'parent' | 'task' | 'query'
+export type TaskComponentProps = TaskProps & {
+  subtasks?: TaskProps[]
   dragContainer: string
+  startISO?: string
+  renderType?: 'deadline'
 }
-
 export default function Task({
-  task,
-  subtasks,
-  type,
   dragContainer,
   startISO,
-}: TaskComponentProps & { startISO?: string }) {
+  subtasks,
+  renderType,
+  ...task
+}: TaskComponentProps) {
   const completeTask = () => {
     setters.patchTasks([task.id], {
       completion: toISO(roundMinutes(DateTime.now())),
@@ -39,20 +36,34 @@ export default function Task({
     })
   }
 
+  subtasks = useAppStore((state) => {
+    return _.flatMap(
+      subtasks ??
+        task.children
+          .concat(task.queryChildren ?? [])
+          .map((id) => state.tasks[id]),
+      (subtask) => {
+        if (!subtask) return []
+        if (!nestedScheduled(task.scheduled, subtask.scheduled)) return []
+        if (subtask.completed !== state.showingPastDates) return []
+        return subtask
+      }
+    )
+  })
+
   const dragData: DragData = {
     dragType: 'task',
-    type,
-    task: task,
-    subtasks,
+    renderType,
     dragContainer,
+    ...task,
   }
   const { setNodeRef, setActivatorNodeRef, attributes, listeners } =
     useDraggable({
-      id: `${task.id}::${type}::${dragContainer}`,
+      id: `${task.id}::${renderType}::${dragContainer}`,
       data: dragData,
     })
 
-  const isLink = ['parent', 'deadline'].includes(type)
+  const isLink = renderType && ['parent', 'deadline'].includes(renderType)
 
   if (!startISO) startISO = task.scheduled
 
@@ -69,7 +80,7 @@ export default function Task({
     attributes: lengthAttributes,
     listeners: lengthListeners,
   } = useDraggable({
-    id: `${task.id}::${type}::${length}::${dragContainer}`,
+    id: `${task.id}::${renderType}::${length}::${dragContainer}`,
     data: lengthDragData,
   })
 
@@ -82,24 +93,22 @@ export default function Task({
 
   return (
     <div
-      className={`relative rounded-lg py-0.5 transition-colors duration-300 ${
-        type === 'parent' ? 'mt-1' : ''
-      } w-full`}
-      ref={setNodeRef}
+      className={`relative rounded-lg py-0.5 transition-colors duration-300 w-full`}
       data-id={isLink ? '' : task.id}
       data-task={task.status === ' ' ? '' : task.status}
     >
       <div
-        className={`selectable group flex items-center rounded-lg pr-2 ${
-          isLink || type === 'query' ? 'font-menu text-xs' : 'font-sans'
+        className={`selectable group flex items-start rounded-lg pr-2 ${
+          isLink ? 'font-menu text-xs' : 'font-sans'
         }`}
+        ref={setNodeRef}
       >
         <div className='flex h-line w-indent flex-none items-center justify-center'>
           <Button
             onPointerDown={() => false}
             onClick={() => completeTask()}
             className={`task-list-item-checkbox selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint p-0 text-xs shadow-none hover:border-normal ${
-              isLink || type === 'query' ? 'h-2 w-2' : 'h-4 w-4'
+              isLink ? 'h-2 w-2' : 'h-4 w-4'
             } ${task.completed ? 'bg-faint' : 'bg-transparent'}`}
             data-task={task.status === ' ' ? '' : task.status}
           >
@@ -107,32 +116,24 @@ export default function Task({
           </Button>
         </div>
         <div
-          className={`w-fit min-w-[24px] cursor-pointer break-words leading-line hover:underline ${
+          className={`w-fit cursor-pointer break-words leading-line hover:underline ${
             [TaskPriorities.HIGH, TaskPriorities.HIGHEST].includes(
               task.priority
             )
               ? 'text-accent'
-              : type === 'deadline'
+              : renderType === 'deadline'
               ? ''
               : task.priority === TaskPriorities.LOW ||
                 isLink ||
                 task.status === 'x'
               ? 'text-faint'
-              : type === 'query'
-              ? 'text-accent'
               : ''
           }`}
-          onPointerDown={() => false}
           onClick={() => openTask(task)}
         >
           {task.title || 'Untitled'}
         </div>
-        <div
-          className='flex h-full min-h-line min-w-[24px] grow cursor-grab flex-wrap items-center justify-end space-x-1 font-menu child:my-1'
-          {...attributes}
-          {...listeners}
-          ref={setActivatorNodeRef}
-        >
+        <div className='flex h-line grow items-center justify-end space-x-1 font-menu child:my-1'>
           {task.tags.map((tag) => (
             <div
               className='cm-hashtag cm-hashtag-end cm-hashtag-begin !h-fit !text-xs !max-h-line'
@@ -146,40 +147,50 @@ export default function Task({
               {priorityNumberToSimplePriority[task.priority]}
             </div>
           )}
-        </div>
+          {hasLengthDrag && (
+            <div
+              className={`task-length cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent ${
+                !task.length ? 'hidden group-hover:block' : ''
+              }`}
+              ref={setLengthNodeRef}
+              {...lengthAttributes}
+              {...lengthListeners}
+            >
+              {!task.length
+                ? 'length'
+                : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
+                    task.length?.minute ? `${task.length?.minute}m` : ''
+                  }`}
+            </div>
+          )}
 
-        {hasLengthDrag && (
+          {!task.completed && (
+            <Deadline
+              task={task}
+              dragContainer={`${task.id}::${renderType}::${dragContainer}`}
+            />
+          )}
+
+          {!task.completed && task.reminder && (
+            <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
+              <Logo src='alarm-clock' className='mr-1' />
+              <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
+                'M/d'
+              )}${task.reminder.slice(10)}`}</span>
+            </div>
+          )}
           <div
-            className={`task-length cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent ${
-              !task.length ? 'hidden group-hover:block' : ''
-            }`}
-            ref={setLengthNodeRef}
-            {...lengthAttributes}
-            {...lengthListeners}
+            className='hidden group-hover:block cursor-grab'
+            {...attributes}
+            {...listeners}
+            ref={setActivatorNodeRef}
           >
-            {!task.length
-              ? 'length'
-              : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
-                  task.length?.minute ? `${task.length?.minute}m` : ''
-                }`}
+            <Logo
+              src='align-justify'
+              className='hover:bg-selection transition-colors duration-300 rounded-lg p-1 w-6'
+            />
           </div>
-        )}
-
-        {!task.completed && (
-          <Deadline
-            task={task}
-            dragContainer={`${task.id}::${type}::${dragContainer}`}
-          />
-        )}
-
-        {!task.completed && task.reminder && (
-          <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
-            <Logo src='alarm-clock' className='mr-1' />
-            <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
-              'M/d'
-            )}${task.reminder.slice(10)}`}</span>
-          </div>
-        )}
+        </div>
       </div>
       {_.keys(task.extraFields).length > 0 && (
         <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-8 text-xs'>
@@ -191,37 +202,36 @@ export default function Task({
         </div>
       )}
       {!isLink && task.notes && (
-        <div className='task-description break-words pl-8 pr-2 text-xs text-faint'>
+        <div className='task-description break-words pl-indent pr-2 text-xs text-faint'>
           {task.notes}
         </div>
       )}
 
-      {subtasks.length > 0 && (
+      {subtasks && subtasks.length > 0 && (
         <div className='flex w-full overflow-hidden'>
-          {type === 'task' && (
+          <div
+            className={`min-w-[20px] grow min-h-[12px] flex items-center justify-end ${
+              collapsed ? 'pl-indent pr-2' : 'pl-[8px] py-2'
+            }`}
+          >
             <div
-              className={`min-w-[20px] grow min-h-[12px] flex items-center justify-end ${
-                collapsed ? 'pl-indent pr-2' : 'pl-[8px] py-2'
-              }`}
+              className='h-full w-full transition-colors duration-300 hover:bg-selection rounded-lg flex items-center justify-center cursor-pointer'
+              onClick={() => setters.patchCollapsed([task.id], !collapsed)}
             >
               <div
-                className='h-full w-full transition-colors duration-300 hover:bg-selection rounded-lg flex items-center justify-center cursor-pointer'
-                onClick={() => setters.patchCollapsed([task.id], !collapsed)}
-              >
-                <div
-                  className={`${
-                    collapsed ? 'h-0 w-full border-t' : 'w-0 h-full border-l'
-                  } border-0 border-solid border-faint opacity-50`}
-                />
-              </div>
+                className={`${
+                  collapsed ? 'h-0 w-full border-t' : 'w-0 h-full border-l'
+                } border-0 border-solid border-faint opacity-50`}
+              />
             </div>
-          )}
+          </div>
 
           {!collapsed && subtasks.length > 0 && (
             <Block
               dragContainer={`${dragContainer}::${task.id}`}
               hidePaths={[
                 parseHeadingFromPath(task.path, false, dailyNoteInfo),
+                task.path,
               ]}
               startISO={startISO}
               tasks={subtasks}

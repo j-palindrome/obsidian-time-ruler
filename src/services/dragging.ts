@@ -5,11 +5,11 @@ import { DateTime, Duration } from 'luxon'
 import { useAppStoreRef } from '../app/store'
 import _ from 'lodash'
 import {
-  assembleSubtasks,
   roundMinutes,
   toISO,
   isDateISO,
-  findScheduledInParents,
+  parseTaskDate,
+  getChildren,
 } from './util'
 import invariant from 'tiny-invariant'
 
@@ -25,29 +25,6 @@ export const onDragEnd = async (
     return
   }
 
-  const getChildren = () => {
-    let children: string[] = []
-    invariant(dragData)
-    const tasks = _.values(getters.get('tasks'))
-    switch (dragData.dragType) {
-      case 'block':
-      case 'group':
-        children = dragData.tasks
-          .filter((x) => !x.task.queryParent)
-          .flatMap((parent) =>
-            assembleSubtasks(parent.task, tasks).concat(parent.task)
-          )
-          .map((child) => child.id)
-        break
-      case 'task':
-        children = assembleSubtasks(dragData.task, tasks)
-          .map((x) => x.id)
-          .concat(dragData.task.id)
-        break
-    }
-    return children.sort()
-  }
-
   if (dragData?.dragType === 'new_button' && !dropData) {
     setters.set({ newTask: { scheduled: undefined } })
   } else if (dropData && dragData) {
@@ -58,7 +35,22 @@ export const onDragEnd = async (
           setters.updateFileOrder(dragData.path, dropData.heading)
           break
         case 'delete':
-          let children = getChildren()
+          const tasks = getters.get('tasks')
+          let draggedTasks =
+            dragData.dragType === 'block' || dragData.dragType === 'group'
+              ? dragData.tasks
+              : dragData.dragType === 'task'
+              ? [dragData]
+              : []
+          const children = _.sortBy(
+            _.uniq(
+              _.flatMap(draggedTasks, (task) => [
+                task.id,
+                ...getChildren(task, tasks),
+              ])
+            ),
+            'id'
+          )
 
           if (children.length > 1) {
             if (!confirm(`Delete ${children.length} tasks and children?`)) break
@@ -86,7 +78,7 @@ export const onDragEnd = async (
 
           for (let task of _.values(tasks)) {
             if (task.completed) continue
-            const scheduled = findScheduledInParents(task.id, tasks, false)
+            const scheduled = parseTaskDate(task)
             if (
               scheduled &&
               !isDateISO(scheduled) &&
@@ -148,25 +140,16 @@ export const onDragEnd = async (
             })
           }
           break
-        // block and group is rollover
+
         case 'block':
         case 'group':
           setters.patchTasks(
-            dragData.tasks
-              .filter((x) => !x.task.queryParent)
-              .flatMap((x) =>
-                x.type === 'parent' ? x.subtasks.map((x) => x.id) : x.task.id
-              ),
+            dragData.tasks.map((x) => x.id),
             dropData
           )
           break
         case 'task':
-          setters.patchTasks(
-            dragData.type === 'parent'
-              ? dragData.subtasks.map((x) => x.id) ?? []
-              : [dragData.task.id],
-            dropData
-          )
+          setters.patchTasks([dragData.id], dropData)
           break
         case 'due':
           setters.patchTasks([dragData.task.id], { due: dropData.scheduled })

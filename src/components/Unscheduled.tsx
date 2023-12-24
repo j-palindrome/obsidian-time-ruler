@@ -1,10 +1,11 @@
 import _ from 'lodash'
 import { memo } from 'react'
 import { setters, useAppStore } from 'src/app/store'
-import { findScheduledInParents, useCollapsed } from 'src/services/util'
+import { formatHeadingTitle, parseTaskDate } from 'src/services/util'
 import Block from './Block'
 import Button from './Button'
 import Droppable from './Droppable'
+import { TaskPriorities } from 'src/types/enums'
 
 const Unscheduled = memo(_Unscheduled, () => true)
 export default Unscheduled
@@ -18,7 +19,9 @@ function _Unscheduled() {
       (task) =>
         (showCompleted ||
           (showingPastDates ? task.completed : !task.completed)) &&
-        !findScheduledInParents(task.id, state.tasks, showingPastDates)
+        !task.parent &&
+        !task.queryParent &&
+        !parseTaskDate(task)
     )
   )
   const childWidth = useAppStore((state) =>
@@ -28,7 +31,22 @@ function _Unscheduled() {
       : 1
   )
 
-  const { collapsed, allHeadings } = useCollapsed(tasks)
+  const allHeadings = useAppStore((state) =>
+    tasks.flatMap(
+      (task) =>
+        formatHeadingTitle(
+          task.path,
+          state.settings.groupBy,
+          state.dailyNoteInfo,
+          task.page
+        )[0]
+    )
+  )
+
+  const collapsed = useAppStore((state) =>
+    allHeadings.map((heading) => state.collapsed[heading]).includes(false)
+  )
+
   return (
     <div className={`h-0 grow flex flex-col`}>
       <div className='flex items-center space-x-1 group flex-none'>
@@ -44,13 +62,13 @@ function _Unscheduled() {
       <div
         className={`h-0 grow w-full mt-1 rounded-lg ${
           childWidth > 1
-            ? `child:flex child:overflow-y-hidden child:overflow-x-auto child:flex-col child:flex-wrap child:h-full child:snap-x child:snap-mandatory child:child:max-h-full child:child:overflow-y-auto child:child:snap-start ${
+            ? `unscheduled child:h-full child:child:h-full ${
                 [
                   '',
-                  'child:child:w-full',
-                  'child:child:w-1/2',
-                  'child:child:w-1/3',
-                  'child:child:w-1/4',
+                  'child:child:child:child:w-full',
+                  'child:child:child:child:w-1/2',
+                  'child:child:child:child:w-1/3',
+                  'child:child:child:child:w-1/4',
                 ][childWidth]
               }`
             : 'overflow-x-hidden overflow-y-auto'

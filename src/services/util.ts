@@ -10,14 +10,21 @@ import moment from 'moment'
 import _, { reject } from 'lodash'
 import ObsidianAPI, { getDailyNoteInfo } from './obsidianApi'
 import NewTask from 'src/components/NewTask'
-import { useEffect, useState } from 'react'
+import { ScriptHTMLAttributes, useEffect, useRef, useState } from 'react'
 import useStateRef from 'react-usestateref'
 import invariant from 'tiny-invariant'
 import { Platform } from 'obsidian'
 import TimeRulerPlugin from 'src/main'
 import { TaskComponentProps } from 'src/components/Task'
-import { priorityKeyToNumber, simplePriorityToNumber } from 'src/types/enums'
-import { BlockProps } from 'src/components/Block'
+import {
+  TaskPriorities,
+  priorityKeyToNumber,
+  priorityNumberToKey,
+  priorityNumberToSimplePriority,
+  simplePriorityToNumber,
+} from 'src/types/enums'
+import { BlockProps, UNGROUPED } from 'src/components/Block'
+import { useRect } from '@dnd-kit/core/dist/hooks/utilities'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
@@ -82,8 +89,11 @@ export const parseFolderFromPath = (path: string) => {
   return path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
 }
 
-export const parseFileFromPath = (path: string) =>
-  path.includes('#') ? path.slice(0, path.indexOf('#')) : path
+export const parseFileFromPath = (path: string) => {
+  if (path.includes('>')) path = path.slice(0, path.indexOf('>'))
+  if (path.includes('#')) path = path.slice(0, path.indexOf('#'))
+  return path
+}
 
 export const parsePathFromDate = (
   date: string,
@@ -98,12 +108,31 @@ export const parseDateFromPath = (
   dailyNoteInfo: AppState['dailyNoteInfo']
 ) => {
   const date = moment(
-    path.replace(dailyNoteInfo.folder, '').replace('.md', ''),
+    parseFileFromPath(path.replace(dailyNoteInfo.folder, '')).replace(
+      '.md',
+      ''
+    ),
     dailyNoteInfo.format,
     true
   )
   if (!date.isValid()) return false
   return date
+}
+
+export const parseHeadingFromTask = (
+  task: TaskProps,
+  tasks: AppState['tasks'],
+  dailyNoteInfo: AppState['dailyNoteInfo'],
+  hidePaths: string[] = [],
+  parentId?: string
+) => {
+  let parent = task.parent ? tasks[task.parent] : undefined
+  if (parent?.id === parentId) parent = undefined
+  const heading =
+    parseHeadingFromPath(task.path, task.page, dailyNoteInfo) +
+    (parent ? '>' + parent.title : '')
+  if (hidePaths.includes(heading)) return undefined
+  return heading
 }
 
 export const parseHeadingFromPath = (
@@ -112,7 +141,7 @@ export const parseHeadingFromPath = (
   dailyNoteInfo: AppState['dailyNoteInfo']
 ): string => {
   let name = ''
-  let fileName = parseFileFromPath(path)
+  let fileName = parseFileFromPath(path).replace('.md', '')
   if (isPage) {
     // page headings are their containing folder
     name = parseFolderFromPath(fileName)
@@ -125,12 +154,38 @@ export const parseHeadingFromPath = (
   return name
 }
 
-export const parseHeadingTitle = (path: string) => {
-  return path.includes('#')
-    ? path.slice(path.lastIndexOf('#') + 1)
-    : path
-        .slice(path.includes('/') ? path.lastIndexOf('/') + 1 : 0)
-        .replace('.md', '')
+export const formatHeadingTitle = (
+  path: string | number,
+  groupBy: AppState['settings']['groupBy'],
+  dailyNoteInfo: AppState['dailyNoteInfo'],
+  page?: boolean
+): [string, string] => {
+  path = String(path)
+  switch (groupBy) {
+    case 'path':
+      invariant(typeof path === 'string')
+      const name = parseHeadingFromPath(path, page ?? false, dailyNoteInfo)
+      return [
+        path.includes('>')
+          ? path.slice(path.lastIndexOf('>') + 1)
+          : path.includes('#')
+          ? path.slice(path.lastIndexOf('#') + 1)
+          : path
+              .slice(path.includes('/') ? path.lastIndexOf('/') + 1 : 0)
+              .replace('.md', ''),
+        name.includes('#')
+          ? parseFileFromPath(name)
+          : parseFolderFromPath(name),
+      ]
+    case 'priority':
+      return [priorityNumberToSimplePriority[path], '']
+    case 'hybrid':
+      return priorityNumberToSimplePriority[path]
+        ? [priorityNumberToSimplePriority[path], '']
+        : formatHeadingTitle(path, 'path', dailyNoteInfo, page)
+    case false:
+      return ['', '']
+  }
 }
 
 export const getTasksByHeading = (
@@ -170,24 +225,7 @@ export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
 }
 
 export const parseTaskDate = (task: TaskProps): string | undefined =>
-  task.scheduled || task.due || task.completion
-
-export const useCollapsed = (tasks: TaskProps[]) => {
-  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const allHeadings = _.uniq(
-    tasks.map((task) =>
-      parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
-    )
-  )
-  const collapsed = useAppStore(
-    (state) =>
-      !allHeadings
-        .map((heading) => state.collapsed[heading] ?? false)
-        .includes(false)
-  )
-
-  return { collapsed, allHeadings }
-}
+  task.scheduled || task.completion
 
 export const toISO = (date: DateTime) =>
   date.toISO({
@@ -274,8 +312,10 @@ export const useChildWidth = ({
   }
 }
 
-export const scrollToSection = async (id: string) =>
-  new Promise<void>((resolve) => {
+let scrolling = false
+export const scrollToSection = async (id: string) => {
+  let scrollTimeout: number | null = null
+  return new Promise<void>((resolve) => {
     let count = 0
     const scroll = () => {
       count++
@@ -285,19 +325,40 @@ export const scrollToSection = async (id: string) =>
       }
       const child = document.getElementById(`time-ruler-${id}`)
       if (!child) {
-        setTimeout(() => scrollToSection(id), 250)
+        if (scrollTimeout) {
+          clearTimeout(scrollTimeout)
+        }
+        scrollTimeout = setTimeout(() => scrollToSection(id), 250)
         return
       }
+      if (scrolling) return
+      scrolling = true
       child.scrollIntoView({
         block: 'start',
         inline: 'start',
         behavior: 'smooth',
       })
-      setTimeout(() => resolve(), 500)
+
+      setTimeout(() => {
+        resolve()
+        scrollTimeout = null
+        scrolling = false
+      }, 500)
     }
     scroll()
   })
+}
 
+export const isGreater = (
+  firstScheduled: string | undefined,
+  lastScheduled: string | undefined
+) => {
+  if (!lastScheduled) return false
+  else if (!firstScheduled && lastScheduled) return true
+  else if (lastScheduled && firstScheduled) {
+    return lastScheduled > firstScheduled
+  }
+}
 export const queryTasks = (
   id: string,
   query: string,
@@ -317,13 +378,19 @@ export const queryTasks = (
     value: string | number | boolean
   }
   let fieldTests: FieldTest[] = []
+  const NOT_EXIST = 'NOT_EXIST'
+  const EXIST = 'EXIST'
   if (fields) {
     fieldTests = fields.split(/ ?(AND|OR|&|\|) ?/).flatMap((test) => {
       const matches = test.match(/(.+?) ?(!=|<=|>=|=|<|>) ?(.+)/)
-      if (!matches) return []
-      let value = matches[3]
+      let value = test.startsWith('!')
+        ? NOT_EXIST
+        : !matches
+        ? EXIST
+        : matches[3]
       let parsedValue: string | number | boolean = value
-      if (matches[1] === 'priority') {
+      let key = matches ? matches[1] : test
+      if (matches && matches[1] === 'priority') {
         if (simplePriorityToNumber[value] !== undefined)
           parsedValue = simplePriorityToNumber[value]
         else if (priorityKeyToNumber[value] !== undefined)
@@ -333,8 +400,8 @@ export const queryTasks = (
       else parsedValue = value
 
       return {
-        key: matches[1],
-        comparison: matches[2] as Comparison,
+        key,
+        comparison: (matches?.[2] ?? '=') as Comparison,
         value: parsedValue,
       }
     })
@@ -344,6 +411,8 @@ export const queryTasks = (
 
   const testField = (test: FieldTest, task: TaskProps): boolean => {
     let value: string = task[test.key] ?? task.extraFields?.[test.key]
+    if (test.value === EXIST) return !!value
+    if (test.value === NOT_EXIST) return !value
     if (value === undefined) return false
 
     switch (test.comparison) {
@@ -362,17 +431,87 @@ export const queryTasks = (
     }
   }
 
-  return _.filter(_.values(tasks), (task) => {
-    if (task.completed || task.id === id) return false
-    if (paths && paths.map((path) => task.path.includes(path)).includes(false))
+  return _.filter(_.values(tasks), (subtask) => {
+    const thisScheduled = getParentScheduled(tasks[id], tasks)
+    const scheduled = getParentScheduled(subtask, tasks)
+    if (
+      subtask.completed ||
+      subtask.id === id ||
+      !nestedScheduled(thisScheduled, scheduled)
+    )
       return false
-    if (tags && tags.map((tag) => task.tags.includes(tag)).includes(false))
+    if (
+      paths &&
+      paths.map((path) => subtask.path.includes(path)).includes(false)
+    )
+      return false
+
+    if (tags && tags.map((tag) => subtask.tags.includes(tag)).includes(false))
       return false
     if (
       fieldTests &&
-      fieldTests.map((field) => testField(field, task)).includes(false)
+      fieldTests.map((field) => testField(field, subtask)).includes(false)
     )
       return false
     return true
   })
 }
+
+export const getChildren = (
+  task: TaskProps,
+  tasks: AppState['tasks']
+): string[] =>
+  !task
+    ? []
+    : task.children
+        .flatMap((id) => [id, ...getChildren(tasks[id], tasks)])
+        .concat(task.queryChildren ? task.queryChildren : [])
+
+export const getParents = (task: TaskProps, tasks: AppState['tasks']) => {
+  const parents: TaskProps[] = []
+  let parent = task.parent ? tasks[task.parent] : undefined
+  while (parent) {
+    parents.push(parent)
+    parent = parent.parent ? tasks[parent.parent] : undefined
+  }
+  return parents
+}
+
+export const getParentScheduled = (
+  task: TaskProps,
+  tasks: AppState['tasks']
+) => {
+  if (task.scheduled) return task.scheduled
+  let parent = task.parent ?? task.queryParent
+  while (parent) {
+    task = tasks[parent]
+    if (task.scheduled) return task.scheduled
+    parent = task.parent ?? task.queryParent
+  }
+  return undefined
+}
+
+export const nestedScheduled = (
+  parentScheduled: TaskProps['scheduled'],
+  childScheduled: TaskProps['scheduled']
+) => {
+  const now = getToday()
+  if (parentScheduled && parentScheduled < now) parentScheduled = now
+  if (childScheduled && childScheduled < now) childScheduled = now
+  return !parentScheduled && childScheduled
+    ? false
+    : parentScheduled && childScheduled && parentScheduled < childScheduled
+    ? false
+    : true
+}
+
+export const getToday = () => {
+  const dayEnd = getters.get('settings').dayStartEnd[1]
+  const now = DateTime.now()
+  if (dayEnd < 12 && now.hour < dayEnd)
+    return now.minus({ days: 1 }).toISODate()
+  else return now.toISODate()
+}
+
+export const hasPriority = (task: TaskProps) =>
+  task.priority !== undefined && task.priority !== TaskPriorities.DEFAULT

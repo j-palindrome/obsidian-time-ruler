@@ -9,7 +9,7 @@ import {
   parseFileFromPath,
   parseFolderFromPath,
   parseHeadingFromPath,
-  parseHeadingTitle,
+  formatHeadingTitle,
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
@@ -164,11 +164,9 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
 
 function NewTaskHeading({ path }: { path: string }) {
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const name = useMemo(
-    () => parseHeadingFromPath(path, false, dailyNoteInfo),
-    [path]
+  const [title, container] = useAppStore((state) =>
+    formatHeadingTitle(path, 'path', dailyNoteInfo)
   )
-  const title = useMemo(() => parseHeadingTitle(name), [name])
   const newTask = useAppStore((state) => state.newTask)
   invariant(newTask)
 
@@ -176,21 +174,15 @@ function NewTaskHeading({ path }: { path: string }) {
     <div
       key={path}
       onMouseDown={() => {
-        if (path === 'Daily')
-          getters.getObsidianAPI().createNewTask(newTask, null, dailyNoteInfo)
-        else {
-          getters.getObsidianAPI().createNewTask(newTask, path, dailyNoteInfo)
-        }
+        getters.getObsidianAPI().createNewTask(newTask, path, dailyNoteInfo)
         setTimeout(() => setters.set({ newTask: false }))
       }}
       className={`flex items-center w-full selectable cursor-pointer rounded-lg px-2 hover:underline ${
-        name.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
+        path.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
       }`}
     >
       <div className='grow'>{title}</div>
-      {!path.includes('#') && (
-        <div className='text-faint text-xs'>{parseFolderFromPath(path)}</div>
-      )}
+      <div className='text-faint text-xs'>{container}</div>
     </div>
   )
 }

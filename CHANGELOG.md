@@ -16,14 +16,21 @@
 
 # Changelog
 
-## 1.7.1 (Upcoming)
+## 2.0.0 (12/24/2023)
+
+**Major changes:**
+- Added **Queries!** `[query:: ]` tasks will auto-assign their children based on a Dataview query. Useful for automatic scheduling!
+- Search is now a "Jump to:" search a task to jump to it within Time Ruler.
+- Three layouts are now available: One (single date with split day/hours), Row (rolling view of days), and Grid (week view).
+- Four options for grouping: Path, Priority, Hybrid (priority first, then path if no priority set), or None
+- Times now exist alongside scheduled tasks, saving vertical space, and are no longer full-width. To schedule, drag tasks on top of the times to the right.
+- Tasks now have handles at the right for scheduling/dragging.
 
 **Added:**
-- Three layouts now available: One (single date with split day/hours), Row (rolling view of days), and Grid (week view)
 - Day start setting now sets when days transition, allowing days to extend past 12 AM
 - Use Daily Note template when creating new daily notes
-- Improved [borders between dates](https://github.com/joshuatazrein/obsidian-time-ruler/issues/88#issuecomment-1846164954) and button layout for grid view
-- Option to turn off times globally
+- Improved styling: [borders between dates](https://github.com/joshuatazrein/obsidian-time-ruler/issues/88#issuecomment-1846164954) and button layout for grid view
+- Option to toggle times moved to menu, turn on/off from within Time Ruler
 
 **Fixed:**
 - Parsing error with daily notes
