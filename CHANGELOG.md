@@ -16,6 +16,11 @@
 
 # Changelog
 
+## 2.0.1 (12/25/2023)
+
+**Fixed:**
+- Scheduling tasks for today
+
 ## 2.0.0 (12/24/2023)
 
 **Major changes:**

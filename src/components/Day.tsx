@@ -64,12 +64,15 @@ export default function Day({
 
       const scheduledForToday = !scheduled
         ? false
-        : isToday
-        ? scheduled <= endISO
         : isDateISO(scheduled)
-        ? scheduled === startDate
+        ? isToday
+          ? scheduled <= startDate
+          : scheduled === startDate
         : scheduled >= startISO && scheduled < endISO
 
+      if (scheduled === '12-26-2023') {
+        console.log(startDate, scheduled <= startDate)
+      }
       const dueToday = !task.due ? false : task.due >= startDate
 
       if (dueToday) {
