@@ -575,7 +575,7 @@ export async function getDailyNoteInfo(): Promise<
       template,
     }
   } catch (err) {
-    console.error(err)
+    console.warn(err)
     return {
       format: 'YYYY-MM-DD',
       folder: '/',

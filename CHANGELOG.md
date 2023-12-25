@@ -16,6 +16,11 @@
 
 # Changelog
 
+## 2.0.2 (12/25/2023)
+
+**Fixed:**
+- Quick fix for Daily Notes not existing.
+
 ## 2.0.1 (12/25/2023)
 
 **Fixed:**
