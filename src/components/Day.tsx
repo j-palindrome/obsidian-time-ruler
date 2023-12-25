@@ -70,9 +70,6 @@ export default function Day({
           : scheduled === startDate
         : scheduled >= startISO && scheduled < endISO
 
-      if (scheduled === '12-26-2023') {
-        console.log(startDate, scheduled <= startDate)
-      }
       const dueToday = !task.due ? false : task.due >= startDate
 
       if (dueToday) {

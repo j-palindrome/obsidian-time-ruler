@@ -559,7 +559,7 @@ export async function getDailyNoteInfo(): Promise<
   AppState['dailyNoteInfo'] | undefined
 > {
   try {
-    let { folder, format, template } = (await app.vault
+    let { folder, format, template } = (await this.app.vault
       .readConfigJson('daily-notes')
       .catch(() => {
         return { folder: undefined, format: undefined }
@@ -576,7 +576,11 @@ export async function getDailyNoteInfo(): Promise<
     }
   } catch (err) {
     console.error(err)
-    return
+    return {
+      format: 'YYYY-MM-DD',
+      folder: '/',
+      template: '',
+    }
   }
 }
 
