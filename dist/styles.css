@@ -17,11 +17,17 @@
 #time-ruler :is(.right-1) {
   right: 0.25rem;
 }
+#time-ruler :is(.right-10) {
+  right: 2.5rem;
+}
 #time-ruler :is(.top-0) {
   top: 0px;
 }
 #time-ruler :is(.top-full) {
   top: 100%;
+}
+#time-ruler :is(.\!z-50) {
+  z-index: 50 !important;
 }
 #time-ruler :is(.z-10) {
   z-index: 10;
@@ -355,17 +361,11 @@
 #time-ruler :is(.border-t) {
   border-top-width: 1px;
 }
-#time-ruler :is(.border-t-2) {
-  border-top-width: 2px;
-}
 #time-ruler :is(.border-solid) {
   border-style: solid;
 }
 #time-ruler :is(.\!border-none) {
   border-style: none !important;
-}
-#time-ruler :is(.border-accent) {
-  border-color: var(--text-accent);
 }
 #time-ruler :is(.border-faint) {
   border-color: var(--text-faint);
@@ -841,11 +841,17 @@ div.unscheduled div.time-ruler-group {
   --tw-backdrop-saturate: ;
   --tw-backdrop-sepia: ;
 }
+#time-ruler :is(.hover\:border-accent:hover) {
+  border-color: var(--text-accent);
+}
 #time-ruler :is(.hover\:border-normal:hover) {
   border-color: var(--text-normal);
 }
 #time-ruler :is(.hover\:bg-selection:hover) {
   background-color: var(--text-selection);
+}
+#time-ruler :is(.hover\:text-accent:hover) {
+  color: var(--text-accent);
 }
 #time-ruler :is(.hover\:underline:hover) {
   text-decoration-line: underline;

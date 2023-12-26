@@ -16,10 +16,18 @@
 
 # Changelog
 
+## 2.0.3 (12/25/2023)
+**Fixed:**
+- Quick fix for menu hiding too quickly
+
+**Added:**
+- Better UI for dragging
+
 ## 2.0.2 (12/25/2023)
 
 **Fixed:**
 - Quick fix for Daily Notes not existing.
+- Fixed React keys for `Buttons`
 
 ## 2.0.1 (12/25/2023)
 

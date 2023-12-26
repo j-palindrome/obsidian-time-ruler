@@ -432,17 +432,17 @@ const Buttons = ({
   const checkShowing = (ev: MouseEvent) => {
     invariant(modalFrame.current)
     const els = document.elementsFromPoint(ev.clientX, ev.clientY)
-
     if (!els.includes(modalFrame.current)) {
       setShowingModal(false)
     }
   }
+
   useEffect(() => {
-    window.removeEventListener('mousedown', checkShowing)
+    window.removeEventListener('click', checkShowing)
     if (showingModal) {
-      window.addEventListener('mousedown', checkShowing)
+      window.addEventListener('click', checkShowing)
     }
-    return () => window.removeEventListener('mousedown', checkShowing)
+    return () => window.removeEventListener('click', checkShowing)
   }, [showingModal])
 
   const today = now.toISODate()
@@ -484,19 +484,19 @@ const Buttons = ({
   return (
     <>
       <div className={`flex w-full items-center space-x-1 rounded-lg`}>
-        <div
-          className='group relative'
-          onClick={(ev) => setShowingModal(!showingModal)}
-          ref={modalFrame}
-        >
-          <Button src='more-horizontal' />
+        <div className='group relative'>
+          <Button
+            src='more-horizontal'
+            onClick={(ev) => {
+              setShowingModal(!showingModal)
+              ev.stopPropagation()
+            }}
+          />
           {showingModal && (
             <div
               className='tr-menu'
-              onClick={(ev) => {
-                ev.stopPropagation()
-                ev.preventDefault()
-              }}
+              ref={modalFrame}
+              onClick={() => setShowingModal(false)}
             >
               <div className='flex flex-col items-center'>
                 <div
@@ -548,7 +548,7 @@ const Buttons = ({
                       string,
                       string
                     ]) => (
-                      <div className='flex flex-col items-center'>
+                      <div className='flex flex-col items-center' key={title}>
                         <Button
                           src={src}
                           title={title}
@@ -576,7 +576,7 @@ const Buttons = ({
                       string,
                       string
                     ]) => (
-                      <div className='flex flex-col items-center'>
+                      <div className='flex flex-col items-center' key={title}>
                         <Button
                           src={src}
                           title={title}

@@ -27,18 +27,21 @@ export default function Minutes({
   noExtension?: boolean
   nested?: boolean
 }) {
-  const times: DateTime[] = []
-  const givenStart = DateTime.fromISO(startISO)
-  const givenEnd = DateTime.fromISO(endISO)
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const hideTimes = useAppStore((state) => state.settings.hideTimes)
   const calendarMode = useAppStore((state) => state.viewMode === 'week')
-  const type: TimeSpanTypes = calendarMode ? 'hours' : 'minutes'
+  const dayEnd = useAppStore((state) => state.settings.dayStartEnd[1])
+
   if (hideTimes) return <></>
+
+  const times: DateTime[] = []
+  const givenStart = DateTime.fromISO(startISO)
+  const givenEnd = DateTime.fromISO(endISO)
+  const type: TimeSpanTypes = calendarMode ? 'hours' : 'minutes'
 
   let start = roundMinutes(givenStart)
   let end = roundMinutes(givenEnd)
-  const dayEnd = useAppStore((state) => state.settings.dayStartEnd[1])
+
   let dayEndTime = start.set({ hour: dayEnd })
   if (dayEnd < 12 && end.get('hour') >= dayEnd)
     dayEndTime = dayEndTime.plus({ days: 1 })
@@ -149,7 +152,17 @@ function Time({ time, type, dragContainer }: TimeProps) {
   const hourDisplay = useHourDisplay(hours)
 
   return (
-    <div className={`group flex h-[16px] items-center justify-end`} key={iso}>
+    <div
+      className={`flex h-[16px] items-center justify-end relative`}
+      key={iso}
+    >
+      <div
+        className={`text-sm absolute right-10 h-4 items-center bg-primary rounded-lg px-2 text-accent !z-50 justify-center ${
+          isOver ? 'block' : 'hidden'
+        }`}
+      >
+        {hours}:{String(minutes).padStart(2, '0')}
+      </div>
       <div
         className={`w-10 h-full flex flex-none items-center justify-end ${selectedClassName}`}
         {...attributes}
@@ -160,9 +173,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
         }}
       >
         <hr
-          className={`${
-            isOver ? 'border-accent border-t-2' : 'border-faint border-t'
-          } ${
+          className={`hover:border-accent border-faint my-0 border-0 border-t ${
             type === 'hours'
               ? hours % 6 === 0
                 ? 'w-6'
@@ -179,17 +190,11 @@ function Time({ time, type, dragContainer }: TimeProps) {
           }`}
         ></hr>
         <div
-          className={`ml-1 h-full flex-none font-menu text-xs w-4 ${
-            isOver ? 'text-accent' : 'text-muted'
-          }`}
+          className={`ml-1 h-full flex-none font-menu text-xs w-4 hover:text-accent text-muted`}
         >
           {(type === 'minutes' && minutes === 0) ||
           (type === 'hours' && hours % 3 === 0)
             ? hourDisplay
-            : isOver
-            ? minutes > 0
-              ? ':' + minutes
-              : hours
             : ''}
         </div>
       </div>
@@ -213,7 +218,7 @@ export function NowTime({ dragContainer }: { dragContainer: string }) {
 
   return (
     <div
-      className={`group flex w-full items-center rounded-lg pl-9 pr-2 hover:bg-selection transition-colors duration-300 ${
+      className={`flex w-full items-center rounded-lg pl-9 pr-2 hover:bg-selection transition-colors duration-300 ${
         isOver ? 'bg-selection' : ''
       }`}
       ref={(node) => {
