@@ -3,55 +3,69 @@ import { useEffect, useRef, useState } from 'react'
 import { useStopwatch, useTimer } from 'react-timer-hook'
 import { AppState, getters, setters, useAppStore } from '../app/store'
 import { sounds } from '../assets/assets'
-import { toISO } from '../services/util'
+import { roundMinutes, toISO } from '../services/util'
 import Button from './Button'
 import Day from './Day'
 import NewTask from './NewTask'
+import Droppable from './Droppable'
 
 export function Timer() {
   const pauseExpiration = useRef(true)
-  const [negative, setNegative] = useState(false)
+  const { negative, startISO, maxSeconds, playing } = useAppStore(
+    (state) => state.timer
+  )
   const muted = useAppStore((state) => state.settings.muted)
 
   const timer = useTimer({
-    expiryTimestamp: new Date(),
+    expiryTimestamp: startISO ? new Date(startISO) : new Date(),
     onExpire: () => {
       if (pauseExpiration.current) return
-      setMaxSeconds(null)
       setInput('')
-      try {
-        new Notification('timer complete')
-        if (!muted) sounds.timer.play()
-      } catch (err) {}
       timer.pause()
+      stopwatch.totalSeconds = 0
       stopwatch.start()
-      setNegative(true)
     },
     autoStart: false,
   })
 
-  const stopwatch = useStopwatch({ autoStart: false })
+  const stopwatch = useStopwatch({
+    autoStart: false,
+    offsetTimestamp: startISO ? new Date(startISO) : new Date(),
+  })
 
   useEffect(() => {
     pauseExpiration.current = false
+    if (!startISO) return
+    if (playing && maxSeconds) timer.restart(new Date(startISO), true)
+    else if (playing) {
+      const seconds = DateTime.now()
+        .diff(DateTime.fromISO(startISO))
+        .shiftTo('seconds').seconds
+      stopwatch.reset(DateTime.now().plus({ seconds }).toJSDate(), true)
+    }
   }, [])
 
-  const expanded = useAppStore((state) => state.viewMode === 'now')
+  useEffect(() => {
+    const newPlaying = stopwatch.isRunning || timer.isRunning
+    if (newPlaying !== playing) setters.patchTimer({ playing: newPlaying })
+  }, [stopwatch.isRunning, timer.isRunning])
+
   const [input, setInput] = useState('')
-  const [maxSeconds, setMaxSeconds] = useState<number | null>(null)
   const seconds = maxSeconds ? timer.seconds : stopwatch.seconds
   const minutes = maxSeconds ? timer.minutes : stopwatch.minutes
   const hours = maxSeconds ? timer.hours : stopwatch.hours
-  const playing = timer.isRunning || stopwatch.isRunning
 
   const currentTime = maxSeconds ? timer.totalSeconds : stopwatch.totalSeconds
 
   const start = () => {
-    setNegative(false)
+    setters.patchTimer({ negative: false })
     let hours = 0
     let minutes = 0
     if (!input) {
-      setMaxSeconds(null)
+      setters.patchTimer({
+        maxSeconds: null,
+        startISO: new Date().toISOString(),
+      })
       stopwatch.start()
     } else {
       if (input.includes(':')) {
@@ -59,10 +73,14 @@ export function Timer() {
         hours = split[0]
         minutes = split[1]
       } else {
-        minutes = parseInt(input)
+        minutes = parseFloat(input)
       }
-      setMaxSeconds(minutes * 60 + hours * 60 * 60)
-      timer.restart(DateTime.now().plus({ minutes, hours }).toJSDate())
+      const endDate = DateTime.now().plus({ minutes, hours }).toJSDate()
+      timer.restart(endDate)
+      setters.patchTimer({
+        maxSeconds: minutes * 60 + hours * 60 * 60,
+        startISO: endDate.toISOString(),
+      })
     }
     playSound()
   }
@@ -103,9 +121,11 @@ export function Timer() {
   }
 
   const reset = () => {
-    setNegative(false)
+    setters.patchTimer({ negative: false })
     if (maxSeconds) {
-      setMaxSeconds(null)
+      setters.patchTimer({
+        maxSeconds: null,
+      })
       timer.restart(new Date(), false)
     } else {
       stopwatch.reset(undefined, false)
@@ -115,7 +135,7 @@ export function Timer() {
 
   const addTime = (minutes: number) => {
     if (maxSeconds) {
-      setMaxSeconds(maxSeconds + minutes * 60)
+      setters.patchTimer({ maxSeconds: maxSeconds + minutes * 60 })
       const currentTime = DateTime.now()
         .plus({ minutes: timer.minutes, hours: timer.hours })
         .plus({ minutes: minutes })
@@ -128,85 +148,53 @@ export function Timer() {
     }
   }
 
-  const previousViewMode = useRef<AppState['viewMode']>('hour')
+  const borders = useAppStore((state) => state.settings.borders)
 
   return (
     <div
-      className={`${
-        expanded
-          ? 'fixed left-0 top-0 z-40 flex h-full w-full flex-col bg-primary p-4'
-          : 'w-full'
-      }`}
+      className={`relative my-1 flex w-full items-center justify-center rounded-icon font-menu text-sm child:relative child:h-full py-0.5 h-12 flex-none ${
+        borders ? 'border-solid border-divider border-[1px]' : ''
+      } ${negative ? 'bg-red-800/50' : 'bg-code'}`}
     >
       <div
-        className={`relative my-1 flex w-full items-center justify-center rounded-icon bg-primary-alt font-menu text-sm child:relative child:h-full py-0.5 ${
-          negative ? 'bg-red-800/50' : ''
-        } ${expanded ? 'h-14' : 'h-6'}`}
-      >
-        <div className='!absolute top-0 right-1 h-full flex items-center space-x-1'>
-          <NewTask dragContainer='timer' />
-        </div>
-        <div
-          className={`!absolute left-0 top-0 h-full flex-none rounded-icon ${
-            width === 0 ? '' : 'transition-width duration-1000 ease-linear'
-          } ${negative ? 'bg-red-500/20' : 'bg-selection'}`}
-          style={{
-            width: `${width}%`,
-          }}
-        ></div>
+        className={`!absolute left-0 top-0 h-full flex-none rounded-icon ${
+          width === 0 ? '' : 'transition-width duration-1000 ease-linear'
+        } ${negative ? 'bg-red-500/20' : 'bg-selection'}`}
+        style={{
+          width: `${width}%`,
+        }}
+      ></div>
 
-        {!playing && currentTime <= 0 ? (
-          <input
-            type='number'
-            value={input}
-            placeholder={'mins'}
-            onKeyDown={(ev) => ev.key === 'Enter' && start()}
-            onChange={change}
-            className='w-[4em] !border-none bg-transparent text-center !shadow-none'
-          ></input>
-        ) : (
-          <pre className='my-0 mr-1 !h-fit'>{`${negative ? '-' : ''}${
-            hours > 0 ? hours + ':' : ''
-          }${hours > 0 ? String(minutes).padStart(2, '0') : minutes}:${String(
-            seconds
-          ).padStart(2, '0')}`}</pre>
-        )}
-        <Button
-          className='p-0.5'
-          onClick={togglePlaying}
-          src={playing ? 'pause' : 'play'}
-          title={'timer or stopwatch'}
-        />
-        {playing && (
-          <>
-            <Button onClick={() => addTime(5)}>+5</Button>
-            <Button onClick={() => addTime(-5)}>-5</Button>
-          </>
-        )}
-        {!playing && currentTime > 0 && (
-          <Button onClick={reset} src='rotate-cw' className='p-0.5' />
-        )}
-        <Button
-          onClick={() => {
-            if (!expanded) {
-              previousViewMode.current = getters.get('viewMode')
-              setters.set({ viewMode: 'now' })
-            } else {
-              setters.set({ viewMode: previousViewMode.current })
-            }
-          }}
-          src={expanded ? 'minimize-2' : 'maximize-2'}
-        />
-      </div>
-      {expanded && (
-        <div className='relative h-full w-full overflow-y-auto py-2 text-base child:max-w-xl child:w-full flex justify-center'>
-          <Day
-            dragContainer='timer'
-            startISO={DateTime.now().toISODate() as string}
-            endISO={toISO(DateTime.now())}
-            type='minutes'
-          />
-        </div>
+      {!playing && currentTime <= 0 ? (
+        <input
+          type='number'
+          value={input}
+          placeholder={'mins'}
+          onKeyDown={(ev) => ev.key === 'Enter' && start()}
+          onChange={change}
+          className='w-[4em] !border-none bg-transparent text-center !shadow-none'
+        ></input>
+      ) : (
+        <pre className='my-0 mr-1 !h-fit'>{`${negative ? '-' : ''}${
+          hours > 0 ? hours + ':' : ''
+        }${hours > 0 ? String(minutes).padStart(2, '0') : minutes}:${String(
+          seconds
+        ).padStart(2, '0')}`}</pre>
+      )}
+      <Button
+        className='p-0.5'
+        onClick={togglePlaying}
+        src={playing ? 'pause' : 'play'}
+        title={'timer or stopwatch'}
+      />
+      {playing && (
+        <>
+          <Button onClick={() => addTime(5)}>+5</Button>
+          <Button onClick={() => addTime(-5)}>-5</Button>
+        </>
+      )}
+      {!playing && currentTime > 0 && (
+        <Button onClick={reset} src='rotate-cw' className='p-0.5' />
       )}
     </div>
   )

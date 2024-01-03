@@ -25,42 +25,22 @@ function _Unscheduled() {
     )
   )
   const childWidth = useAppStore((state) =>
-    (state.viewMode === 'week' || state.viewMode === 'hour') &&
+    (state.settings.viewMode === 'week' ||
+      state.settings.viewMode === 'hour') &&
     state.childWidth > 1
       ? state.childWidth
       : 1
   )
 
-  const allHeadings = useAppStore((state) =>
-    tasks.flatMap(
-      (task) =>
-        formatHeadingTitle(
-          task.path,
-          state.settings.groupBy,
-          state.dailyNoteInfo,
-          task.page
-        )[0]
-    )
-  )
-
-  const collapsed = useAppStore((state) =>
-    allHeadings.map((heading) => state.collapsed[heading]).includes(false)
-  )
-
   return (
     <div className={`h-0 grow flex flex-col`}>
-      <div className='flex items-center space-x-1 group flex-none'>
-        <Button
-          className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
-          onClick={() => setters.patchCollapsed(allHeadings, !collapsed)}
-          src={collapsed ? 'chevron-right' : 'chevron-down'}
-        />
+      <div className='flex items-center space-x-1 group flex-none pl-indent'>
         <Droppable id='unscheduled-timespan' data={{ scheduled: '' }}>
           <div className='font-menu'>{'Unscheduled'}</div>
         </Droppable>
       </div>
       <div
-        className={`h-0 grow w-full mt-1 rounded-lg ${
+        className={`h-0 grow w-full mt-1 rounded-icon ${
           childWidth > 1
             ? `unscheduled child:h-full child:child:h-full ${
                 [

@@ -56,9 +56,7 @@ module.exports = {
       },
       colors: {
         primary: 'var(--background-primary)',
-        'primary-alt': 'var(--background-primary-alt)',
-        secondary: 'var(--background-secondary)',
-        'secondary-alt': 'var(--background-secondary-alt)',
+        code: 'var(--code-background)',
         error: 'var(--background-modifier-error)',
         border: 'var(--background-modifier-border)',
         hover: 'var(--background-modifier-hover)',
@@ -67,6 +65,7 @@ module.exports = {
         muted: 'var(--text-muted)',
         faint: 'var(--text-faint)',
         accent: 'var(--text-accent)',
+        divider: 'var(--divider-color)',
       },
       screens: {
         mobile: { raw: '(hover: none)' },

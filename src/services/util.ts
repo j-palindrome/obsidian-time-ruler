@@ -60,21 +60,21 @@ const NaNtoZero = (numberTest: number) =>
 
 export const getEndISO = ({ tasks, events, startISO, endISO }: BlockProps) => {
   invariant(startISO, endISO)
-  let startDate = DateTime.fromISO(startISO)
+  let startTime = DateTime.fromISO(startISO)
 
   for (let event of events) {
     const length = DateTime.fromISO(event.endISO).diff(
       DateTime.fromISO(event.startISO)
     )
-    startDate = startDate.plus(length)
+    startTime = startTime.plus(length)
   }
   for (let task of tasks) {
     if (!task.length) continue
     const length = Duration.fromDurationLike(task.length)
-    startDate = startDate.plus(length)
+    startTime = startTime.plus(length)
   }
 
-  return _.max([toISO(startDate), endISO]) as string
+  return _.max([toISO(startTime), endISO]) as string
 }
 
 export const getTodayNote = () => {
@@ -92,6 +92,7 @@ export const parseFolderFromPath = (path: string) => {
 export const parseFileFromPath = (path: string) => {
   if (path.includes('>')) path = path.slice(0, path.indexOf('>'))
   if (path.includes('#')) path = path.slice(0, path.indexOf('#'))
+  if (path.includes(':')) path = path.slice(0, path.indexOf(':'))
   return path
 }
 
@@ -260,7 +261,9 @@ export const useChildWidth = ({
     if (newChildWidth !== childWidthRef.current)
       setters.set({ childWidth: newChildWidth })
   }
-  const [viewMode, viewModeRef] = useAppStoreRef((state) => state.viewMode)
+  const [viewMode, viewModeRef] = useAppStoreRef(
+    (state) => state.settings.viewMode
+  )
   const childWidthToClass = [
     '',
     'child:w-full',
@@ -481,11 +484,11 @@ export const getParentScheduled = (
   task: TaskProps,
   tasks: AppState['tasks']
 ) => {
-  if (task.scheduled) return task.scheduled
+  if (parseTaskDate(task)) return parseTaskDate(task)
   let parent = task.parent ?? task.queryParent
   while (parent) {
     task = tasks[parent]
-    if (task.scheduled) return task.scheduled
+    if (parseTaskDate(task)) return parseTaskDate(task)
     parent = task.parent ?? task.queryParent
   }
   return undefined

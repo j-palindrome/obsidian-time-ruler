@@ -86,13 +86,13 @@ export default function Group({
               }}
               id={`${dragContainer}::${path}::droppable`}
             >
-              <div className='h-2 w-full rounded-lg'></div>
+              <div className='h-2 w-full rounded-icon'></div>
             </Droppable>
           ) : (
-            <div className='h-2 w-full rounded-lg'></div>
+            <div className='h-2 w-full rounded-icon'></div>
           )}
           <div
-            className={`selectable flex rounded-lg font-menu text-xs group w-full`}
+            className={`selectable flex rounded-icon font-menu text-xs group w-full`}
           >
             <div className='w-indent flex-none px-1'>
               <Button
@@ -116,14 +116,14 @@ export default function Group({
                 {heading.slice(0, 40) + (heading.length > 40 ? '...' : '')}
               </div>
               <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
-              <div className='w-fit flex-none text-right pr-2'>
-                {hidePaths.includes(container)
-                  ? ''
-                  : (
-                      container.slice(0, 25) +
-                      (container.length > 25 ? '...' : '')
-                    ).replace('.md', '')}
-              </div>
+              {container && !hidePaths.includes(container) && (
+                <div className='w-fit flex-none text-right pr-2'>
+                  {(
+                    container.slice(0, 25) +
+                    (container.length > 25 ? '...' : '')
+                  ).replace('.md', '')}
+                </div>
+              )}
             </div>
           </div>
         </>

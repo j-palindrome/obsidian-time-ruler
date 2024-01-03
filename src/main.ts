@@ -40,6 +40,8 @@ type TimeRulerSettings = {
   addTaskToEnd: boolean
   extendBlocks: boolean
   hideTimes: boolean
+  borders: boolean
+  viewMode: 'hour' | 'day' | 'week'
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -62,6 +64,8 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   addTaskToEnd: false,
   extendBlocks: false,
   hideTimes: false,
+  borders: true,
+  viewMode: 'day',
 }
 
 export default class TimeRulerPlugin extends Plugin {

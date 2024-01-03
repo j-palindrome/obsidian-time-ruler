@@ -14,11 +14,8 @@
 #time-ruler :is(.left-0) {
   left: 0px;
 }
-#time-ruler :is(.right-1) {
-  right: 0.25rem;
-}
-#time-ruler :is(.right-10) {
-  right: 2.5rem;
+#time-ruler :is(.right-12) {
+  right: 3rem;
 }
 #time-ruler :is(.top-0) {
   top: 0px;
@@ -97,26 +94,17 @@
 #time-ruler :is(.h-0) {
   height: 0px;
 }
-#time-ruler :is(.h-1) {
-  height: 0.25rem;
-}
 #time-ruler :is(.h-10) {
   height: 2.5rem;
 }
-#time-ruler :is(.h-14) {
-  height: 3.5rem;
+#time-ruler :is(.h-12) {
+  height: 3rem;
 }
 #time-ruler :is(.h-2) {
   height: 0.5rem;
 }
 #time-ruler :is(.h-4) {
   height: 1rem;
-}
-#time-ruler :is(.h-5) {
-  height: 1.25rem;
-}
-#time-ruler :is(.h-6) {
-  height: 1.5rem;
 }
 #time-ruler :is(.h-\[16px\]) {
   height: 16px;
@@ -136,9 +124,6 @@
 }
 #time-ruler :is(.h-line) {
   height: calc(var(--line-height-normal) * 1em);
-}
-#time-ruler :is(.\!max-h-line) {
-  max-height: var(--font-text-size) !important;
 }
 #time-ruler :is(.max-h-\[50\%\]) {
   max-height: 50%;
@@ -328,9 +313,6 @@
 #time-ruler :is(.\!rounded-full) {
   border-radius: 9999px !important;
 }
-#time-ruler :is(.rounded) {
-  border-radius: 0.25rem;
-}
 #time-ruler :is(.rounded-checkbox) {
   border-radius: var(--checkbox-radius);
 }
@@ -340,17 +322,14 @@
 #time-ruler :is(.rounded-icon) {
   border-radius: var(--clickable-icon-radius);
 }
-#time-ruler :is(.rounded-lg) {
-  border-radius: 0.5rem;
-}
 #time-ruler :is(.border) {
   border-width: 1px;
 }
 #time-ruler :is(.border-0) {
   border-width: 0px;
 }
-#time-ruler :is(.border-b) {
-  border-bottom-width: 1px;
+#time-ruler :is(.border-\[1px\]) {
+  border-width: 1px;
 }
 #time-ruler :is(.border-l) {
   border-left-width: 1px;
@@ -367,12 +346,11 @@
 #time-ruler :is(.\!border-none) {
   border-style: none !important;
 }
+#time-ruler :is(.border-divider) {
+  border-color: var(--divider-color);
+}
 #time-ruler :is(.border-faint) {
   border-color: var(--text-faint);
-}
-#time-ruler :is(.border-red-800) {
-  --tw-border-opacity: 1;
-  border-color: rgb(153 27 27 / var(--tw-border-opacity));
 }
 #time-ruler :is(.border-l-accent) {
   border-left-color: var(--text-accent);
@@ -389,21 +367,17 @@
 #time-ruler :is(.bg-accent) {
   background-color: var(--text-accent);
 }
+#time-ruler :is(.bg-code) {
+  background-color: var(--code-background);
+}
 #time-ruler :is(.bg-faint) {
   background-color: var(--text-faint);
 }
 #time-ruler :is(.bg-primary) {
   background-color: var(--background-primary);
 }
-#time-ruler :is(.bg-primary-alt) {
-  background-color: var(--background-primary-alt);
-}
 #time-ruler :is(.bg-red-500\/20) {
   background-color: rgb(239 68 68 / 0.2);
-}
-#time-ruler :is(.bg-red-800) {
-  --tw-bg-opacity: 1;
-  background-color: rgb(153 27 27 / var(--tw-bg-opacity));
 }
 #time-ruler :is(.bg-red-800\/50) {
   background-color: rgb(153 27 27 / 0.5);
@@ -411,9 +385,6 @@
 #time-ruler :is(.bg-red-900) {
   --tw-bg-opacity: 1;
   background-color: rgb(127 29 29 / var(--tw-bg-opacity));
-}
-#time-ruler :is(.bg-secondary-alt) {
-  background-color: var(--background-secondary-alt);
 }
 #time-ruler :is(.bg-selection) {
   background-color: var(--text-selection);
@@ -432,9 +403,6 @@
 }
 #time-ruler :is(.p-2) {
   padding: 0.5rem;
-}
-#time-ruler :is(.p-4) {
-  padding: 1rem;
 }
 #time-ruler :is(.p-8) {
   padding: 2rem;
@@ -480,14 +448,14 @@
 #time-ruler :is(.pl-8) {
   padding-left: 2rem;
 }
-#time-ruler :is(.pl-9) {
-  padding-left: 2.25rem;
-}
 #time-ruler :is(.pl-\[8px\]) {
   padding-left: 8px;
 }
 #time-ruler :is(.pl-indent) {
   padding-left: 28px;
+}
+#time-ruler :is(.pr-1) {
+  padding-right: 0.25rem;
 }
 #time-ruler :is(.pr-2) {
   padding-right: 0.5rem;
@@ -689,7 +657,7 @@
   line-height: 1.25rem;
 }
 .tr-menu > div {
-  border-radius: 0.5rem;
+  border-radius: var(--clickable-icon-radius);
   border-width: 1px;
   border-style: solid;
   border-color: var(--text-faint);
@@ -917,18 +885,26 @@ div.unscheduled div.time-ruler-group {
 #time-ruler :is(.child\:snap-start > *) {
   scroll-snap-align: start;
 }
-#time-ruler :is(.child\:rounded-lg > *) {
-  border-radius: 0.5rem;
+#time-ruler :is(.child\:whitespace-nowrap > *) {
+  white-space: nowrap;
 }
-#time-ruler :is(.child\:bg-primary-alt > *) {
-  background-color: var(--background-primary-alt);
+#time-ruler :is(.child\:rounded-icon > *) {
+  border-radius: var(--clickable-icon-radius);
+}
+#time-ruler :is(.child\:border-\[1px\] > *) {
+  border-width: 1px;
+}
+#time-ruler :is(.child\:border-solid > *) {
+  border-style: solid;
+}
+#time-ruler :is(.child\:border-divider > *) {
+  border-color: var(--divider-color);
+}
+#time-ruler :is(.child\:bg-primary > *) {
+  background-color: var(--background-primary);
 }
 #time-ruler :is(.child\:p-1 > *) {
   padding: 0.25rem;
-}
-#time-ruler :is(.child\:px-1 > *) {
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
 }
 #time-ruler :is(.child\:pb-0 > *) {
   padding-bottom: 0px;
@@ -936,7 +912,4 @@ div.unscheduled div.time-ruler-group {
 #time-ruler :is(.child\:invert > *) {
   --tw-invert: invert(100%);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
-}
-#time-ruler :is(.ancestor\:\!bg-transparent *) {
-  background-color: transparent !important;
 }

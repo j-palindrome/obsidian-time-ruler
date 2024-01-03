@@ -24,7 +24,7 @@ export default function Droppable({
           setNodeRef(node)
         }
       : setNodeRef,
-    className: `${children.props.className} rounded-lg ${
+    className: `${children.props.className} rounded-icon ${
       isOver ? '!bg-selection' : ''
     }`,
   })

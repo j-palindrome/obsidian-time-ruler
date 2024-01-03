@@ -56,10 +56,7 @@ export const onDragEnd = async (
             if (!confirm(`Delete ${children.length} tasks and children?`)) break
           }
 
-          for (let id of children.reverse()) {
-            await getters.getObsidianAPI().deleteTask(id)
-          }
-
+          await getters.getObsidianAPI().deleteTasks(children.reverse())
           break
       }
     } else {

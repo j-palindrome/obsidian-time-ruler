@@ -27,7 +27,7 @@ export type AppState = {
   findingTask: string | null
   inScroll: number
   searchStatus: boolean
-  viewMode: 'now' | 'hour' | 'day' | 'week'
+
   dailyNoteInfo: {
     format: string
     folder: string
@@ -44,11 +44,19 @@ export type AppState = {
     | 'showCompleted'
     | 'extendBlocks'
     | 'hideTimes'
+    | 'borders'
+    | 'viewMode'
   >
   collapsed: Record<string, boolean>
   showingPastDates: boolean
   searchWithinWeeks: [number, number]
   childWidth: number
+  timer: {
+    negative: boolean
+    maxSeconds: number | null
+    startISO?: string
+    playing: boolean
+  }
 }
 
 export const useAppStore = createWithEqualityFn<AppState>(() => ({
@@ -76,11 +84,18 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     showCompleted: false,
     extendBlocks: false,
     hideTimes: false,
-    separatorHour: 0,
+    borders: false,
+    viewMode: 'day',
   },
   showingPastDates: false,
   searchWithinWeeks: [-1, 1],
   childWidth: 1,
+  timer: {
+    negative: false,
+    maxSeconds: null,
+    startISO: undefined,
+    playing: false,
+  },
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
@@ -120,6 +135,11 @@ export const setters = {
       parseFileFromPath(heading),
       parseFileFromPath(beforeHeading)
     )
+  },
+  patchTimer: (timer: Partial<AppState['timer']>) => {
+    modify((state) => {
+      state.timer = { ...state.timer, ...timer }
+    })
   },
 }
 

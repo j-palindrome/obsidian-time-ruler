@@ -81,7 +81,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   )
 
   return (
-    <div className='flex relative z-30'>
+    <div className='flex relative z-30 pl-2'>
       {draggingTask && (
         <Droppable id={`delete-task`} data={{ type: 'delete' }}>
           <Button
@@ -104,7 +104,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
       {newTask && (
         <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-8 space-y-2'>
           <div
-            className='flex h-full max-h-[50vh] w-full flex-col space-y-1 overflow-y-auto overflow-x-hidden rounded-lg border border-solid border-faint bg-primary p-2 max-w-2xl'
+            className='flex h-full max-h-[50vh] w-full flex-col space-y-1 overflow-y-auto overflow-x-hidden rounded-icon border border-solid border-faint bg-code p-2 max-w-2xl'
             ref={frame}
           >
             <div className='pl-2 font-menu text-lg font-bold text-center'>
@@ -113,7 +113,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
             <div className='flex'>
               <input
                 ref={inputFrame}
-                className='w-full rounded-lg border border-solid border-faint bg-transparent font-menu font-light backdrop-blur !text-base px-1 py-2'
+                className='w-full rounded-icon border border-solid border-faint bg-transparent font-menu font-light backdrop-blur !text-base px-1 py-2'
                 value={newTask.originalTitle ?? ''}
                 placeholder='title...'
                 onChange={(ev) =>
@@ -139,7 +139,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
             </div>
             <input
               placeholder='search files...'
-              className='w-full rounded-lg border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
+              className='w-full rounded-icon border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
               value={search}
               onChange={(ev) => setSearch(ev.target.value)}
               onKeyDown={(ev) => {
@@ -177,7 +177,7 @@ function NewTaskHeading({ path }: { path: string }) {
         getters.getObsidianAPI().createNewTask(newTask, path, dailyNoteInfo)
         setTimeout(() => setters.set({ newTask: false }))
       }}
-      className={`flex items-center w-full selectable cursor-pointer rounded-lg px-2 hover:underline ${
+      className={`flex items-center w-full selectable cursor-pointer rounded-icon px-2 hover:underline ${
         path.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
       }`}
     >

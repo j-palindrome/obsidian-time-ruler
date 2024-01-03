@@ -29,7 +29,7 @@ export default function Scroller({
     <div className='flex items-center'>
       <Button src='chevron-left' onClick={() => scrollTo(-1)} />
       <div
-        className='h-[24px] w-fit px-1 snap-y snap-mandatory font-menu rounded-lg overflow-y-auto no-scrollbar'
+        className='h-[24px] w-fit px-1 snap-y snap-mandatory font-menu rounded-icon overflow-y-auto no-scrollbar'
         ref={frame}
         onScroll={scrolling}
       >

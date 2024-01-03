@@ -16,20 +16,15 @@ export default function Minutes({
   chopEnd,
   chopStart,
   dragContainer,
-  noExtension,
-  nested,
 }: {
   startISO: string
   endISO: string
   chopEnd?: boolean
   chopStart?: boolean
   dragContainer: string
-  noExtension?: boolean
-  nested?: boolean
 }) {
-  const showingPastDates = useAppStore((state) => state.showingPastDates)
   const hideTimes = useAppStore((state) => state.settings.hideTimes)
-  const calendarMode = useAppStore((state) => state.viewMode === 'week')
+
   const dayEnd = useAppStore((state) => state.settings.dayStartEnd[1])
 
   if (hideTimes) return <></>
@@ -37,31 +32,24 @@ export default function Minutes({
   const times: DateTime[] = []
   const givenStart = DateTime.fromISO(startISO)
   const givenEnd = DateTime.fromISO(endISO)
-  const type: TimeSpanTypes = calendarMode ? 'hours' : 'minutes'
+  const type: TimeSpanTypes = useAppStore((state) =>
+    state.settings.viewMode === 'week' ? 'hours' : 'minutes'
+  )
 
   let start = roundMinutes(givenStart)
   let end = roundMinutes(givenEnd)
 
   let dayEndTime = start.set({ hour: dayEnd })
-  if (dayEnd < 12 && end.get('hour') >= dayEnd)
+  if (dayEnd < 12 && start.get('hour') >= dayEnd)
     dayEndTime = dayEndTime.plus({ days: 1 })
 
   const now = roundMinutes(DateTime.now())
-  if (showingPastDates) {
-    start = DateTime.min(now, start)
-    end = DateTime.min(now, end)
-  } else {
-    start = DateTime.max(now, start)
-    end = DateTime.max(now, end)
-  }
   end = DateTime.min(end, dayEndTime)
 
   const modifier: { [K in TimeSpanTypes]: Parameters<DateTime['plus']>[0] } = {
     minutes: { minutes: 15 },
     hours: { hours: 1 },
   }
-
-  const nowISO = toISO(now)
 
   if (chopStart && !(start <= now && end > now))
     start = start.plus(modifier[type])
@@ -82,13 +70,9 @@ export default function Minutes({
 
   return (
     <div className={`min-h-[4px]`}>
-      {times.map((time, i) =>
-        startISOs[i] === nowISO ? (
-          <NowTime key={startISOs[i]} dragContainer={dragContainer} />
-        ) : (
-          <Time key={startISOs[i]} {...{ type, time, dragContainer }} />
-        )
-      )}
+      {times.map((time, i) => (
+        <Time key={startISOs[i]} {...{ type, time, dragContainer }} />
+      ))}
     </div>
   )
 }
@@ -157,7 +141,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
       key={iso}
     >
       <div
-        className={`text-sm absolute right-10 h-4 items-center bg-primary rounded-lg px-2 text-accent !z-50 justify-center ${
+        className={`flex text-sm absolute right-12 h-4 items-center bg-selection rounded-icon px-2 text-accent !z-50 justify-center ${
           isOver ? 'block' : 'hidden'
         }`}
       >
@@ -173,7 +157,7 @@ function Time({ time, type, dragContainer }: TimeProps) {
         }}
       >
         <hr
-          className={`hover:border-accent border-faint my-0 border-0 border-t ${
+          className={`my-0 border-0 border-t hover:border-accent border-faint ${
             type === 'hours'
               ? hours % 6 === 0
                 ? 'w-6'
@@ -198,39 +182,6 @@ function Time({ time, type, dragContainer }: TimeProps) {
             : ''}
         </div>
       </div>
-    </div>
-  )
-}
-
-export function NowTime({ dragContainer }: { dragContainer: string }) {
-  const startISO = toISO(roundMinutes(DateTime.now()))
-  const { isOver, setNodeRef: setDropNodeRef } = useDroppable({
-    id: `${dragContainer}::now::drop`,
-    data: { scheduled: startISO } as DropData,
-  })
-
-  const dragData: DragData = {
-    dragType: 'now',
-  }
-
-  const nowTime = roundMinutes(DateTime.now())
-  const hourDisplay = useHourDisplay(nowTime.hour)
-
-  return (
-    <div
-      className={`flex w-full items-center rounded-lg pl-9 pr-2 hover:bg-selection transition-colors duration-300 ${
-        isOver ? 'bg-selection' : ''
-      }`}
-      ref={(node) => {
-        setDropNodeRef(node)
-      }}
-    >
-      <div className='h-1 w-1 rounded-full bg-red-800'></div>
-      <div className='w-full border-0 border-b border-solid border-red-800'></div>
-
-      <div className='text-xs font-menu ml-2'>{`${hourDisplay}:${String(
-        nowTime.minute
-      ).padStart(2, '0')}`}</div>
     </div>
   )
 }

@@ -1,22 +1,34 @@
 # Roadmap
 
-## Planned
+## Developing
+- Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - Fix [wrong date bug](https://github.com/joshuatazrein/obsidian-time-ruler/issues/85)
+
+## Planned
 - Support [Task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5)
 - Support [aliases](https://github.com/joshuatazrein/obsidian-time-ruler/issues/76)
 - Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
 - Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
-- Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - Option to support [Tasks API on click](https://github.com/joshuatazrein/obsidian-time-ruler/issues/74)
 
 ## Considering
 - [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
 - Add more flexibility for [Tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/46#issuecomment-1708749520) users
 
-
 # Changelog
 
+## 2.1.0 (1/1/2023)
+
+**Added:**
+- **Now** view: timer has been moved to its own pane, which collects all incomplete tasks scheduled for past times. Now is a focused view for current tasks.
+
+**Fixed:**
+- Bug where events crossing date boundaries render as 0 length
+- Smoothed out deleting multiple tasks at once
+- Improved look of dragged tasks
+
 ## 2.0.3 (12/25/2023)
+
 **Fixed:**
 - Quick fix for menu hiding too quickly
 

@@ -18,7 +18,7 @@
   }
 
   .tr-menu > div {
-    @apply rounded-lg border border-solid border-faint bg-primary p-2;
+    @apply rounded-icon border border-solid border-faint bg-primary p-2;
   }
 
   .tr-menu > div > div {

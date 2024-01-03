@@ -13,6 +13,8 @@ import {
   nestedScheduled,
   parseHeadingFromPath,
   parseTaskDate,
+  roundMinutes,
+  toISO,
 } from '../services/util'
 import Block, { BlockProps, UNGROUPED } from './Block'
 import Button from './Button'
@@ -21,63 +23,73 @@ import Hours from './Hours'
 import { TimeSpanTypes } from './Minutes'
 import Task from './Task'
 import { TaskPriorities } from '../types/enums'
+import { Timer } from './Timer'
 
 export default function Day({
   startISO,
   endISO,
   type,
   dragContainer,
+  isNow,
 }: {
   startISO: string
   endISO: string
   type: TimeSpanTypes
   dragContainer: string
+  isNow?: true
 }) {
   const showingPastDates = useAppStore((state) => state.showingPastDates)
-  const now = DateTime.now().toISO() as string
+  const now = toISO(roundMinutes(DateTime.now()))
 
   const startDate = startISO.slice(0, 10)
-  const isToday = startDate === getToday()
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
+  const id = isNow ? 'now' : startDate
   /**
    * find the nearest scheduled date in parents (include ALL tasks which will be in this block). Day -> Hours -> Block all take a single flat list of scheduled tasks, which they use to calculate total length of the block. Blocks group them by parent -> filepath/heading, calculating queries and unscheduled parents.
    */
-  const [blocksByTime, deadlines] = useAppStore((state) => {
-    const blocksByTime: Record<string, BlockProps> = {
-      [startDate]: {
-        startISO: startDate,
-        endISO: startDate,
-        blocks: [],
-        tasks: [],
-        events: [],
-      },
+  const [allDay, blocksByTime, deadlines] = useAppStore((state) => {
+    const allDay: BlockProps = {
+      startISO: startDate,
+      endISO: startDate,
+      blocks: [],
+      tasks: [],
+      events: [],
     }
+    const blocksByTime: Record<string, BlockProps> = {}
     const deadlines: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
-      const isShown =
-        (task.due || (task.scheduled && !task.queryParent)) &&
-        (showCompleted || (showingPastDates ? task.completed : !task.completed))
-      if (!isShown) return
-
       const scheduled = parseTaskDate(task)
+
+      const isShown =
+        (task.due || (scheduled && !task.queryParent)) &&
+        (showCompleted || task.completed === showingPastDates)
+      if (!isShown) return
 
       const scheduledForToday = !scheduled
         ? false
+        : isNow
+        ? isDateISO(scheduled)
+          ? showingPastDates
+            ? scheduled > startDate
+            : scheduled < startDate
+          : showingPastDates
+          ? scheduled > startISO
+          : scheduled < endISO
         : isDateISO(scheduled)
-        ? isToday
-          ? scheduled <= startDate
-          : scheduled === startDate
+        ? scheduled === startDate
         : scheduled >= startISO && scheduled < endISO
 
       const dueToday = !task.due ? false : task.due >= startDate
 
       if (dueToday) {
         deadlines.push(task)
-      } else if (scheduledForToday) {
+      }
+
+      if (scheduledForToday) {
         invariant(scheduled)
-        if (isDateISO(scheduled) || scheduled < startISO) {
-          blocksByTime[startDate].tasks.push(task)
+        if (isDateISO(scheduled)) {
+          allDay.tasks.push(task)
         } else {
           if (blocksByTime[scheduled]) blocksByTime[scheduled].tasks.push(task)
           else
@@ -99,7 +111,7 @@ export default function Day({
         event.startISO < endISO &&
         (showingPastDates ? event.startISO <= now : event.endISO >= now)
     )) {
-      if (isDateISO(event.startISO)) blocksByTime[startDate].events.push(event)
+      if (isDateISO(event.startISO)) allDay.events.push(event)
       else if (blocksByTime[event.startISO])
         blocksByTime[event.startISO].events.push(event)
       else
@@ -112,39 +124,33 @@ export default function Day({
         }
     }
 
-    return [blocksByTime, deadlines]
+    return [allDay, blocksByTime, deadlines]
   }, shallow)
 
   const blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
 
-  const viewMode = useAppStore((state) => state.viewMode)
+  const viewMode = useAppStore((state) => state.settings.viewMode)
   const calendarMode = viewMode === 'week'
 
-  let title =
-    dragContainer === 'timer'
-      ? 'Now'
-      : DateTime.fromISO(startISO || endISO).toFormat(
-          calendarMode ? 'EEE d' : 'EEE, MMM d'
-        )
+  let title = isNow
+    ? 'Now'
+    : DateTime.fromISO(startISO || endISO).toFormat(
+        calendarMode ? 'EEE d' : 'EEE, MMM d'
+      )
 
-  const [expanded, setExpanded] = useState(
-    dragContainer === 'timer' && !calendarMode ? false : true
-  )
-  useEffect(() => {
-    if (calendarMode) setExpanded(true)
-  }, [calendarMode])
+  const collapsed = useAppStore((state) => state.collapsed[id])
 
   const foundTaskInAllDay = useAppStore((state) => {
     return state.findingTask &&
-      blocks[0].tasks.find((task) => task.id === state.findingTask)
+      allDay.tasks.find((task) => task.id === state.findingTask)
       ? state.findingTask
       : null
   })
 
   const expandIfFound = () => {
-    if (foundTaskInAllDay && !expanded) {
-      setExpanded(true)
-      const foundTask = blocks[0].tasks.find(
+    if (foundTaskInAllDay && collapsed) {
+      setters.patchCollapsed([id], false)
+      const foundTask = allDay.tasks.find(
         (task) => task.id === foundTaskInAllDay
       ) as TaskProps
       if (!foundTask) return
@@ -156,52 +162,35 @@ export default function Day({
 
   const allDayFrame = useRef<HTMLDivElement>(null)
   const [allDayHeight, setAllDayHeight] = useState<string | undefined>()
-  useLayoutEffect(() => {
-    const resizeHeight = () => {
-      if (!expanded || viewMode !== 'day') return
-      const frame = allDayFrame.current
-      if (!frame) return
-
-      const parentFrame = frame.parentElement
-      invariant(parentFrame)
-      const parentHeight = parentFrame.getBoundingClientRect().height
-      const frameHeight = frame.getBoundingClientRect().height
-      if (frameHeight === parentHeight) {
-        setTimeout(resizeHeight)
-        return
-      }
-      if (frameHeight > parentHeight / 2 && frameHeight !== parentHeight) {
-        setAllDayHeight('50%')
-      }
-    }
-    resizeHeight()
-  }, [calendarMode])
 
   const wide = useAppStore((state) => state.childWidth > 1)
 
   return (
     <div className={`flex flex-col overflow-hidden relative`}>
-      <div className='flex items-center group relative z-10 pl-indent'>
+      <div className='flex items-center group relative z-10'>
         <Droppable
-          data={{ scheduled: startDate }}
+          data={{ scheduled: isNow ? now : startDate }}
           id={dragContainer + '::' + startISO + '::timeline'}
         >
           <div className='flex items-center grow'>
+            <div className='flex-none w-indent pr-1'>
+              <Button
+                className='flex-none w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300'
+                src={collapsed ? 'chevron-right' : 'chevron-down'}
+                onClick={() => {
+                  setters.patchCollapsed([id], !collapsed)
+                  return false
+                }}
+              />
+            </div>
+
             <div className='font-menu w-full'>{title || ''}</div>
-            <Button
-              className='w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
-              src={expanded ? 'chevron-down' : 'chevron-left'}
-              onClick={() => {
-                setExpanded(!expanded)
-                return false
-              }}
-            />
           </div>
         </Droppable>
       </div>
-
+      {isNow && <Timer />}
       <div
-        className={`rounded-lg ${
+        className={`rounded-icon ${
           {
             hour: wide
               ? 'h-0 grow flex space-x-2 child:h-full child:flex-1 child:w-full justify-center child:max-w-xl'
@@ -212,10 +201,9 @@ export default function Day({
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        {deadlines.length + blocks[0].tasks.length + blocks[0].events.length >
-          0 && (
+        {deadlines.length + allDay.tasks.length + allDay.events.length > 0 && (
           <div
-            className={`relative w-full child:mb-1 overflow-x-hidden rounded-lg mt-1 ${
+            className={`relative w-full child:mb-1 overflow-x-hidden rounded-icon mt-1 ${
               {
                 hour: wide
                   ? '!h-full'
@@ -223,7 +211,7 @@ export default function Day({
                 day: 'h-fit',
                 week: 'h-fit',
               }[viewMode]
-            } ${!expanded ? 'hidden' : 'block'}`}
+            } ${collapsed ? 'hidden' : 'block'}`}
             style={{
               height: viewMode === 'hour' ? allDayHeight : '',
             }}
@@ -231,7 +219,7 @@ export default function Day({
             ref={allDayFrame}
           >
             {deadlines.length > 0 && (
-              <div className='rounded-lg bg-secondary-alt'>
+              <div className='rounded-icon bg-code'>
                 {_.sortBy(deadlines, 'due', 'scheduled').map((task) => (
                   <Task
                     key={task.id}
@@ -243,7 +231,7 @@ export default function Day({
                 ))}
               </div>
             )}
-            {blocks[0].events.map((event) => (
+            {allDay.events.map((event) => (
               <Block
                 type='event'
                 events={[event]}
@@ -256,11 +244,11 @@ export default function Day({
                 blocks={[]}
               />
             ))}
-            {blocks[0].tasks.length > 0 && (
+            {allDay.tasks.length > 0 && (
               <Block
                 type='event'
                 events={[]}
-                tasks={blocks[0].tasks}
+                tasks={allDay.tasks}
                 startISO={startDate}
                 endISO={startDate}
                 dragContainer={dragContainer}
@@ -271,7 +259,7 @@ export default function Day({
         )}
 
         <div
-          className={`overflow-x-hidden rounded-lg mt-1 ${
+          className={`overflow-x-hidden rounded-icon mt-1 ${
             {
               hour: 'h-0 grow overflow-y-auto',
               day: 'h-fit',
@@ -285,7 +273,7 @@ export default function Day({
               startISO,
               endISO,
               type,
-              blocks: blocks.slice(1),
+              blocks,
               dragContainer,
             }}
           />

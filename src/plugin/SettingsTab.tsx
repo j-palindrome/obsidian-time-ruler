@@ -123,6 +123,17 @@ export default class SettingsTab extends PluginSettingTab {
       })
 
     new Setting(containerEl)
+      .setName('Borders')
+      .setDesc('Toggle borders around days.')
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.borders)
+        toggle.onChange((value) => {
+          this.plugin.settings.borders = value
+          this.plugin.saveSettings()
+        })
+      })
+
+    new Setting(containerEl)
       .setName('24 Hour Format')
       .setDesc(
         'Toggle between AM/PM hours and 24-hour format in the Time Ruler.'

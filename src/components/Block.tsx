@@ -171,7 +171,7 @@ export default function Block({
       : DateTime.fromISO(date).toFormat(twentyFourHourFormat ? 'T' : 't')
   }
 
-  const calendarMode = useAppStore((state) => state.viewMode === 'week')
+  const hideTimes = useAppStore((state) => state.settings.hideTimes)
   const draggable = tasks.length > 0
 
   const onlyPath: string | undefined =
@@ -202,12 +202,8 @@ export default function Block({
     <div
       id={id}
       data-role='block'
-      className={`relative w-full rounded-lg ${
-        dragging
-          ? 'opacity-50 ancestor:!bg-transparent'
-          : ['event', 'unscheduled'].includes(type)
-          ? 'bg-secondary-alt'
-          : ''
+      className={`relative w-full rounded-icon ${
+        ['event', 'unscheduled'].includes(type) ? 'bg-code' : ''
       } `}
       ref={draggable ? setNodeRef : undefined}
     >
@@ -219,7 +215,7 @@ export default function Block({
           }`}
         >
           <div
-            className={`selectable flex rounded-lg font-menu text-xs group w-full`}
+            className={`selectable flex rounded-icon font-menu text-xs group w-full py-0.5`}
           >
             <div className='w-indent flex-none px-1'>
               <Button
@@ -263,7 +259,7 @@ export default function Block({
                     {formatStart(startISO)}
                   </span>
                 )}
-                {calendarMode &&
+                {hideTimes &&
                   startISO &&
                   endISO &&
                   !isDateISO(startISO) &&
@@ -302,7 +298,6 @@ export default function Block({
         {firstStartISO && firstEndISO && firstStartISO < firstEndISO && (
           <div className='w-10 flex-none'>
             <Minutes
-              nested
               startISO={firstStartISO}
               endISO={firstEndISO}
               dragContainer={dragContainer}

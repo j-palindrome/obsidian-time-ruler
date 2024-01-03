@@ -48,12 +48,14 @@ export default class ObsidianAPI extends Component {
 
   constructor(
     settings: ObsidianAPI['settings'],
-    setSetting: ObsidianAPI['setSetting']
+    setSetting: ObsidianAPI['setSetting'],
+    app: App
   ) {
     super()
     dv = getAPI() as DataviewApi
     this.settings = settings
     this.setSetting = setSetting
+    this.app = app
   }
 
   getSetting = <T extends keyof TimeRulerPlugin['settings']>(setting: T) =>
@@ -65,7 +67,7 @@ export default class ObsidianAPI extends Component {
     sounds.pop.play()
   }
 
-  getExcludePaths() {
+  reload() {
     const excludePaths = app.vault.getConfig('userIgnoreFilters') as
       | string[]
       | undefined
@@ -88,39 +90,38 @@ export default class ObsidianAPI extends Component {
     )
     let taskSearch: DataArray<STask>
     let pageSearch: DataArray<Record<string, Literal> & { file: PageMetadata }>
+
+    const testDateBounds = (task: Record<string, Literal>) => {
+      const taskDate = task.scheduled ?? task.due ?? task.completion
+      if (!DateTime.isDateTime(taskDate)) return true
+      const dateString = toISO(taskDate)
+      if (!dateString) return true
+
+      return dateString >= dateBounds[0] && dateString <= dateBounds[1]
+    }
     try {
       let basicSearch = dv.pages(
         `"${path.replace(/"/g, '\\"')}" and (${this.settings.search || '""'})`
       ) as DataArray<Record<string, Literal> & { file: PageMetadata }>
 
-      const testDateBounds = (task: Record<string, Literal>) => {
-        const taskDate = task.scheduled ?? task.due ?? task.completion
-        // don't want to show unscheduled completed tasks (overloading system)
-        if (!DateTime.isDateTime(taskDate))
-          return !task.completion || this.settings.showCompleted
-        const dateString = toISO(taskDate)
-        if (!dateString) return true
-
-        return (
-          (!completed || dateString >= dateBounds[0]) &&
-          dateString <= dateBounds[1]
-        )
-      }
-
       taskSearch = (basicSearch['file']['tasks'] as DataArray<STask>).where(
-        (task) =>
-          ((completed && task.completed) ||
-            ((!completed || !this.settings.showCompleted) &&
-              !task.completed)) &&
-          customStatuses.test(task.status) ===
-            this.settings.customStatus.include &&
-          !(this.excludePaths && this.excludePaths.test(task.path)) &&
-          !(
-            task.start &&
-            DateTime.isDateTime(task.start) &&
-            now < task.start
-          ) &&
-          testDateBounds(task)
+        (task) => {
+          const tested =
+            (this.settings.showCompleted ||
+              (completed && task.completed) ||
+              (!completed && !task.completed)) &&
+            customStatuses.test(task.status) ===
+              this.settings.customStatus.include &&
+            !(this.excludePaths && this.excludePaths.test(task.path)) &&
+            !(
+              task.start &&
+              DateTime.isDateTime(task.start) &&
+              now < task.start
+            ) &&
+            testDateBounds(task)
+
+          return tested
+        }
       )
 
       pageSearch = basicSearch.where((page) => {
@@ -203,7 +204,7 @@ export default class ObsidianAPI extends Component {
     return processedTasks
   }
 
-  loadTasks(path: string) {
+  loadTasks(path: string, completed: boolean) {
     if (!dv.index.initialized) {
       return
     }
@@ -215,20 +216,15 @@ export default class ObsidianAPI extends Component {
       DateTime.now().plus({ weeks: searchWithinWeeks[0] }).toISODate(),
       DateTime.now().plus({ weeks: searchWithinWeeks[1] }).toISODate(),
     ]
-    const tasks = this.searchTasks(path, dailyNoteInfo, false, dateBounds)
-    const completedTasks = this.searchTasks(
-      path,
-      dailyNoteInfo,
-      true,
-      dateBounds
-    )
-    this.updateTasks([...tasks, ...completedTasks], path, dailyNoteInfo)
+    const tasks = this.searchTasks(path, dailyNoteInfo, completed, dateBounds)
+    this.updateTasks([...tasks], path, dailyNoteInfo, completed)
   }
 
   updateTasks(
     processedTasks: TaskProps[],
     path: string,
-    dailyNoteInfo: AppState['dailyNoteInfo']
+    dailyNoteInfo: AppState['dailyNoteInfo'],
+    completed: boolean
   ) {
     const updatedTasks = {
       ...getters.get('tasks'),
@@ -263,8 +259,13 @@ export default class ObsidianAPI extends Component {
     const updatedIds = processedTasks.map((task) => task.id)
     const pathName = path.replace('.md', '')
 
-    for (let id of Object.keys(updatedTasks).filter(
-      (taskId) => taskId.startsWith(pathName) && !updatedIds.includes(taskId)
+    const showCompleted = getters.get('settings').showCompleted
+
+    for (let { id } of Object.values(updatedTasks).filter(
+      (task) =>
+        task.id.startsWith(pathName) &&
+        (showCompleted || task.completed === completed) &&
+        !updatedIds.includes(task.id)
     )) {
       // clear out all deleted tasks
       updated = true
@@ -490,31 +491,42 @@ export default class ObsidianAPI extends Component {
     else return undefined
   }
 
-  async deleteTask(id: string) {
-    const task = getters.getTask(id)
-    const file = await this.getFile(task.path)
-
-    if (!file) return
-    const fileText = await app.vault.read(file)
-    const lines = fileText.split('\n')
-
-    lines.splice(
-      task.position.start.line,
-      task.position.end.line + 1 - task.position.start.line
+  async deleteTasks(ids: string[]) {
+    const tasks = getters.get('tasks')
+    const deletedTaskGroups = ids.map((id) => tasks[id])
+    const files = _.groupBy(deletedTaskGroups, (task) =>
+      parseFileFromPath(task.path)
     )
+    const updatedTasks = {}
 
-    if (task.query) {
-      const updatedTasks = {}
-      for (let queriedTask of _.filter(
-        getters.get('tasks'),
-        (queriedTask) => queriedTask.queryParent === task.id
+    for (let [filePath, deletedTasks] of _.entries(files)) {
+      const file = await this.getFile(filePath)
+      invariant(file)
+      const fileText = await this.app.vault.read(file)
+      const lines = fileText.split('\n')
+      for (let task of _.sortBy(
+        deletedTasks,
+        (task) => task.position.start.line * -1
       )) {
-        updatedTasks[queriedTask.id] = _.omit(queriedTask, 'queryParent')
+        lines.splice(
+          task.position.start.line,
+          task.position.end.line + 1 - task.position.start.line
+        )
+
+        if (task.query) {
+          for (let queriedTask of _.filter(
+            getters.get('tasks'),
+            (queriedTask) => queriedTask.queryParent === task.id
+          )) {
+            updatedTasks[queriedTask.id] = _.omit(queriedTask, 'queryParent')
+          }
+        }
       }
-      setters.set(updatedTasks)
+
+      await app.vault.modify(file, lines.join('\n'))
     }
 
-    await app.vault.modify(file, lines.join('\n'))
+    setters.set(updatedTasks)
   }
 
   async saveTask(task: TaskProps, newTask?: boolean) {
@@ -548,7 +560,7 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:metadata-change',
         (...args) => {
-          this.loadTasks(args[1].path)
+          this.loadTasks(args[1].path, getters.get('showingPastDates'))
         }
       )
     )

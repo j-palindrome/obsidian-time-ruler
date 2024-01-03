@@ -8,10 +8,14 @@ import { priorityNumberToKey } from '../types/enums'
 
 export default function Search() {
   const tasks = useAppStore((state) => state.tasks)
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
+  const showCompleted = useAppStore((state) => state.settings.showCompleted)
   const allTasks: [string[], TaskProps][] = useMemo(
     () =>
       _.sortBy(
-        _.values(tasks).filter((task) => !task.completed),
+        _.values(tasks).filter(
+          (task) => showCompleted || task.completed === showingPastDates
+        ),
         'id'
       ).map((task) => [
         [

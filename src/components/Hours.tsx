@@ -22,14 +22,13 @@ export default function Hours({
   noExtension?: boolean
 }) {
   const formattedBlocks: BlockProps[] = []
-
-  const dayStartEnd = useAppStore((state) => state.settings.dayStartEnd)
   const extendBlocks = useAppStore((state) => state.settings.extendBlocks)
 
   for (let i = 0; i < blocks.length; i++) {
     let nestedBlocks: BlockProps[] = []
     const thisBlock = blocks[i]
     const thisEndISO = getEndISO(thisBlock)
+
     while (blocks[i + 1] && (blocks[i + 1].startISO as string) < thisEndISO) {
       nestedBlocks.push(blocks[i + 1])
       i++
@@ -45,11 +44,8 @@ export default function Hours({
     })
   }
 
-  const hideTimes = useAppStore(
-    (state) => state.settings.hideTimes || state.viewMode === 'week'
-  )
+  const hideTimes = useAppStore((state) => state.settings.hideTimes)
 
-  const event = blocks[0]?.events?.[0]
   return (
     <div className={`pb-1 relative ${hideTimes ? 'space-y-1' : ''}`}>
       <Minutes
@@ -60,7 +56,6 @@ export default function Hours({
         chopStart={
           chopStart || startISO === (formattedBlocks[0]?.startISO ?? endISO)
         }
-        noExtension={noExtension}
       />
 
       {formattedBlocks.map(
@@ -91,7 +86,6 @@ export default function Hours({
               endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
               chopEnd
               chopStart={blockStartISO === blockEndISO}
-              noExtension={noExtension}
             />
           </Fragment>
         )

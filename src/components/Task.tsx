@@ -93,12 +93,12 @@ export default function Task({
 
   return (
     <div
-      className={`relative rounded-lg py-0.5 transition-colors duration-300 w-full`}
+      className={`relative rounded-icon py-0.5 transition-colors duration-300 w-full`}
       data-id={isLink ? '' : task.id}
       data-task={task.status === ' ' ? '' : task.status}
     >
       <div
-        className={`selectable group flex items-start rounded-lg pr-2 ${
+        className={`selectable group flex items-start rounded-icon pr-2 ${
           isLink ? 'font-menu text-xs' : 'font-sans'
         }`}
         ref={setNodeRef}
@@ -107,7 +107,7 @@ export default function Task({
           <Button
             onPointerDown={() => false}
             onClick={() => completeTask()}
-            className={`task-list-item-checkbox selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint p-0 text-xs shadow-none hover:border-normal ${
+            className={`task-list-item-checkbox selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint p-0 text-xs shadow-none hover:border-normal cursor-pointer ${
               isLink ? 'h-2 w-2' : 'h-4 w-4'
             } ${task.completed ? 'bg-faint' : 'bg-transparent'}`}
             data-task={task.status === ' ' ? '' : task.status}
@@ -134,14 +134,6 @@ export default function Task({
           {task.title || 'Untitled'}
         </div>
         <div className='flex h-line grow items-center justify-end space-x-1 font-menu child:my-1'>
-          {task.tags.map((tag) => (
-            <div
-              className='cm-hashtag cm-hashtag-end cm-hashtag-begin !h-fit !text-xs !max-h-line'
-              key={tag}
-            >
-              {tag.replace('#', '')}
-            </div>
-          ))}
           {task.priority !== TaskPriorities.DEFAULT && (
             <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
               {priorityNumberToSimplePriority[task.priority]}
@@ -187,16 +179,19 @@ export default function Task({
           >
             <Logo
               src='align-justify'
-              className='hover:bg-selection transition-colors duration-300 rounded-lg p-1 w-6'
+              className='hover:bg-selection transition-colors duration-300 rounded-icon p-1 w-6'
             />
           </div>
         </div>
       </div>
       {_.keys(task.extraFields).length > 0 && (
-        <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-8 text-xs'>
-          {_.sortBy(_.entries(task.extraFields), 0).map(([key, value]) => (
-            <div className='flex overflow-hidden rounded child:px-1' key={key}>
-              {key}: {value}
+        <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-indent text-xs child:whitespace-nowrap'>
+          {task.tags.map((tag) => (
+            <div
+              className='cm-hashtag cm-hashtag-end cm-hashtag-begin !h-fit !text-xs'
+              key={tag}
+            >
+              {tag.replace('#', '')}
             </div>
           ))}
         </div>
@@ -215,7 +210,7 @@ export default function Task({
             }`}
           >
             <div
-              className='h-full w-full transition-colors duration-300 hover:bg-selection rounded-lg flex items-center justify-center cursor-pointer'
+              className='h-full w-full transition-colors duration-300 hover:bg-selection rounded-icon flex items-center justify-center cursor-pointer'
               onClick={() => setters.patchCollapsed([task.id], !collapsed)}
             >
               <div
