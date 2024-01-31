@@ -18,10 +18,20 @@
 
 # Changelog
 
-## 2.1.1 (Upcoming)
+## 2.2.0 (1/31/2023)
+
+**Changed:**
+- Reintegrated "Now" view back to today, option to expand/collapse
 
 **Added:**
 - Option to switch between timer events (notification or sound)
+- Search sorted by best match
+- Fixed error reporting in Calendars
+- Mobile optimizations
+- Option to switch between sound and notification for timer
+
+**Fixed:**
+- Rescheduling high-priority tasks retains their priority
 
 ## 2.1.0 (1/1/2023)
 
