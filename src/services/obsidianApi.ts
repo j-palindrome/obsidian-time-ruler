@@ -92,13 +92,13 @@ export default class ObsidianAPI extends Component {
     let pageSearch: DataArray<Record<string, Literal> & { file: PageMetadata }>
 
     const testDateBounds = (task: Record<string, Literal>) => {
-      const taskDate = task.scheduled ?? task.due ?? task.completion
+      const taskDate = task.scheduled ?? task.completion
       if (!DateTime.isDateTime(taskDate)) return true
       const dateString = toISO(taskDate)
-      if (!dateString) return true
 
       return dateString >= dateBounds[0] && dateString <= dateBounds[1]
     }
+
     try {
       let basicSearch = dv.pages(
         `"${path.replace(/"/g, '\\"')}" and (${this.settings.search || '""'})`
@@ -210,12 +210,17 @@ export default class ObsidianAPI extends Component {
     }
 
     const dailyNoteInfo = getters.get('dailyNoteInfo')
-
     const searchWithinWeeks = getters.get('searchWithinWeeks')
-    const dateBounds: [string, string] = [
-      DateTime.now().plus({ weeks: searchWithinWeeks[0] }).toISODate(),
-      DateTime.now().plus({ weeks: searchWithinWeeks[1] }).toISODate(),
-    ]
+    const showingPastDates = getters.get('showingPastDates')
+    const dateBounds: [string, string] = showingPastDates
+      ? [
+          DateTime.now().minus({ weeks: searchWithinWeeks[1] }).toISODate(),
+          DateTime.now().plus({ days: 1 }).toISODate(),
+        ]
+      : [
+          DateTime.now().minus({ days: 1 }).toISODate(),
+          DateTime.now().plus({ weeks: searchWithinWeeks[1] }).toISODate(),
+        ]
     const tasks = this.searchTasks(path, dailyNoteInfo, completed, dateBounds)
     this.updateTasks([...tasks], path, dailyNoteInfo, completed)
   }
@@ -627,6 +632,7 @@ export async function openTask(task: TaskProps) {
 
 export function openTaskInRuler(id: string) {
   const task = getters.getTask(id)
+
   if (!task) {
     new Notice('Task not loaded in Time Ruler')
     return
@@ -652,7 +658,13 @@ export function openTaskInRuler(id: string) {
   }
 
   setTimeout(async () => {
-    let section = !scheduled ? 'unscheduled' : scheduled.slice(0, 10)
+    const now = toISO(DateTime.now())
+    const showingPastDates = getters.get('showingPastDates')
+    let section = !scheduled
+      ? 'unscheduled'
+      : scheduled < now && scheduled !== now.slice(0, 10) && !showingPastDates
+      ? 'now'
+      : scheduled.slice(0, 10)
 
     await scrollToSection(section)
 

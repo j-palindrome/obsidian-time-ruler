@@ -46,6 +46,7 @@ export type AppState = {
     | 'hideTimes'
     | 'borders'
     | 'viewMode'
+    | 'timerEvent'
   >
   collapsed: Record<string, boolean>
   showingPastDates: boolean
@@ -80,6 +81,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     dayStartEnd: [0, 24],
     groupBy: 'path',
     muted: false,
+    timerEvent: 'notification',
     twentyFourHourFormat: false,
     showCompleted: false,
     extendBlocks: false,

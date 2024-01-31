@@ -5,6 +5,7 @@ import { setters, useAppStore } from 'src/app/store'
 import { openTaskInRuler } from 'src/services/obsidianApi'
 import { convertSearchToRegExp } from 'src/services/util'
 import { priorityNumberToKey } from '../types/enums'
+import { parseFolderFromPath } from '../services/util'
 
 export default function Search() {
   const tasks = useAppStore((state) => state.tasks)
@@ -19,7 +20,7 @@ export default function Search() {
         'id'
       ).map((task) => [
         [
-          task.path + task.title,
+          (task.page ? parseFolderFromPath(task.path) : task.path) + task.title,
           task.tags.map((x) => '#' + x).join(' '),
           task.notes ?? '',
           priorityNumberToKey[task.priority],
@@ -31,8 +32,25 @@ export default function Search() {
   )
   const [search, setSearch] = useState('')
   const searchExp = convertSearchToRegExp(search)
-  const foundTasks = allTasks.filter(([strings]) =>
-    strings.find((string) => !search || (string && searchExp.test(string)))
+  const splitSearch = search.split('')
+  const NOT_INCLUDED = 25
+  const foundTasks = _.sortBy(
+    allTasks.filter(([strings]) =>
+      strings.find((string) => !search || (string && searchExp.test(string)))
+    ),
+    ([_matches, task]) => {
+      let total = 0
+      let index = 0
+      for (let char of splitSearch) {
+        const newIndex = task.title.indexOf(char, index)
+        if (newIndex !== -1) {
+          total += newIndex - total
+          index = newIndex
+        } else total += NOT_INCLUDED
+      }
+
+      return total
+    }
   )
 
   const input = useRef<HTMLInputElement>(null)
@@ -65,6 +83,7 @@ export default function Search() {
           {foundTasks.map(([_strings, task]) => (
             <div
               key={task.id}
+              data-info={task.id}
               className='clickable-icon suggestion-item mod-complex'
               onClick={() => {
                 openTaskInRuler(task.id)
@@ -94,7 +113,10 @@ export default function Search() {
                   flex: 'none',
                 }}
               >
-                {task.path.replace('#', ' # ').replace('.md', '')}
+                {(task.page
+                  ? parseFolderFromPath(task.path)
+                  : task.path
+                ).replace('.md', '')}
               </div>
             </div>
           ))}

@@ -10,12 +10,18 @@
 - Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
 - Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
 - Option to support [Tasks API on click](https://github.com/joshuatazrein/obsidian-time-ruler/issues/74)
+- support [tag sorting](https://github.com/joshuatazrein/obsidian-time-ruler/issues/96)
 
 ## Considering
 - [CalDAV calendars](https://github.com/joshuatazrein/obsidian-time-ruler/issues/34)
 - Add more flexibility for [Tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/46#issuecomment-1708749520) users
 
 # Changelog
+
+## 2.1.1 (Upcoming)
+
+**Added:**
+- Option to switch between timer events (notification or sound)
 
 ## 2.1.0 (1/1/2023)
 

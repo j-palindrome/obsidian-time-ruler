@@ -1,3 +1,4 @@
+import * as ical2json from 'ical2json'
 import ical from 'ical'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
@@ -28,10 +29,12 @@ export default class CalendarAPI extends Component {
     const now = DateTime.now()
     let i = 0
 
+    let offline = false
     const calendarLoads = this.settings.calendars.map(async (calendar) => {
       try {
         const data = await request(calendar)
         const icsEvents = ical.parseICS(data)
+
         const calendarName = data.match(/CALNAME:(.*)/)?.[1] ?? 'Default'
         for (let [id, event] of _.entries(icsEvents) as [string, any][]) {
           if (!event.start || !event.end || event.type !== 'VEVENT') continue
@@ -66,8 +69,11 @@ export default class CalendarAPI extends Component {
 
         i++
       } catch (err) {
-        new Notice('Time Ruler: failed to load calendar from ' + calendar)
-        console.error(err)
+        offline = true
+      }
+
+      if (offline) {
+        new Notice('Time Ruler: failed to load calendars')
       }
     })
 

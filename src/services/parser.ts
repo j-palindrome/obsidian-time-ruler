@@ -564,7 +564,7 @@ export function taskToText(
       }
 
       if (task.due) draft += `  > ${task.due}`
-      if (task.priority && task.priority !== TaskPriorities.DEFAULT) {
+      if (hasPriority(task)) {
         draft += ` ${priorityNumberToSimplePriority[task.priority]}`
       }
       if (

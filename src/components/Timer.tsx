@@ -1,13 +1,9 @@
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import { useStopwatch, useTimer } from 'react-timer-hook'
-import { AppState, getters, setters, useAppStore } from '../app/store'
+import { getters, setters, useAppStore } from '../app/store'
 import { sounds } from '../assets/assets'
-import { roundMinutes, toISO } from '../services/util'
 import Button from './Button'
-import Day from './Day'
-import NewTask from './NewTask'
-import Droppable from './Droppable'
 
 export function Timer() {
   const pauseExpiration = useRef(true)
@@ -54,7 +50,6 @@ export function Timer() {
   const seconds = maxSeconds ? timer.seconds : stopwatch.seconds
   const minutes = maxSeconds ? timer.minutes : stopwatch.minutes
   const hours = maxSeconds ? timer.hours : stopwatch.hours
-
   const currentTime = maxSeconds ? timer.totalSeconds : stopwatch.totalSeconds
 
   const start = () => {
@@ -83,6 +78,40 @@ export function Timer() {
       })
     }
     playSound()
+  }
+
+  const reset = () => {
+    setters.patchTimer({ negative: false })
+    if (maxSeconds) {
+      setters.patchTimer({
+        maxSeconds: null,
+      })
+      timer.restart(new Date(), false)
+    } else {
+      stopwatch.reset(undefined, false)
+    }
+    setInput('')
+  }
+
+  const addTime = (minutes: number) => {
+    if (maxSeconds) {
+      const currentTime = DateTime.now()
+        .plus({ seconds: timer.totalSeconds })
+        .plus({ minutes: minutes })
+      timer.restart(currentTime.toJSDate(), true)
+      setters.patchTimer({
+        maxSeconds: maxSeconds + minutes * 60,
+        startISO: currentTime.toJSDate().toISOString(),
+      })
+    } else {
+      const currentTime = DateTime.now()
+        .plus({
+          seconds: stopwatch.totalSeconds,
+        })
+        .plus({ minutes: minutes })
+      stopwatch.reset(currentTime.toJSDate(), true)
+      setters.patchTimer({ startISO: currentTime.toJSDate().toISOString() })
+    }
   }
 
   let width = 0
@@ -117,34 +146,6 @@ export function Timer() {
         ? timer.resume()
         : stopwatch.start()
       playSound()
-    }
-  }
-
-  const reset = () => {
-    setters.patchTimer({ negative: false })
-    if (maxSeconds) {
-      setters.patchTimer({
-        maxSeconds: null,
-      })
-      timer.restart(new Date(), false)
-    } else {
-      stopwatch.reset(undefined, false)
-    }
-    setInput('')
-  }
-
-  const addTime = (minutes: number) => {
-    if (maxSeconds) {
-      setters.patchTimer({ maxSeconds: maxSeconds + minutes * 60 })
-      const currentTime = DateTime.now()
-        .plus({ minutes: timer.minutes, hours: timer.hours })
-        .plus({ minutes: minutes })
-      timer.restart(currentTime.toJSDate(), true)
-    } else {
-      const currentTime = DateTime.now()
-        .plus({ minutes: stopwatch.minutes, hours: stopwatch.hours })
-        .plus({ minutes: minutes })
-      stopwatch.reset(currentTime.toJSDate(), true)
     }
   }
 

@@ -28,7 +28,7 @@ import { useRect } from '@dnd-kit/core/dist/hooks/utilities'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
-    minute: Math.floor(date.minute / 15) * 15,
+    minute: Math.floor(date.minute) - (Math.floor(date.minute) % 15),
     second: 0,
     millisecond: 0,
   })
@@ -319,36 +319,23 @@ let scrolling = false
 export const scrollToSection = async (id: string) => {
   let scrollTimeout: number | null = null
   return new Promise<void>((resolve) => {
-    let count = 0
-    const scroll = () => {
-      count++
-      if (count > 10) {
-        reject(`section not found: #time-ruler-${id}`)
-        return
-      }
-      const child = document.getElementById(`time-ruler-${id}`)
-      if (!child) {
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout)
-        }
-        scrollTimeout = setTimeout(() => scrollToSection(id), 250)
-        return
-      }
-      if (scrolling) return
-      scrolling = true
-      child.scrollIntoView({
-        block: 'start',
-        inline: 'start',
-        behavior: 'smooth',
-      })
-
-      setTimeout(() => {
-        resolve()
-        scrollTimeout = null
-        scrolling = false
-      }, 500)
+    const child = document.getElementById(`time-ruler-${id}`)
+    if (!child) {
+      reject('child not found')
+      return
     }
-    scroll()
+
+    child.scrollIntoView({
+      block: 'start',
+      inline: 'start',
+      behavior: 'smooth',
+    })
+
+    setTimeout(() => {
+      resolve()
+      scrollTimeout = null
+      scrolling = false
+    }, 500)
   })
 }
 
@@ -509,11 +496,14 @@ export const nestedScheduled = (
 }
 
 export const getToday = () => {
+  return getStartDate(DateTime.now())
+}
+
+export const getStartDate = (time: DateTime) => {
   const dayEnd = getters.get('settings').dayStartEnd[1]
-  const now = DateTime.now()
-  if (dayEnd < 12 && now.hour < dayEnd)
-    return now.minus({ days: 1 }).toISODate()
-  else return now.toISODate()
+  if (dayEnd < 12 && time.hour < dayEnd)
+    return time.minus({ days: 1 }).toISODate() as string
+  else return time.toISODate() as string
 }
 
 export const hasPriority = (task: TaskProps) =>

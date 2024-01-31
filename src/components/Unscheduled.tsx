@@ -9,6 +9,7 @@ import { TaskPriorities } from 'src/types/enums'
 
 const Unscheduled = memo(_Unscheduled, () => true)
 export default Unscheduled
+export const COLLAPSE_UNSCHEDULED = 'tr-collapse-unscheduled'
 
 function _Unscheduled() {
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
@@ -21,7 +22,8 @@ function _Unscheduled() {
           (showingPastDates ? task.completed : !task.completed)) &&
         !task.parent &&
         !task.queryParent &&
-        !parseTaskDate(task)
+        !parseTaskDate(task) &&
+        !task.due
     )
   )
   const childWidth = useAppStore((state) =>
@@ -34,7 +36,11 @@ function _Unscheduled() {
 
   return (
     <div className={`h-0 grow flex flex-col`}>
-      <div className='flex items-center space-x-1 group flex-none pl-indent'>
+      <div className='flex items-center space-x-1 group flex-none'>
+        <div
+          className='w-indent flex-none pr-1'
+          id={COLLAPSE_UNSCHEDULED}
+        ></div>
         <Droppable id='unscheduled-timespan' data={{ scheduled: '' }}>
           <div className='font-menu'>{'Unscheduled'}</div>
         </Droppable>

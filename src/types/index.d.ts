@@ -1,7 +1,6 @@
 import { STask } from 'obsidian-dataview'
 import { GroupComponentProps } from '../components/Group'
 import { TaskComponentProps } from '../components/Task'
-import { DueDateComponentProps } from '../components/Deadline'
 import { BlockComponentProps } from 'src/components/Block'
 
 declare global {
@@ -94,7 +93,7 @@ declare global {
         end?: string
       })
     | ({ dragType: 'time' } & { start: string; end?: string })
-    | ({ dragType: 'due' } & DueDateComponentProps)
+    | ({ dragType: 'due' } & { task: TaskProps })
     | { dragType: 'new_button' }
     | { dragType: 'now' }
 

@@ -123,6 +123,21 @@ export default class SettingsTab extends PluginSettingTab {
       })
 
     new Setting(containerEl)
+      .setName('Timer Event')
+      .setDesc('Toggle the event triggered on timer end.')
+      .addDropdown((dropdown) => {
+        dropdown.addOptions({
+          notification: 'Notification',
+          sound: 'Sound',
+        })
+        dropdown.setValue(this.plugin.settings.timerEvent)
+        dropdown.onChange((value: 'notification' | 'sound') => {
+          this.plugin.settings.timerEvent = value
+          this.plugin.saveSettings()
+        })
+      })
+
+    new Setting(containerEl)
       .setName('Borders')
       .setDesc('Toggle borders around days.')
       .addToggle((toggle) => {

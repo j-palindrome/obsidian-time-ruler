@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import pop from './pop.mp3'
 import start from './start.mp3'
 import timer from './timer.mp3'
@@ -10,4 +11,10 @@ export const sounds = {
   pop: popSnd,
   start: startSnd,
   timer: timerSnd,
+}
+
+for (let sound of _.values(sounds)) {
+  sound.autoplay = true
+  sound.pause()
+  sound.currentTime = 0
 }

@@ -12,7 +12,7 @@ import {
 import $ from 'jquery'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { Platform } from 'obsidian'
+import { Notice, Platform } from 'obsidian'
 import { getAPI } from 'obsidian-dataview'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { onDragEnd, onDragStart } from 'src/services/dragging'
@@ -27,6 +27,7 @@ import {
 import { useAutoScroll } from '../services/autoScroll'
 import ObsidianAPI, { getDailyNoteInfo } from '../services/obsidianApi'
 import {
+  getStartDate,
   getToday,
   scrollToSection,
   toISO,
@@ -35,7 +36,6 @@ import {
 import Block from './Block'
 import Button from './Button'
 import Day from './Day'
-import Deadline from './Deadline'
 import Droppable from './Droppable'
 import Group from './Group'
 import Logo from './Logo'
@@ -46,8 +46,9 @@ import Task from './Task'
 import { Timer } from './Timer'
 import Unscheduled from './Unscheduled'
 import { ViewMode } from '../app/store'
-import { roundMinutes } from '../services/util'
+import { roundMinutes, isDateISO } from '../services/util'
 import { sounds } from 'src/assets/assets'
+import { createWithEqualityFn } from 'zustand/traditional'
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -78,6 +79,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       hideTimes: apis.obsidian.getSetting('hideTimes'),
       borders: apis.obsidian.getSetting('borders'),
       viewMode: apis.obsidian.getSetting('viewMode'),
+      timerEvent: apis.obsidian.getSetting('timerEvent'),
     }
 
     setters.set({
@@ -117,10 +119,20 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           negative: true,
           playing: true,
         })
-        try {
-          new Notification('timer complete')
-          if (!getters.get('settings').muted) sounds.timer.play()
-        } catch (err) {}
+        if (app.isMobile) {
+          sounds.timer.play()
+          new Notice('Timer complete')
+        } else {
+          switch (getters.get('settings').timerEvent) {
+            case 'notification':
+              new Notification('Timer complete')
+              break
+            case 'sound':
+              sounds.timer.play()
+              new Notice('Timer complete')
+              break
+          }
+        }
       }
     }
 
@@ -132,34 +144,40 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     }
   }, [])
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      scrollToSection(getToday())
+    }, 1000)
+
+    return () => {
+      clearTimeout(timeout)
+    }
+  }, [])
+
   const showingPastDates = useAppStore((state) => state.showingPastDates)
 
   const today = DateTime.fromISO(getToday())
   const [weeksShownState, setWeeksShown] = useState(1)
   const viewMode = useAppStore((state) => state.settings.viewMode)
   const datesShown = weeksShownState * 7 * (showingPastDates ? -1 : 1)
+  useEffect(
+    () => getters.getObsidianAPI()?.loadTasks('', showingPastDates),
+    [weeksShownState, showingPastDates]
+  )
 
   const dayStart = useAppStore((state) => state.settings.dayStartEnd[0])
   const roundedNow = toISO(roundMinutes(DateTime.now()))
   const nowBoundary = toISO(roundMinutes(DateTime.now().plus({ minute: 15 })))
+  const tomorrow = toISO(today.plus({ days: 1, hours: dayStart }))
+
   const times: (Parameters<typeof Day>[0] | { type: 'unscheduled' })[] = [
     { type: 'unscheduled' },
     {
-      dragContainer: 'now',
-      startISO: roundedNow,
-      endISO: nowBoundary,
-      type: 'minutes',
-      isNow: true,
-    },
-    {
-      startISO: showingPastDates
-        ? toISO(today.plus({ hours: dayStart }))
-        : nowBoundary,
-      endISO: showingPastDates
-        ? roundedNow
-        : toISO(today.plus({ hours: dayStart, days: 1 })),
-      type: 'minutes',
+      startISO: toISO(now),
+      endISO: toISO(today.plus({ days: 1, hours: dayStart })),
+      type: 'minutes' as TimeSpanTypes,
       dragContainer: 'app',
+      isNow: true,
     },
     ..._.range(showingPastDates ? -1 : 1, datesShown).map((i) => ({
       startISO: toISO(today.plus({ days: i, hours: dayStart })),
@@ -176,22 +194,22 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     getters.getObsidianAPI()?.loadTasks('', showingPastDates)
   }, [searchWithinWeeks, showingPastDates])
 
-  useEffect(() => {
-    if (showingPastDates && -weeksShownState < searchWithinWeeks[0]) {
-      setters.set({
-        searchWithinWeeks: [-weeksShownState, searchWithinWeeks[1]],
-      })
-    }
-    if (!showingPastDates && weeksShownState > searchWithinWeeks[1]) {
-      setters.set({
-        searchWithinWeeks: [searchWithinWeeks[0], weeksShownState],
-      })
-    }
-  }, [showingPastDates, weeksShownState])
+  // useEffect(() => {
+  //   if (showingPastDates && -weeksShownState < searchWithinWeeks[0]) {
+  //     setters.set({
+  //       searchWithinWeeks: [-weeksShownState, searchWithinWeeks[1]],
+  //     })
+  //   }
+  //   if (!showingPastDates && weeksShownState > searchWithinWeeks[1]) {
+  //     setters.set({
+  //       searchWithinWeeks: [searchWithinWeeks[0], weeksShownState],
+  //     })
+  //   }
+  // }, [showingPastDates, weeksShownState])
 
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
 
-  useAutoScroll(!!activeDrag)
+  useAutoScroll()
 
   const measuringConfig: MeasuringConfiguration = {
     draggable: {
@@ -235,10 +253,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return <Group {...activeDrag} />
       case 'block':
         return <Block {...activeDrag} dragging />
-      case 'due':
-        return <Deadline {...activeDrag} isDragging />
       case 'new_button':
         return <NewTask dragContainer='activeDrag' />
+      case 'due':
+        return <div className='h-line p-2 text-accent'>due</div>
     }
   }
 
@@ -362,7 +380,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
             dropAnimation={null}
             className='backdrop-blur opacity-50'
             style={{
-              width: `calc((100% - 48px) / ${trueChildWidth})`,
+              width:
+                activeDrag?.dragType === 'due'
+                  ? undefined
+                  : `calc((100% - 48px) / ${trueChildWidth})`,
             }}
           >
             {getDragElement()}
@@ -402,17 +423,13 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                   {isShowing && <Unscheduled />}
                 </div>
               ) : (
-                <Fragment
-                  key={time.isNow ? 'now' : time.startISO + '::' + time.type}
-                >
+                <Fragment key={time.startISO + '::' + time.type}>
                   {calendarMode &&
                     i === (showingPastDates ? 0 : 1) &&
                     childWidth > 1 &&
                     dayPadding(time)}
                   <div
-                    id={`time-ruler-${
-                      time.isNow ? 'now' : time.startISO.slice(0, 10)
-                    }`}
+                    id={`time-ruler-${time.startISO.slice(0, 10)}`}
                     className={frameClass}
                   >
                     {isShowing && <Day {...time} />}
@@ -445,10 +462,6 @@ const Buttons = ({
   useEffect(() => {
     $(`#time-ruler-${getToday()}`)[0]?.scrollIntoView()
   }, [viewMode, showingPastDates])
-
-  useEffect(() => {
-    scrollToSection(getToday())
-  }, [])
 
   const nextButton = (
     <div className='flex'>
@@ -487,26 +500,19 @@ const Buttons = ({
     return () => window.removeEventListener('click', checkShowing)
   }, [showingModal])
 
-  const today = now.toISODate()
-  const yesterday = now.minus({ days: 1 }).toISODate()
-  const tomorrow = now.plus({ days: 1 }).toISODate()
+  const today = getStartDate(now)
+  const yesterday = getStartDate(now.minus({ days: 1 }))
+  const tomorrow = getStartDate(now.plus({ days: 1 }))
 
   const renderButton = (time, i) => {
-    const thisDate = DateTime.fromISO(time.startISO)
+    const start = getStartDate(DateTime.fromISO(time.startISO))
+    const thisDate = DateTime.fromISO(start)
     return (
       <Droppable
-        key={
-          time.type === 'unscheduled'
-            ? 'unscheduled'
-            : time.isNow
-            ? 'now'
-            : time.startISO
-        }
+        key={time.type === 'unscheduled' ? 'unscheduled' : time.startISO}
         id={time.startISO + '::button'}
         data={{
-          scheduled: time.isNow
-            ? time.startISO
-            : time.startISO?.slice(0, 10) ?? '',
+          scheduled: start,
         }}
       >
         <Button
@@ -515,21 +521,17 @@ const Buttons = ({
             scrollToSection(
               time.type === 'unscheduled'
                 ? 'unscheduled'
-                : time.isNow
-                ? 'now'
                 : time.startISO.slice(0, 10)
             )
           }
         >
           {time.type === 'unscheduled'
             ? 'Unscheduled'
-            : time.isNow
-            ? 'Now'
-            : time.startISO === today
+            : start === today
             ? 'Today'
-            : time.startISO === yesterday
+            : start === yesterday
             ? 'Yesterday'
-            : time.startISO === tomorrow
+            : start === tomorrow
             ? 'Tomorrow'
             : thisDate.toFormat('EEE MMM d')}
         </Button>
@@ -610,7 +612,9 @@ const Buttons = ({
                         <Button
                           src={src}
                           title={title}
-                          className='w-6 flex-none'
+                          className={`${
+                            app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
+                          } !p-0 flex-none`}
                           onClick={() => {
                             getters.getObsidianAPI().setSetting({
                               groupBy: groupBy,
@@ -638,7 +642,9 @@ const Buttons = ({
                         <Button
                           src={src}
                           title={title}
-                          className='w-6 flex-none'
+                          className={`${
+                            app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
+                          } !p-0 flex-none`}
                           onClick={() => {
                             getters.getObsidianAPI().setSetting({
                               viewMode,

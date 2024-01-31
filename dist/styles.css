@@ -84,6 +84,12 @@
 #time-ruler :is(.\!h-0) {
   height: 0px !important;
 }
+#time-ruler :is(.\!h-6) {
+  height: 1.5rem !important;
+}
+#time-ruler :is(.\!h-8) {
+  height: 2rem !important;
+}
 #time-ruler :is(.\!h-fit) {
   height: -moz-fit-content !important;
   height: fit-content !important;
@@ -105,6 +111,12 @@
 }
 #time-ruler :is(.h-4) {
   height: 1rem;
+}
+#time-ruler :is(.h-5) {
+  height: 1.25rem;
+}
+#time-ruler :is(.h-6) {
+  height: 1.5rem;
 }
 #time-ruler :is(.h-\[16px\]) {
   height: 16px;
@@ -140,8 +152,17 @@
 #time-ruler :is(.min-h-\[4px\]) {
   min-height: 4px;
 }
+#time-ruler :is(.min-h-line) {
+  min-height: var(--font-text-size);
+}
 #time-ruler :is(.\!w-1) {
   width: 0.25rem !important;
+}
+#time-ruler :is(.\!w-6) {
+  width: 1.5rem !important;
+}
+#time-ruler :is(.\!w-8) {
+  width: 2rem !important;
 }
 #time-ruler :is(.\!w-full) {
   width: 100% !important;
@@ -160,6 +181,9 @@
 }
 #time-ruler :is(.w-4) {
   width: 1rem;
+}
+#time-ruler :is(.w-5) {
+  width: 1.25rem;
 }
 #time-ruler :is(.w-6) {
   width: 1.5rem;
@@ -352,6 +376,9 @@
 #time-ruler :is(.border-faint) {
   border-color: var(--text-faint);
 }
+#time-ruler :is(.border-selection) {
+  border-color: var(--text-selection);
+}
 #time-ruler :is(.border-l-accent) {
   border-left-color: var(--text-accent);
 }
@@ -391,6 +418,9 @@
 }
 #time-ruler :is(.bg-transparent) {
   background-color: transparent;
+}
+#time-ruler :is(.\!p-0) {
+  padding: 0px !important;
 }
 #time-ruler :is(.p-0) {
   padding: 0px;
@@ -435,6 +465,9 @@
 }
 #time-ruler :is(.pb-1) {
   padding-bottom: 0.25rem;
+}
+#time-ruler :is(.pb-2) {
+  padding-bottom: 0.5rem;
 }
 #time-ruler :is(.pl-1) {
   padding-left: 0.25rem;
@@ -826,6 +859,19 @@ div.unscheduled div.time-ruler-group {
 }
 #time-ruler :is(.group:hover .group-hover\:block) {
   display: block;
+}
+#time-ruler :is(.group:hover .group-hover\:flex) {
+  display: flex;
+}
+#time-ruler :is(.group:hover .group-hover\:rounded-full) {
+  border-radius: 9999px;
+}
+#time-ruler :is(.group:hover .group-hover\:bg-selection) {
+  background-color: var(--text-selection);
+}
+#time-ruler :is(.group:hover .group-hover\:px-2) {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 #time-ruler :is(.group:hover .group-hover\:opacity-100) {
   opacity: 1;

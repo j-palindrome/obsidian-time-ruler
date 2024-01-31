@@ -8,6 +8,7 @@ import { openTaskInRuler } from '../services/obsidianApi'
 import {
   formatHeadingTitle,
   getParents,
+  getStartDate,
   getToday,
   isDateISO,
   nestedScheduled,
@@ -36,15 +37,15 @@ export default function Day({
   endISO: string
   type: TimeSpanTypes
   dragContainer: string
-  isNow?: true
+  isNow?: boolean
 }) {
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const now = toISO(roundMinutes(DateTime.now()))
 
-  const startDate = startISO.slice(0, 10)
+  const startDate = getStartDate(DateTime.fromISO(startISO))
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
-  const id = isNow ? 'now' : startDate
+  const id = startDate
   /**
    * find the nearest scheduled date in parents (include ALL tasks which will be in this block). Day -> Hours -> Block all take a single flat list of scheduled tasks, which they use to calculate total length of the block. Blocks group them by parent -> filepath/heading, calculating queries and unscheduled parents.
    */
@@ -62,7 +63,8 @@ export default function Day({
       const scheduled = parseTaskDate(task)
 
       const isShown =
-        (task.due || (scheduled && !task.queryParent)) &&
+        (task.due || scheduled) &&
+        !task.queryParent &&
         (showCompleted || task.completed === showingPastDates)
       if (!isShown) return
 
@@ -71,20 +73,18 @@ export default function Day({
         : isNow
         ? isDateISO(scheduled)
           ? showingPastDates
-            ? scheduled > startDate
-            : scheduled < startDate
+            ? scheduled >= startDate
+            : scheduled <= startDate
           : showingPastDates
-          ? scheduled > startISO
+          ? scheduled >= startISO
           : scheduled < endISO
         : isDateISO(scheduled)
         ? scheduled === startDate
         : scheduled >= startISO && scheduled < endISO
 
-      const dueToday = !task.due ? false : task.due >= startDate
-
-      if (dueToday) {
-        deadlines.push(task)
-      }
+      const dueToday =
+        !showingPastDates &&
+        (!task.due ? false : isNow || task.due >= startDate)
 
       if (scheduledForToday) {
         invariant(scheduled)
@@ -101,6 +101,8 @@ export default function Day({
               blocks: [],
             }
         }
+      } else if (dueToday) {
+        allDay.tasks.push(task)
       }
     })
 
@@ -127,13 +129,13 @@ export default function Day({
     return [allDay, blocksByTime, deadlines]
   }, shallow)
 
-  const blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
+  let blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
 
   const viewMode = useAppStore((state) => state.settings.viewMode)
   const calendarMode = viewMode === 'week'
 
   let title = isNow
-    ? 'Now'
+    ? 'Today'
     : DateTime.fromISO(startISO || endISO).toFormat(
         calendarMode ? 'EEE d' : 'EEE, MMM d'
       )
@@ -165,11 +167,20 @@ export default function Day({
 
   const wide = useAppStore((state) => state.childWidth > 1)
 
+  const TR_NOW = 'TR::NOW'
+  const focus = useAppStore((state) => isNow && state.collapsed[TR_NOW])
+
+  if (focus) {
+    endISO =
+      blocks.find(({ startISO }) => startISO && startISO > now)?.endISO ?? now
+    blocks = blocks.filter(({ startISO }) => startISO && startISO <= now)
+  }
+
   return (
     <div className={`flex flex-col overflow-hidden relative`}>
       <div className='flex items-center group relative z-10'>
         <Droppable
-          data={{ scheduled: isNow ? now : startDate }}
+          data={{ scheduled: startDate }}
           id={dragContainer + '::' + startISO + '::timeline'}
         >
           <div className='flex items-center grow'>
@@ -218,19 +229,6 @@ export default function Day({
             data-auto-scroll={calendarMode ? undefined : 'y'}
             ref={allDayFrame}
           >
-            {deadlines.length > 0 && (
-              <div className='rounded-icon bg-code'>
-                {_.sortBy(deadlines, 'due', 'scheduled').map((task) => (
-                  <Task
-                    key={task.id}
-                    renderType='deadline'
-                    subtasks={[]}
-                    dragContainer={dragContainer}
-                    {...task}
-                  />
-                ))}
-              </div>
-            )}
             {allDay.events.map((event) => (
               <Block
                 type='event'
@@ -246,7 +244,7 @@ export default function Day({
             ))}
             {allDay.tasks.length > 0 && (
               <Block
-                type='event'
+                type='all-day'
                 events={[]}
                 tasks={allDay.tasks}
                 startISO={startDate}
@@ -257,7 +255,31 @@ export default function Day({
             )}
           </div>
         )}
-
+        {isNow && (
+          <div className='w-full flex h-6 mt-1 items-center'>
+            <Droppable
+              id={`${dragContainer}::now`}
+              data={{
+                scheduled: now,
+              }}
+            >
+              <div className='h-full grow flex font-menu items-center space-x-2 pl-indent'>
+                <span className='text-xs'>Now</span>
+                <hr className='w-full border-selection'></hr>
+              </div>
+            </Droppable>
+            <Button
+              className=''
+              src={focus ? 'maximize-2' : 'minimize-2'}
+              onClick={() => {
+                if (!focus) {
+                  setters.patchCollapsed([id], true)
+                }
+                setters.patchCollapsed([TR_NOW], !focus)
+              }}
+            />
+          </div>
+        )}
         <div
           className={`overflow-x-hidden rounded-icon mt-1 ${
             {

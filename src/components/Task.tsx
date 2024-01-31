@@ -13,7 +13,6 @@ import {
 import { TaskPriorities, priorityNumberToSimplePriority } from '../types/enums'
 import Block from './Block'
 import Button from './Button'
-import Deadline from './Deadline'
 import Logo from './Logo'
 
 export type TaskComponentProps = TaskProps & {
@@ -44,7 +43,12 @@ export default function Task({
           .map((id) => state.tasks[id]),
       (subtask) => {
         if (!subtask) return []
-        if (!nestedScheduled(task.scheduled, subtask.scheduled)) return []
+        if (
+          !nestedScheduled(task.scheduled, subtask.scheduled) &&
+          !nestedScheduled(task.due, subtask.scheduled)
+        ) {
+          return []
+        }
         if (subtask.completed !== state.showingPastDates) return []
         return subtask
       }
@@ -80,8 +84,21 @@ export default function Task({
     attributes: lengthAttributes,
     listeners: lengthListeners,
   } = useDraggable({
-    id: `${task.id}::${renderType}::${length}::${dragContainer}`,
+    id: `${task.id}::${renderType}::length::${dragContainer}`,
     data: lengthDragData,
+  })
+
+  const deadlineDragData: DragData = {
+    dragType: 'due',
+    task,
+  }
+  const {
+    setNodeRef: setDeadlineNodeRef,
+    attributes: deadlineAttributes,
+    listeners: deadlineListeners,
+  } = useDraggable({
+    id: `${task.id}::${renderType}::deadline::${dragContainer}`,
+    data: deadlineDragData,
   })
 
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
@@ -93,13 +110,13 @@ export default function Task({
 
   return (
     <div
-      className={`relative rounded-icon py-0.5 transition-colors duration-300 w-full`}
+      className={`relative rounded-icon py-0.5 transition-colors duration-300 w-full min-h-line`}
       data-id={isLink ? '' : task.id}
       data-task={task.status === ' ' ? '' : task.status}
     >
       <div
-        className={`selectable group flex items-start rounded-icon pr-2 ${
-          isLink ? 'font-menu text-xs' : 'font-sans'
+        className={`selectable group flex items-start rounded-icon pr-2 font-sans ${
+          isLink ? 'text-sm' : ''
         }`}
         ref={setNodeRef}
       >
@@ -108,80 +125,89 @@ export default function Task({
             onPointerDown={() => false}
             onClick={() => completeTask()}
             className={`task-list-item-checkbox selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint p-0 text-xs shadow-none hover:border-normal cursor-pointer ${
-              isLink ? 'h-2 w-2' : 'h-4 w-4'
+              isLink ? 'h-2 w-2' : app.isMobile ? 'h-5 w-5' : 'h-4 w-4'
             } ${task.completed ? 'bg-faint' : 'bg-transparent'}`}
             data-task={task.status === ' ' ? '' : task.status}
           >
             {task.status === 'x' ? <></> : task.status}
           </Button>
         </div>
-        <div
-          className={`w-fit cursor-pointer break-words leading-line hover:underline ${
-            [TaskPriorities.HIGH, TaskPriorities.HIGHEST].includes(
-              task.priority
-            )
-              ? 'text-accent'
-              : renderType === 'deadline'
-              ? ''
-              : task.priority === TaskPriorities.LOW ||
-                isLink ||
-                task.status === 'x'
-              ? 'text-faint'
-              : ''
-          }`}
-          onClick={() => openTask(task)}
-        >
-          {task.title || 'Untitled'}
-        </div>
-        <div className='flex h-line grow items-center justify-end space-x-1 font-menu child:my-1'>
-          {task.priority !== TaskPriorities.DEFAULT && (
-            <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
-              {priorityNumberToSimplePriority[task.priority]}
-            </div>
-          )}
-          {hasLengthDrag && (
-            <div
-              className={`task-length cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent ${
-                !task.length ? 'hidden group-hover:block' : ''
-              }`}
-              ref={setLengthNodeRef}
-              {...lengthAttributes}
-              {...lengthListeners}
-            >
-              {!task.length
-                ? 'length'
-                : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
-                    task.length?.minute ? `${task.length?.minute}m` : ''
-                  }`}
-            </div>
-          )}
-
-          {!task.completed && (
-            <Deadline
-              task={task}
-              dragContainer={`${task.id}::${renderType}::${dragContainer}`}
-            />
-          )}
-
-          {!task.completed && task.reminder && (
-            <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
-              <Logo src='alarm-clock' className='mr-1' />
-              <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
-                'M/d'
-              )}${task.reminder.slice(10)}`}</span>
-            </div>
-          )}
+        <div className={`flex w-full`}>
           <div
-            className='hidden group-hover:block cursor-grab'
-            {...attributes}
-            {...listeners}
-            ref={setActivatorNodeRef}
+            className={`w-fit cursor-pointer break-words leading-line hover:underline ${
+              [TaskPriorities.HIGH, TaskPriorities.HIGHEST].includes(
+                task.priority
+              )
+                ? 'text-accent'
+                : renderType === 'deadline'
+                ? ''
+                : task.priority === TaskPriorities.LOW ||
+                  isLink ||
+                  task.status === 'x'
+                ? 'text-faint'
+                : ''
+            }`}
+            onClick={() => openTask(task)}
           >
-            <Logo
-              src='align-justify'
-              className='hover:bg-selection transition-colors duration-300 rounded-icon p-1 w-6'
-            />
+            {task.title || 'Untitled'}
           </div>
+          <div
+            className={`h-line grow items-center space-x-1 font-menu child:my-1 justify-end flex`}
+          >
+            {task.priority !== TaskPriorities.DEFAULT && (
+              <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
+                {priorityNumberToSimplePriority[task.priority]}
+              </div>
+            )}
+            {hasLengthDrag && (
+              <div
+                className={`task-length cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+                  !task.length ? 'hidden group-hover:block' : ''
+                }`}
+                ref={setLengthNodeRef}
+                {...lengthAttributes}
+                {...lengthListeners}
+              >
+                {!task.length
+                  ? 'length'
+                  : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
+                      task.length?.minute ? `${task.length?.minute}m` : ''
+                    }`}
+              </div>
+            )}
+
+            {!task.completed && (
+              <div
+                ref={setDeadlineNodeRef}
+                {...deadlineAttributes}
+                {...deadlineListeners}
+                className={`task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+                  !task.due ? 'hidden group-hover:block' : ''
+                }`}
+              >
+                {!task.due
+                  ? 'due'
+                  : DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
+              </div>
+            )}
+
+            {!task.completed && task.reminder && (
+              <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
+                <Logo src='alarm-clock' className='mr-1' />
+                <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
+                  'M/d'
+                )}${task.reminder.slice(10)}`}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div
+          className='hidden group-hover:flex cursor-grab grow items-center ml-1 h-line'
+          {...attributes}
+          {...listeners}
+          ref={setActivatorNodeRef}
+        >
+          <Logo src='align-justify' className='py-2 px-1 h-full' />
         </div>
       </div>
       {_.keys(task.extraFields).length > 0 && (

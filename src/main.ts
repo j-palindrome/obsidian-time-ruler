@@ -15,7 +15,7 @@ import { openTaskInRuler } from './services/obsidianApi'
 import { taskToText, textToTask } from './services/parser'
 import { getters, setters } from './app/store'
 import invariant from 'tiny-invariant'
-import { toISO } from './services/util'
+import { roundMinutes, toISO } from './services/util'
 
 // comment out for dev
 // import './tests/parser.test'
@@ -24,6 +24,7 @@ type TimeRulerSettings = {
   calendars: string[]
   fieldFormat: FieldFormat['main']
   muted: boolean
+  timerEvent: 'notification' | 'sound'
   inbox: string | null
   search: string
   taskSearch: string
@@ -48,6 +49,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   calendars: [],
   fieldFormat: 'dataview',
   muted: false,
+  timerEvent: 'notification',
   inbox: null,
   search: '',
   taskSearch: '',
@@ -128,7 +130,13 @@ export default class TimeRulerPlugin extends Plugin {
       return
     }
 
-    await this.activateView()
+    const leaf = this.app.workspace.getLeavesOfType(TIME_RULER_VIEW)?.[0]
+    if (!leaf) {
+      await this.activateView()
+    } else {
+      this.app.workspace.revealLeaf(leaf)
+    }
+
     openTaskInRuler(path + '::' + cursor.line)
   }
 
@@ -167,9 +175,7 @@ export default class TimeRulerPlugin extends Plugin {
     let scheduled: TaskProps['scheduled']
     switch (modification) {
       case 'now':
-        let now = DateTime.now().startOf('minute')
-        while (now.minute % 15 !== 0) now = now.plus({ minute: 1 })
-        scheduled = toISO(now)
+        scheduled = toISO(roundMinutes(DateTime.now()))
         break
       case 'unschedule':
         scheduled = ''

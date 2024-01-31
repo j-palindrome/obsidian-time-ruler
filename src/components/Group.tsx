@@ -8,7 +8,7 @@ import {
   getParents,
 } from 'src/services/util'
 import { setters, useAppStore } from '../app/store'
-import { BlockType } from './Block'
+import { BlockType, UPCOMING } from './Block'
 import Button from './Button'
 import Droppable from './Droppable'
 import Task, { TaskComponentProps } from './Task'
@@ -52,12 +52,14 @@ export default function Group({
     })
 
   const [heading, container] = useAppStore((state) =>
-    formatHeadingTitle(
-      path,
-      state.settings.groupBy,
-      state.dailyNoteInfo,
-      !tasks[0] ? false : getParents(tasks[0], state.tasks).last()?.page
-    )
+    path === UPCOMING
+      ? ['Upcoming', '']
+      : formatHeadingTitle(
+          path,
+          state.settings.groupBy,
+          state.dailyNoteInfo,
+          !tasks[0] ? false : getParents(tasks[0], state.tasks).last()?.page
+        )
   )
 
   const collapsed = useAppStore((state) => state.collapsed[path] ?? false)
@@ -68,6 +70,12 @@ export default function Group({
       state.dragData &&
       state.dragData.dragType === 'group' &&
       parseFileFromPath(state.dragData.path) !== heading
+  )
+
+  const sortedTasks = _.sortBy(
+    tasks,
+    (task) => (path === UPCOMING ? task.due : parseFileFromPath(task.path)),
+    'position.start.line'
   )
 
   return (
@@ -130,11 +138,7 @@ export default function Group({
       )}
 
       {!collapsed &&
-        _.sortBy(
-          tasks,
-          (task) => parseFileFromPath(task.path),
-          'position.start.line'
-        ).map((task) => (
+        sortedTasks.map((task) => (
           <Task key={task.id} dragContainer={dragContainer} {...task} />
         ))}
     </div>
