@@ -3,8 +3,8 @@ import { DateTime } from 'luxon'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
-import { setters, useAppStore } from '../app/store'
-import { openTaskInRuler } from '../services/obsidianApi'
+import { getters, setters, useAppStore } from '../app/store'
+import { getDailyNoteInfo, openTaskInRuler } from '../services/obsidianApi'
 import {
   formatHeadingTitle,
   getParents,
@@ -13,6 +13,7 @@ import {
   isDateISO,
   nestedScheduled,
   parseHeadingFromPath,
+  parsePathFromDate,
   parseTaskDate,
   roundMinutes,
   toISO,
@@ -84,7 +85,8 @@ export default function Day({
 
       const dueToday =
         !showingPastDates &&
-        (!task.due ? false : isNow || task.due >= startDate)
+        (!task.due ? false : isNow || task.due >= startDate) &&
+        (!task.scheduled || task.scheduled < startDate)
 
       if (scheduledForToday) {
         invariant(scheduled)
@@ -195,7 +197,23 @@ export default function Day({
               />
             </div>
 
-            <div className='font-menu w-full'>{title || ''}</div>
+            <div
+              className='font-menu w-full cursor-pointer hover:underline'
+              onClick={async () => {
+                const dailyNoteInfo = getters.get('dailyNoteInfo')
+                const path = parsePathFromDate(startDate, dailyNoteInfo)
+                const thisNote = app.vault.getAbstractFileByPath(path)
+                if (!thisNote) {
+                  await getters.getObsidianAPI().createFileFromPath(path)
+                }
+                app.workspace.openLinkText(
+                  parsePathFromDate(startDate, dailyNoteInfo),
+                  ''
+                )
+              }}
+            >
+              {title || ''}
+            </div>
           </div>
         </Droppable>
       </div>
@@ -255,56 +273,60 @@ export default function Day({
             )}
           </div>
         )}
-        {isNow && (
-          <div className='w-full flex h-6 mt-1 items-center'>
-            <Droppable
-              id={`${dragContainer}::now`}
-              data={{
-                scheduled: now,
-              }}
-            >
-              <div className='h-full grow flex font-menu items-center space-x-2 pl-indent'>
-                <span className='text-xs'>Now</span>
-                <hr className='w-full border-selection'></hr>
-              </div>
-            </Droppable>
-            <Button
-              className=''
-              src={focus ? 'maximize-2' : 'minimize-2'}
-              onClick={() => {
-                if (!focus) {
-                  setters.patchCollapsed([id], true)
-                }
-                setters.patchCollapsed([TR_NOW], !focus)
-              }}
-            />
-          </div>
-        )}
         <div
-          className={`overflow-x-hidden rounded-icon mt-1 ${
+          className={`flex flex-col ${
             {
               hour: 'h-0 grow overflow-y-auto',
               day: 'h-fit',
               week: 'h-fit',
             }[viewMode]
           }`}
-          data-auto-scroll={calendarMode ? undefined : 'y'}
         >
-          <Hours
-            {...{
-              startISO,
-              endISO,
-              type,
-              blocks,
-              dragContainer,
-            }}
-          />
-          <Droppable
-            data={{ scheduled: startISO }}
-            id={`${dragContainer}::${startISO}::timeline::end`}
+          {isNow && (
+            <div className='w-full flex flex-none h-6 mt-1 items-center'>
+              <Droppable
+                id={`${dragContainer}::now`}
+                data={{
+                  scheduled: now,
+                }}
+              >
+                <div className='h-full grow flex font-menu items-center space-x-2 pl-indent'>
+                  <span className='text-xs'>Now</span>
+                  <hr className='w-full border-selection'></hr>
+                </div>
+              </Droppable>
+              <Button
+                className=''
+                src={focus ? 'maximize-2' : 'minimize-2'}
+                onClick={() => {
+                  if (!focus) {
+                    setters.patchCollapsed([id], true)
+                  }
+                  setters.patchCollapsed([TR_NOW], !focus)
+                }}
+              />
+            </div>
+          )}
+          <div
+            className={`overflow-x-hidden rounded-icon mt-1 h-full`}
+            data-auto-scroll={calendarMode ? undefined : 'y'}
           >
-            <div className='h-0 grow'></div>
-          </Droppable>
+            <Hours
+              {...{
+                startISO,
+                endISO,
+                type,
+                blocks,
+                dragContainer,
+              }}
+            />
+            <Droppable
+              data={{ scheduled: startISO }}
+              id={`${dragContainer}::${startISO}::timeline::end`}
+            >
+              <div className='h-0 grow'></div>
+            </Droppable>
+          </div>
         </div>
       </div>
     </div>

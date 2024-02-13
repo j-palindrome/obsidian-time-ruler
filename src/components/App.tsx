@@ -50,6 +50,8 @@ import { roundMinutes, isDateISO } from '../services/util'
 import { sounds } from 'src/assets/assets'
 import { createWithEqualityFn } from 'zustand/traditional'
 
+type TimesType = (Parameters<typeof Day>[0] | { type: 'unscheduled' })[]
+
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
  */
@@ -170,11 +172,15 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const nowBoundary = toISO(roundMinutes(DateTime.now().plus({ minute: 15 })))
   const tomorrow = toISO(today.plus({ days: 1, hours: dayStart }))
 
-  const times: (Parameters<typeof Day>[0] | { type: 'unscheduled' })[] = [
+  const times: TimesType = [
     { type: 'unscheduled' },
     {
-      startISO: toISO(now),
-      endISO: toISO(today.plus({ days: 1, hours: dayStart })),
+      startISO: showingPastDates
+        ? toISO(today.startOf('day').plus({ hours: dayStart }))
+        : toISO(now),
+      endISO: showingPastDates
+        ? toISO(now)
+        : toISO(today.plus({ days: 1, hours: dayStart })),
       type: 'minutes' as TimeSpanTypes,
       dragContainer: 'app',
       isNow: true,
@@ -429,7 +435,9 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                     childWidth > 1 &&
                     dayPadding(time)}
                   <div
-                    id={`time-ruler-${time.startISO.slice(0, 10)}`}
+                    id={`time-ruler-${getStartDate(
+                      DateTime.fromISO(time.startISO)
+                    )}`}
                     className={frameClass}
                   >
                     {isShowing && <Day {...time} />}
@@ -455,6 +463,12 @@ const Buttons = ({
   setWeeksShown,
   setupStore,
   showingPastDates,
+}: {
+  times: TimesType
+  weeksShownState: number
+  setWeeksShown: (weeksShownState: number) => void
+  setupStore: () => void
+  showingPastDates: boolean
 }) => {
   const now = DateTime.now()
   const viewMode = useAppStore((state) => state.settings.viewMode)
@@ -479,9 +493,6 @@ const Buttons = ({
     </div>
   )
 
-  const buttonMaps = times.concat()
-  buttonMaps.splice(1, 0, {})
-
   const [showingModal, setShowingModal] = useState(false)
   const modalFrame = useRef<HTMLDivElement>(null)
   const checkShowing = (ev: MouseEvent) => {
@@ -504,13 +515,16 @@ const Buttons = ({
   const yesterday = getStartDate(now.minus({ days: 1 }))
   const tomorrow = getStartDate(now.plus({ days: 1 }))
 
-  const renderButton = (time, i) => {
-    const start = getStartDate(DateTime.fromISO(time.startISO))
-    const thisDate = DateTime.fromISO(start)
+  const renderButton = (time: TimesType[number], i) => {
+    const start =
+      time.type === 'unscheduled'
+        ? undefined
+        : getStartDate(DateTime.fromISO(time.startISO))
+    const thisDate = start ? DateTime.fromISO(start) : undefined
     return (
       <Droppable
         key={time.type === 'unscheduled' ? 'unscheduled' : time.startISO}
-        id={time.startISO + '::button'}
+        id={(time.type === 'unscheduled' ? 'unscheduled' : start) + '::button'}
         data={{
           scheduled: start,
         }}
@@ -519,9 +533,7 @@ const Buttons = ({
           className='h-[28px]'
           onClick={() =>
             scrollToSection(
-              time.type === 'unscheduled'
-                ? 'unscheduled'
-                : time.startISO.slice(0, 10)
+              time.type === 'unscheduled' ? 'unscheduled' : start!
             )
           }
         >
@@ -533,7 +545,7 @@ const Buttons = ({
             ? 'Yesterday'
             : start === tomorrow
             ? 'Tomorrow'
-            : thisDate.toFormat('EEE MMM d')}
+            : thisDate!.toFormat('EEE MMM d')}
         </Button>
       </Droppable>
     )

@@ -33,7 +33,6 @@ export default function Search() {
   const [search, setSearch] = useState('')
   const searchExp = convertSearchToRegExp(search)
   const splitSearch = search.split('')
-  const NOT_INCLUDED = 25
   const foundTasks = _.sortBy(
     allTasks.filter(([strings]) =>
       strings.find((string) => !search || (string && searchExp.test(string)))
@@ -41,15 +40,17 @@ export default function Search() {
     ([_matches, task]) => {
       let total = 0
       let index = 0
+      const title = task.title.toLowerCase()
+      let notFound = 0
       for (let char of splitSearch) {
-        const newIndex = task.title.indexOf(char, index)
+        const newIndex = title.indexOf(char, index)
         if (newIndex !== -1) {
-          total += newIndex - total
+          total += newIndex
           index = newIndex
-        } else total += NOT_INCLUDED
+        } else notFound += 1
       }
 
-      return total
+      return notFound * 25 + total
     }
   )
 

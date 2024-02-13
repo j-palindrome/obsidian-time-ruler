@@ -96,7 +96,10 @@ export default class ObsidianAPI extends Component {
       if (!DateTime.isDateTime(taskDate)) return true
       const dateString = toISO(taskDate)
 
-      return dateString >= dateBounds[0] && dateString <= dateBounds[1]
+      // Incomplete looks at preceding tasks, complete looks at following tasks
+      return completed
+        ? dateString >= dateBounds[0]
+        : dateString <= dateBounds[1]
     }
 
     try {
@@ -382,18 +385,9 @@ export default class ObsidianAPI extends Component {
     }
   }
 
-  private async createTaskInPath(
-    path: string,
-    dropData: Partial<TaskProps>,
-    completed = false
-  ) {
-    let [fileName, heading] = path.split('#')
+  async createFileFromPath(path: string) {
+    let [fileName] = path.split('#')
     if (!fileName.endsWith('.md')) fileName += '.md'
-
-    let position = {
-      start: { col: 0, line: 0, offset: 0 },
-      end: { col: 0, line: 0, offset: 0 },
-    }
 
     let file = app.vault.getAbstractFileByPath(fileName)
     const dailyNoteInfo = getters.get('dailyNoteInfo')
@@ -412,9 +406,23 @@ export default class ObsidianAPI extends Component {
     }
     if (!(file instanceof TFile)) {
       new Notice(`Time Ruler: failed to create file ${fileName}`)
-      return
+      throw new Error(`Time Ruler: failed to create file ${fileName}`)
+    }
+    return file
+  }
+
+  private async createTaskInPath(
+    path: string,
+    dropData: Partial<TaskProps>,
+    completed = false
+  ) {
+    let [fileName, heading] = path.split('#')
+    let position = {
+      start: { col: 0, line: 0, offset: 0 },
+      end: { col: 0, line: 0, offset: 0 },
     }
 
+    const file = await this.createFileFromPath(path)
     const text = await app.vault.read(file)
     const lines = text.split('\n')
 
