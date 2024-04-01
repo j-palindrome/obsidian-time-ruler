@@ -12,6 +12,7 @@ import {
   getChildren,
 } from './util'
 import invariant from 'tiny-invariant'
+import { parseFileFromPath } from './util'
 
 export const onDragEnd = async (
   ev: DragEndEvent,
@@ -32,7 +33,10 @@ export const onDragEnd = async (
       switch (dropData.type) {
         case 'heading':
           if (dragData.dragType !== 'group') break
-          setters.updateFileOrder(dragData.path, dropData.heading)
+          setters.updateFileOrder(
+            parseFileFromPath(dragData.headingPath),
+            parseFileFromPath(dropData.heading)
+          )
           break
         case 'delete':
           const tasks = getters.get('tasks')

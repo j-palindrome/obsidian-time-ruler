@@ -1,4 +1,16 @@
+import _, { reject } from 'lodash'
 import { DateTime, Duration } from 'luxon'
+import moment from 'moment'
+import { Platform } from 'obsidian'
+import { useEffect } from 'react'
+import { BlockProps, UNGROUPED } from 'src/components/Block'
+import {
+  TaskPriorities,
+  priorityKeyToNumber,
+  priorityNumberToSimplePriority,
+  simplePriorityToNumber,
+} from 'src/types/enums'
+import invariant from 'tiny-invariant'
 import {
   AppState,
   getters,
@@ -6,25 +18,6 @@ import {
   useAppStore,
   useAppStoreRef,
 } from '../app/store'
-import moment from 'moment'
-import _, { reject } from 'lodash'
-import ObsidianAPI, { getDailyNoteInfo } from './obsidianApi'
-import NewTask from 'src/components/NewTask'
-import { ScriptHTMLAttributes, useEffect, useRef, useState } from 'react'
-import useStateRef from 'react-usestateref'
-import invariant from 'tiny-invariant'
-import { Platform } from 'obsidian'
-import TimeRulerPlugin from 'src/main'
-import { TaskComponentProps } from 'src/components/Task'
-import {
-  TaskPriorities,
-  priorityKeyToNumber,
-  priorityNumberToKey,
-  priorityNumberToSimplePriority,
-  simplePriorityToNumber,
-} from 'src/types/enums'
-import { BlockProps, UNGROUPED } from 'src/components/Block'
-import { useRect } from '@dnd-kit/core/dist/hooks/utilities'
 
 export function roundMinutes(date: DateTime) {
   return date.set({
@@ -90,9 +83,9 @@ export const parseFolderFromPath = (path: string) => {
 }
 
 export const parseFileFromPath = (path: string) => {
-  if (path.includes('>')) path = path.slice(0, path.indexOf('>'))
   if (path.includes('#')) path = path.slice(0, path.indexOf('#'))
-  if (path.includes(':')) path = path.slice(0, path.indexOf(':'))
+  if (path.includes('>')) path = path.slice(0, path.indexOf('>'))
+  if (path.includes('::')) path = path.slice(0, path.indexOf('::'))
   return path
 }
 
@@ -120,88 +113,59 @@ export const parseDateFromPath = (
   return date
 }
 
-export const parseHeadingFromTask = (
-  task: TaskProps,
-  tasks: AppState['tasks'],
+export const splitHeading = (heading: string) => {
+  return (
+    heading.includes('>')
+      ? heading.split('>', 2)
+      : heading.includes('#')
+      ? heading.split('#', 2)
+      : heading.includes('/')
+      ? heading.split('/', 2)
+      : ['', heading]
+  ) as [string, string]
+}
+
+export const getHeading = (
+  { path, page, priority }: Pick<TaskProps, 'path' | 'page' | 'priority'>,
   dailyNoteInfo: AppState['dailyNoteInfo'],
-  hidePaths: string[] = [],
-  parentId?: string
-) => {
-  let parent = task.parent ? tasks[task.parent] : undefined
-  if (parent?.id === parentId) parent = undefined
-  const heading =
-    parseHeadingFromPath(task.path, task.page, dailyNoteInfo) +
-    (parent ? '>' + parent.title : '')
-  if (hidePaths.includes(heading)) return undefined
-  return heading
-}
-
-export const parseHeadingFromPath = (
-  path: string,
-  isPage: boolean,
-  dailyNoteInfo: AppState['dailyNoteInfo']
-): string => {
-  let name = ''
-  let fileName = parseFileFromPath(path).replace('.md', '')
-  if (isPage) {
-    // page headings are their containing folder
-    name = parseFolderFromPath(fileName)
-  } else if (parseDateFromPath(fileName, dailyNoteInfo)) {
-    name =
-      'Daily' +
-      (path.includes('#') ? '#' + path.slice(path.indexOf('#') + 1) : '')
-  } else name = path
-
-  return name
-}
-
-export const formatHeadingTitle = (
-  path: string | number,
   groupBy: AppState['settings']['groupBy'],
-  dailyNoteInfo: AppState['dailyNoteInfo'],
-  page?: boolean
-): [string, string] => {
-  path = String(path)
-  switch (groupBy) {
-    case 'path':
-      invariant(typeof path === 'string')
-      const name = parseHeadingFromPath(path, page ?? false, dailyNoteInfo)
-      return [
-        path.includes('>')
-          ? path.slice(path.lastIndexOf('>') + 1)
-          : path.includes('#')
-          ? path.slice(path.lastIndexOf('#') + 1)
-          : path
-              .slice(path.includes('/') ? path.lastIndexOf('/') + 1 : 0)
-              .replace('.md', ''),
-        name.includes('#')
-          ? parseFileFromPath(name)
-          : parseFolderFromPath(name),
-      ]
-    case 'priority':
-      return [priorityNumberToSimplePriority[path], '']
-    case 'hybrid':
-      return priorityNumberToSimplePriority[path]
-        ? [priorityNumberToSimplePriority[path], '']
-        : formatHeadingTitle(path, 'path', dailyNoteInfo, page)
-    case false:
-      return ['', '']
-  }
+  hidePaths: string[] = []
+): string => {
+  path = path.replace('.md', '')
+  let heading = path
+  if (
+    groupBy === 'priority' ||
+    (groupBy === 'hybrid' && priority !== TaskPriorities.DEFAULT)
+  )
+    heading = priorityNumberToSimplePriority[priority]
+  else if (groupBy === 'path' || groupBy === 'hybrid') {
+    // replace daily note
+    const file = parseFileFromPath(heading)
+    const date = parseDateFromPath(file, dailyNoteInfo)
+    if (date) heading = heading.replace(file, `Daily: ${date.format('MMM DD')}`)
+    if (page) {
+      heading = parseFolderFromPath(path)
+    }
+  } else heading = UNGROUPED
+
+  if (hidePaths.includes(heading)) heading = UNGROUPED
+  return heading
 }
 
 export const getTasksByHeading = (
   tasks: AppState['tasks'],
   dailyNoteInfo: AppState['dailyNoteInfo'],
-  fileOrder: string[]
+  fileOrder: string[],
+  groupBy: AppState['settings']['groupBy']
 ): [string, TaskProps[]][] => {
   return _.sortBy(
     _.entries(
       _.groupBy(
         _.filter(tasks, (task) => !task.completed),
-        (task) => parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+        (task) => getHeading(task, dailyNoteInfo, groupBy)
       )
     ),
-    ([heading, _tasks]) => fileOrder.indexOf(heading)
+    ([heading, _tasks]) => fileOrder.indexOf(parseFileFromPath(heading))
   )
 }
 

@@ -3,7 +3,7 @@ import { useAppStore } from '../app/store'
 import { getEndISO } from '../services/util'
 
 import Block, { BlockProps } from './Block'
-import Minutes, { TimeSpanTypes } from './Minutes'
+import Minutes from './Minutes'
 
 export default function Hours({
   startISO,

@@ -86,10 +86,6 @@ export const useAutoScroll = () => {
         }
       }
 
-      if (found) {
-        console.log('set timeout')
-      }
-
       if (!found && timeout.current) {
         clearTimeout(timeout.current)
         timeout.current = null

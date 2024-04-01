@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom'
 import { setters, useAppStore } from 'src/app/store'
 import { openTaskInRuler } from 'src/services/obsidianApi'
 import { convertSearchToRegExp } from 'src/services/util'
-import { priorityNumberToKey } from '../types/enums'
 import { parseFolderFromPath } from '../services/util'
+import { priorityNumberToKey } from '../types/enums'
 
 export default function Search() {
   const tasks = useAppStore((state) => state.tasks)

@@ -2,11 +2,12 @@ import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
 import { setters, useAppStore } from '../app/store'
-import { openTask, openTaskInRuler } from '../services/obsidianApi'
+import { openTask } from '../services/obsidianApi'
 import {
+  getHeading,
   isDateISO,
   nestedScheduled,
-  parseHeadingFromPath,
+  parseTaskDate,
   roundMinutes,
   toISO,
 } from '../services/util'
@@ -36,23 +37,24 @@ export default function Task({
   }
 
   subtasks = useAppStore((state) => {
-    return _.flatMap(
+    let newSubtasks = _.flatMap(
       subtasks ??
         task.children
           .concat(task.queryChildren ?? [])
           .map((id) => state.tasks[id]),
       (subtask) => {
         if (!subtask) return []
-        if (
-          !nestedScheduled(task.scheduled, subtask.scheduled) &&
-          !nestedScheduled(task.due, subtask.scheduled)
-        ) {
+        if (!nestedScheduled(parseTaskDate(task), subtask.scheduled)) {
           return []
         }
         if (subtask.completed !== state.showingPastDates) return []
         return subtask
       }
     )
+
+    if (!state.settings.scheduledSubtasks)
+      newSubtasks = newSubtasks.filter((task) => task.scheduled)
+    return newSubtasks
   })
 
   const dragData: DragData = {
@@ -102,6 +104,7 @@ export default function Task({
   })
 
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
+  const groupBy = useAppStore((state) => state.settings.groupBy)
 
   if (!task) return <></>
 
@@ -251,8 +254,9 @@ export default function Task({
             <Block
               dragContainer={`${dragContainer}::${task.id}`}
               hidePaths={[
-                parseHeadingFromPath(task.path, false, dailyNoteInfo),
-                task.path,
+                getHeading(task, dailyNoteInfo, groupBy),
+                getHeading(task, dailyNoteInfo, 'path'),
+                getHeading({ ...task, page: false }, dailyNoteInfo, 'path'),
               ]}
               startISO={startISO}
               tasks={subtasks}

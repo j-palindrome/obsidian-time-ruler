@@ -18,6 +18,13 @@
 
 # Changelog
 
+## 2.3.0 (Upcoming)
+**Changed:**
+- Removed "Upcoming" section, due tasks now show with their path/priority group
+
+**Fixed:**
+- Reorder headings within "Hybrid" sort mode
+
 ## 2.2.0 (1/31/2023)
 
 **Changed:**

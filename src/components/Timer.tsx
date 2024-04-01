@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import { useStopwatch, useTimer } from 'react-timer-hook'
-import { getters, setters, useAppStore } from '../app/store'
+import { setters, useAppStore } from '../app/store'
 import { sounds } from '../assets/assets'
 import Button from './Button'
 

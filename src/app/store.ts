@@ -47,6 +47,7 @@ export type AppState = {
     | 'borders'
     | 'viewMode'
     | 'timerEvent'
+    | 'scheduledSubtasks'
   >
   collapsed: Record<string, boolean>
   showingPastDates: boolean
@@ -88,6 +89,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     hideTimes: false,
     borders: false,
     viewMode: 'day',
+    scheduledSubtasks: false,
   },
   showingPastDates: false,
   searchWithinWeeks: [-1, 1],
@@ -131,12 +133,9 @@ export const setters = {
       }
     })
   },
-  updateFileOrder: (heading: string, beforeHeading: string) => {
+  updateFileOrder: (file: string, beforeFile: string) => {
     const obsidianAPI = getters.getObsidianAPI()
-    obsidianAPI.updateFileOrder(
-      parseFileFromPath(heading),
-      parseFileFromPath(beforeHeading)
-    )
+    obsidianAPI.updateFileOrder(file, beforeFile)
   },
   patchTimer: (timer: Partial<AppState['timer']>) => {
     modify((state) => {

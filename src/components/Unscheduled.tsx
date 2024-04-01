@@ -1,11 +1,9 @@
 import _ from 'lodash'
 import { memo } from 'react'
-import { setters, useAppStore } from 'src/app/store'
-import { formatHeadingTitle, parseTaskDate } from 'src/services/util'
+import { useAppStore } from 'src/app/store'
+import { parseTaskDate } from 'src/services/util'
 import Block from './Block'
-import Button from './Button'
 import Droppable from './Droppable'
-import { TaskPriorities } from 'src/types/enums'
 
 const Unscheduled = memo(_Unscheduled, () => true)
 export default Unscheduled

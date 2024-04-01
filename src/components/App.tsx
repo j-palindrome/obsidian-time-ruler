@@ -15,6 +15,7 @@ import { DateTime } from 'luxon'
 import { Notice, Platform } from 'obsidian'
 import { getAPI } from 'obsidian-dataview'
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { sounds } from 'src/assets/assets'
 import { onDragEnd, onDragStart } from 'src/services/dragging'
 import invariant from 'tiny-invariant'
 import {
@@ -25,10 +26,11 @@ import {
   useAppStoreRef,
 } from '../app/store'
 import { useAutoScroll } from '../services/autoScroll'
-import ObsidianAPI, { getDailyNoteInfo } from '../services/obsidianApi'
+import { getDailyNoteInfo } from '../services/obsidianApi'
 import {
   getStartDate,
   getToday,
+  roundMinutes,
   scrollToSection,
   toISO,
   useChildWidth,
@@ -43,12 +45,7 @@ import { TimeSpanTypes } from './Minutes'
 import NewTask from './NewTask'
 import Search from './Search'
 import Task from './Task'
-import { Timer } from './Timer'
 import Unscheduled from './Unscheduled'
-import { ViewMode } from '../app/store'
-import { roundMinutes, isDateISO } from '../services/util'
-import { sounds } from 'src/assets/assets'
-import { createWithEqualityFn } from 'zustand/traditional'
 
 type TimesType = (Parameters<typeof Day>[0] | { type: 'unscheduled' })[]
 
@@ -82,6 +79,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       borders: apis.obsidian.getSetting('borders'),
       viewMode: apis.obsidian.getSetting('viewMode'),
       timerEvent: apis.obsidian.getSetting('timerEvent'),
+      scheduledSubtasks: apis.obsidian.getSetting('scheduledSubtasks'),
     }
 
     setters.set({

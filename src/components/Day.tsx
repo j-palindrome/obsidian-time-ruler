@@ -1,30 +1,23 @@
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
-import { getDailyNoteInfo, openTaskInRuler } from '../services/obsidianApi'
+import { openTaskInRuler } from '../services/obsidianApi'
 import {
-  formatHeadingTitle,
-  getParents,
   getStartDate,
-  getToday,
   isDateISO,
-  nestedScheduled,
-  parseHeadingFromPath,
   parsePathFromDate,
   parseTaskDate,
   roundMinutes,
   toISO,
 } from '../services/util'
-import Block, { BlockProps, UNGROUPED } from './Block'
+import Block, { BlockProps } from './Block'
 import Button from './Button'
 import Droppable from './Droppable'
 import Hours from './Hours'
 import { TimeSpanTypes } from './Minutes'
-import Task from './Task'
-import { TaskPriorities } from '../types/enums'
 import { Timer } from './Timer'
 
 export default function Day({
@@ -50,7 +43,7 @@ export default function Day({
   /**
    * find the nearest scheduled date in parents (include ALL tasks which will be in this block). Day -> Hours -> Block all take a single flat list of scheduled tasks, which they use to calculate total length of the block. Blocks group them by parent -> filepath/heading, calculating queries and unscheduled parents.
    */
-  const [allDay, blocksByTime, deadlines] = useAppStore((state) => {
+  const [allDay, blocksByTime] = useAppStore((state) => {
     const allDay: BlockProps = {
       startISO: startDate,
       endISO: startDate,
@@ -59,7 +52,6 @@ export default function Day({
       events: [],
     }
     const blocksByTime: Record<string, BlockProps> = {}
-    const deadlines: TaskProps[] = []
     _.forEach(state.tasks, (task) => {
       const scheduled = parseTaskDate(task)
 
@@ -108,12 +100,12 @@ export default function Day({
       }
     })
 
-    for (let event of _.filter(
-      state.events,
-      (event) =>
-        event.endISO > startISO &&
-        event.startISO < endISO &&
-        (showingPastDates ? event.startISO <= now : event.endISO >= now)
+    for (let event of _.filter(state.events, (event) =>
+      isDateISO(event.startISO)
+        ? event.startISO <= startDate && event.endISO >= startDate
+        : event.endISO > startISO &&
+          event.startISO < endISO &&
+          (showingPastDates ? event.startISO <= now : event.endISO >= now)
     )) {
       if (isDateISO(event.startISO)) allDay.events.push(event)
       else if (blocksByTime[event.startISO])
@@ -128,7 +120,7 @@ export default function Day({
         }
     }
 
-    return [allDay, blocksByTime, deadlines]
+    return [allDay, blocksByTime]
   }, shallow)
 
   let blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
@@ -230,7 +222,7 @@ export default function Day({
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        {deadlines.length + allDay.tasks.length + allDay.events.length > 0 && (
+        {allDay.tasks.length + allDay.events.length > 0 && (
           <div
             className={`relative w-full child:mb-1 overflow-x-hidden rounded-icon mt-1 ${
               {

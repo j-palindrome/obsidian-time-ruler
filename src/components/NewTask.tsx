@@ -1,15 +1,14 @@
-import { useDraggable, DragEndEvent } from '@dnd-kit/core'
+import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import {
   convertSearchToRegExp,
+  getHeading,
   parseFileFromPath,
-  parseFolderFromPath,
-  parseHeadingFromPath,
-  formatHeadingTitle,
+  splitHeading,
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
@@ -53,14 +52,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     return _.uniq(
       _.flatMap(state.tasks, (task) => {
         if (task.completed) return []
-        const heading = parseHeadingFromPath(
-          task.path,
-          task.page,
-          dailyNoteInfo
-        )
-        return heading.includes('#')
-          ? [heading, parseFileFromPath(heading)]
-          : heading
+        return getHeading(task, dailyNoteInfo, 'path')
       })
     ).sort()
   }, shallow)
@@ -154,7 +146,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
             ></input>
             <div className='h-0 w-full grow space-y-1 overflow-y-auto text-sm'>
               {filteredHeadings.map((path) => (
-                <NewTaskHeading key={path} path={path} />
+                <NewTaskHeading key={path} headingPath={path} />
               ))}
             </div>
           </div>
@@ -164,23 +156,23 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   )
 }
 
-function NewTaskHeading({ path }: { path: string }) {
+function NewTaskHeading({ headingPath }: { headingPath: string }) {
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const [title, container] = useAppStore((state) =>
-    formatHeadingTitle(path, 'path', dailyNoteInfo)
-  )
+  const [container, title] = splitHeading(headingPath)
   const newTask = useAppStore((state) => state.newTask)
   invariant(newTask)
 
   return (
     <div
-      key={path}
+      key={headingPath}
       onMouseDown={() => {
-        getters.getObsidianAPI().createNewTask(newTask, path, dailyNoteInfo)
+        getters
+          .getObsidianAPI()
+          .createNewTask(newTask, headingPath, dailyNoteInfo)
         setTimeout(() => setters.set({ newTask: false }))
       }}
       className={`flex items-center w-full selectable cursor-pointer rounded-icon px-2 hover:underline ${
-        path.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
+        headingPath.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
       }`}
     >
       <div className='grow'>{title}</div>

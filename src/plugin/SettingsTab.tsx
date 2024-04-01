@@ -217,6 +217,18 @@ export default class SettingsTab extends PluginSettingTab {
       )
 
     new Setting(containerEl)
+      .setName('Show Unscheduled Subtasks')
+      .setDesc('Show subtasks without a set scheduled date.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.scheduledSubtasks)
+          .onChange((value) => {
+            this.plugin.settings.scheduledSubtasks = value
+            this.plugin.saveSettings()
+          })
+      )
+
+    new Setting(containerEl)
       .setName('Custom Filter')
       .setDesc(
         `Enable a custom Dataview filter to filter tasks (at the document level) which is passed to dv.pages('<custom filter>')`

@@ -22,12 +22,11 @@ import {
   textToTask,
 } from './parser'
 import {
-  formatHeadingTitle,
+  getHeading,
   getParentScheduled,
   getParents,
   parseDateFromPath,
   parseFileFromPath,
-  parseHeadingFromPath,
   parsePathFromDate,
   parseTaskDate,
   queryTasks,
@@ -35,6 +34,7 @@ import {
   toISO,
 } from './util'
 import invariant from 'tiny-invariant'
+import { splitHeading } from './util'
 
 let dv: DataviewApi
 
@@ -238,19 +238,19 @@ export default class ObsidianAPI extends Component {
       ...getters.get('tasks'),
     }
 
-    const newHeadings = _.uniq(
+    const newFiles = _.uniq(
       processedTasks.map((task) =>
         parseFileFromPath(
-          parseHeadingFromPath(task.path, task.page, dailyNoteInfo)
+          getHeading(task, dailyNoteInfo, getters.get('settings').groupBy)
         )
       )
     )
       .filter((heading) => !this.settings.fileOrder.includes(heading))
       .sort()
 
-    if (newHeadings.length > 0) {
+    if (newFiles.length > 0) {
       const newHeadingOrder = [...this.settings.fileOrder]
-      for (let heading of newHeadings) {
+      for (let heading of newFiles) {
         const afterFile = newHeadingOrder.findIndex(
           (otherHeading) => otherHeading > heading
         )
@@ -368,13 +368,7 @@ export default class ObsidianAPI extends Component {
 
       let path = parsePathFromDate(date, dailyNoteInfo)
       if (selectedHeading && selectedHeading.includes('#'))
-        path +=
-          '#' +
-          formatHeadingTitle(
-            selectedHeading,
-            'path',
-            getters.get('dailyNoteInfo')
-          )[0]
+        path += '#' + splitHeading(selectedHeading)[1]
       this.createTaskInPath(path, newTask, getters.get('showingPastDates'))
     } else {
       this.createTaskInPath(
@@ -417,6 +411,8 @@ export default class ObsidianAPI extends Component {
     completed = false
   ) {
     let [fileName, heading] = path.split('#')
+    if (!fileName.endsWith('.md')) fileName += '.md'
+
     let position = {
       start: { col: 0, line: 0, offset: 0 },
       end: { col: 0, line: 0, offset: 0 },

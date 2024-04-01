@@ -43,6 +43,7 @@ type TimeRulerSettings = {
   hideTimes: boolean
   borders: boolean
   viewMode: 'hour' | 'day' | 'week'
+  scheduledSubtasks: boolean
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -68,6 +69,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   hideTimes: false,
   borders: true,
   viewMode: 'day',
+  scheduledSubtasks: true,
 }
 
 export default class TimeRulerPlugin extends Plugin {

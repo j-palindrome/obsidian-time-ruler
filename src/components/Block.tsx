@@ -1,29 +1,25 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { openTask } from 'src/services/obsidianApi'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { TaskPriorities, priorityNumberToKey } from 'src/types/enums'
 import { shallow } from 'zustand/shallow'
-import { getters, setters, useAppStore } from '../app/store'
+import { setters, useAppStore } from '../app/store'
 import {
+  getChildren,
+  getHeading,
   isDateISO,
   parseFileFromPath,
-  parseHeadingFromPath,
-  formatHeadingTitle,
-  getChildren,
   roundMinutes,
+  splitHeading,
   toISO,
-  parseHeadingFromTask,
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
 import Group from './Group'
 import Hours from './Hours'
-import { TaskComponentProps } from './Task'
 import Minutes from './Minutes'
-import { useEffect, useMemo, useState } from 'react'
-import { TaskPriorities, priorityNumberToKey } from 'src/types/enums'
-import { priorityKeyToNumber } from '../types/enums'
-import { createPortal } from 'react-dom'
 import { COLLAPSE_UNSCHEDULED } from './Unscheduled'
 
 export type BlockComponentProps = BlockProps & {
@@ -36,7 +32,6 @@ export type BlockComponentProps = BlockProps & {
 }
 
 export const UNGROUPED = '__ungrouped'
-export const UPCOMING = '__upcoming'
 export type BlockType = 'event' | 'unscheduled' | 'child' | 'all-day'
 export type BlockProps = {
   startISO?: string
@@ -67,40 +62,9 @@ export default function Block({
   const topLevel = _.sortBy(showingTasks, 'id')
 
   const groupedTasks = useAppStore((state) => {
-    const groupBy = state.settings.groupBy
-    return _.groupBy(topLevel, (task) => {
-      if (type === 'all-day' && task.due) return UPCOMING
-      switch (groupBy) {
-        case false:
-          return UNGROUPED
-        case 'path':
-          return (
-            parseHeadingFromTask(
-              task,
-              state.tasks,
-              state.dailyNoteInfo,
-              hidePaths,
-              parentId
-            ) ?? UNGROUPED
-          )
-
-        case 'priority':
-          return task.priority === TaskPriorities.DEFAULT
-            ? UNGROUPED
-            : task.priority
-
-        case 'hybrid':
-          return task.priority === TaskPriorities.DEFAULT
-            ? parseHeadingFromTask(
-                task,
-                state.tasks,
-                state.dailyNoteInfo,
-                hidePaths,
-                parentId
-              ) ?? UNGROUPED
-            : task.priority
-      }
-    })
+    return _.groupBy(topLevel, (task) =>
+      getHeading(task, state.dailyNoteInfo, state.settings.groupBy, hidePaths)
+    )
   })
 
   const sortedGroups = useAppStore((state) => {
@@ -108,35 +72,26 @@ export default function Block({
       case 'priority':
         return _.sortBy(
           _.entries(groupedTasks),
-          ([group]) => (group === UNGROUPED ? 0 : group === UPCOMING ? 0.1 : 1),
+          ([group]) => (group === UNGROUPED ? 0 : 1),
           0
         )
       case 'path':
-        return _.sortBy(_.entries(groupedTasks), [
-          ([group]) => (group === UPCOMING ? 0 : 1),
+        return _.sortBy(
+          _.entries(groupedTasks),
+          ([group, _tasks]) => (group === UNGROUPED ? 0 : 1),
           ([group, _tasks]) =>
             state.fileOrder.indexOf(parseFileFromPath(group)),
-          ([group, _tasks]) =>
-            group.includes('>') ? '2' : group.includes('#') ? '1' : '0',
-          '1.0.id',
-        ])
+          '1.0.position.start.line'
+        )
       case 'hybrid':
-        return _.sortBy(_.entries(groupedTasks), [
-          ([group]) => (group === UPCOMING ? 0 : 1),
+        return _.sortBy(
+          _.entries(groupedTasks),
+          ([group, _tasks]) => (group === UNGROUPED ? 0 : 1),
+          '1.0.priority',
           ([group, _tasks]) =>
-            group === UNGROUPED
-              ? 0
-              : priorityNumberToKey[group] !== undefined
-              ? 1
-              : 2,
-          ([group, _tasks]) =>
-            priorityNumberToKey[group] !== undefined
-              ? group
-              : state.fileOrder.indexOf(parseFileFromPath(group)),
-          ([group, _tasks]) =>
-            group.includes('>') ? '2' : group.includes('#') ? '1' : '0',
-          '1.0.id',
-        ])
+            state.fileOrder.indexOf(parseFileFromPath(group)),
+          '1.0.position.start.line'
+        )
       case false:
         return _.entries(groupedTasks)
     }
@@ -191,17 +146,7 @@ export default function Block({
     sortedGroups[0][0] !== UNGROUPED
       ? sortedGroups[0][0]
       : undefined
-  const onlyPathTitle = useAppStore(
-    (state) =>
-      onlyPath &&
-      (onlyPath === UPCOMING
-        ? 'Upcoming'
-        : formatHeadingTitle(
-            onlyPath,
-            state.settings.groupBy,
-            state.dailyNoteInfo
-          )[0])
-  )
+  const onlyPathTitle = onlyPath ? splitHeading(onlyPath)[1] : undefined
 
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const firstEndISO = blocks[0]?.startISO || endISO
@@ -339,7 +284,7 @@ export default function Block({
               <Group
                 key={path}
                 {...{
-                  path,
+                  headingPath: path,
                   tasks,
                   type,
                   hidePaths: onlyPath ? [...hidePaths, onlyPath] : hidePaths,
