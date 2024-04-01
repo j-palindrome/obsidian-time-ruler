@@ -109,7 +109,7 @@ export default function Task({
   if (!task) return <></>
 
   const hasLengthDrag =
-    task.length || (task.scheduled && !isDateISO(task.scheduled))
+    task.duration || (task.scheduled && !isDateISO(task.scheduled))
 
   return (
     <div
@@ -164,17 +164,17 @@ export default function Task({
             )}
             {hasLengthDrag && (
               <div
-                className={`task-length cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
-                  !task.length ? 'hidden group-hover:block' : ''
+                className={`task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+                  !task.duration ? 'hidden group-hover:block' : ''
                 }`}
                 ref={setLengthNodeRef}
                 {...lengthAttributes}
                 {...lengthListeners}
               >
-                {!task.length
+                {!task.duration
                   ? 'length'
-                  : `${task.length?.hour ? `${task.length?.hour}h` : ''}${
-                      task.length?.minute ? `${task.length?.minute}m` : ''
+                  : `${task.duration?.hour ? `${task.duration?.hour}h` : ''}${
+                      task.duration?.minute ? `${task.duration?.minute}m` : ''
                     }`}
               </div>
             )}
@@ -213,7 +213,7 @@ export default function Task({
           <Logo src='align-justify' className='py-2 px-1 h-full' />
         </div>
       </div>
-      {_.keys(task.extraFields).length > 0 && (
+      {task.tags.length > 0 && (
         <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-indent text-xs child:whitespace-nowrap'>
           {task.tags.map((tag) => (
             <div

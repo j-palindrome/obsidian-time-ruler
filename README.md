@@ -6,7 +6,7 @@ Time Ruler combines the best parts of a nested tasklist and an event-based calen
 - **Reads and writes tasks** in a variety of formats (Dataview inline fields, Tasks plugin emojis, or Full Calendar task-events)
 - **Time-blocks** with nested tasks
 - **Search** and filter scheduled, unscheduled, and due tasks 
-- **Drag 'n drop** tasks to reschedule and change length
+- **Drag 'n drop** tasks to reschedule and change duration
 - Show all **files and headings**, drag to create new tasks
 - **Create** new tasks at specific times via drag-and-drop
 - Read-only **online calendars** via sharing links
@@ -19,12 +19,12 @@ Time Ruler uses the [Dataview](obsidian://show-plugin?id=dataview) plugin to rea
 ## Reading tasks
 Task metadata can be specified in any of the following formats:
 - **Day Planner**: `YYYY-MM-DD hh:mm - hh:mm task content > yyyy-mm-dd [query:: <query>] ?/!/!!/!!!`
-  - Beginning date/times: scheduled & length, `>`: due date.
+  - Beginning date/times: scheduled & duration, `>`: due date.
   - In Daily Notes, you can omit the date from scheduled and Time Ruler will parse the date from the note title. Only 24-hour format times are understood. 
   - You can omit minutes and only put `hh - hh` for times.
-- **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [length:: #h#m]  [priority:: lowest/low/medium/high/highest] [query:: <query>]`
+- **Dataview**: `[scheduled:: yyyy-mm-ddThh:mm]  [due:: yyyy-mm-dd]  [duration:: #h#m]  [priority:: lowest/low/medium/high/highest] [query:: <query>]`
   - `#h#m` examples: `1h`, `1h30m`, `1.5h`, etc. Any [Dataview duration](https://blacksmithgu.github.io/obsidian-dataview/annotation/types-of-metadata/#duration) will work.
-- **Tasks**: `[startTime:: hh:mm]  [length:: #h#m] [query:: <query>] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
+- **Tasks**: `[startTime:: hh:mm]  [duration:: #h#m] [query:: <query>] ⏳ yyyy-mm-dd 📅 yyyy-mm-dd ⏬/🔽/🔼/⏫/🔺`
   - ⏳: scheduled, 📅: due. See the [Tasks docs](https://publish.obsidian.md/tasks/Getting+Started/Dates) for a full description.
   - Order matters: inline fields must go before tasks emojis or Tasks won't understand it.
 - **Full Calendar**: `[date:: yyyy-mm-dd]  [startTime:: hh:mm]  [endTime:: hh:mm] or [allDay:: true] [due:: yyyy-mm-dd]  [priority:: lowest/low/medium/high/highest] [query:: <query>]`
@@ -42,7 +42,7 @@ Time Ruler now reads **Full Calendar note events** as well as any page with `com
 - `scheduled: date`
 - `due: date`
 - `priority: highest/high/medium/low/lowest`
-- `length: #h#m` (a Dataview duration - see above)
+- `duration: #h#m` (a Dataview duration - see above)
 - `start: date`
 
 ### Reminder
@@ -58,7 +58,7 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
 
 - To **reschedule** a task, drag-and-drop the task onto the target block or time. You can drag a task to one of the day buttons or a day's heading to reschedule to that day. Click on a task to jump to it in Obsidian.
 - To **create** a new scheduled task, drag the `+` button (top left) onto a time. For unscheduled, simply click the `+` button.
-- To change the **length** of a task, drag its length onto a time.
+- To change the **duration** of a task, drag its duration onto a time.
 - To change the **deadline** of a task, drag its deadline onto a time.
 - To **unschedule** a task, drag the task to the `Unscheduled` button.
 - You can also drag **groups, headings, and blocks** to reschedule all of the tasks contained in them.
@@ -100,7 +100,7 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
   - Include links from page: `outgoing([[page]])`
 - **Custom Status**: Either **include only** certain custom statuses, or **exclude all** specified custom statuses (characters between `[ ]` in tasks).
 - To style Time Ruler, the following classes are added: 
-  - `task-list-item`, `task-list-item-checkbox`, `task-due`, `task-scheduled`, `data-task`, and `task-priority` coincide with [Tasks plugin](https://publish.obsidian.md/tasks/Advanced/Styling) styling, and additional `task-length` and `task-reminder` classes are added to those parts of tasks, so you can style them with CSS snippets (unfortunately, you will need to add your own custom status styling, due to custom themes being formatted for the Obsidian markdown editor, and not Time Ruler).
+  - `task-list-item`, `task-list-item-checkbox`, `task-due`, `task-scheduled`, `data-task`, and `task-priority` coincide with [Tasks plugin](https://publish.obsidian.md/tasks/Advanced/Styling) styling, and additional `task-duration` and `task-reminder` classes are added to those parts of tasks, so you can style them with CSS snippets (unfortunately, you will need to add your own custom status styling, due to custom themes being formatted for the Obsidian markdown editor, and not Time Ruler).
   - `time-ruler-heading` and `time-ruler-block` classes let you style headings and blocks. 
   - `time-ruler-container` is added to the plugin's container element.
 

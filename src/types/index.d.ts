@@ -37,7 +37,7 @@ declare global {
     path: string
     parent?: string
     extraFields?: Record<string, string>
-    length?: { hour: number; minute: number }
+    duration?: { hour: number; minute: number }
     status: string
     blockReference?: string
     fieldFormat: FieldFormat['main']

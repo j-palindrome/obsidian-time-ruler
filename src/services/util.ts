@@ -62,8 +62,8 @@ export const getEndISO = ({ tasks, events, startISO, endISO }: BlockProps) => {
     startTime = startTime.plus(length)
   }
   for (let task of tasks) {
-    if (!task.length) continue
-    const length = Duration.fromDurationLike(task.length)
+    if (!task.duration) continue
+    const length = Duration.fromDurationLike(task.duration)
     startTime = startTime.plus(length)
   }
 

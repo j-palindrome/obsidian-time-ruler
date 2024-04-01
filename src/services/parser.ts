@@ -49,7 +49,7 @@ export function textToTask(
 ): TaskProps {
   const { main: mainFormat } = detectFieldFormat(item.text, defaultFormat)
   const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */g
-  const TAG_SEARCH = /#[\p{Letter}\/\d_-]+/gu
+  const HASHTAG_SEARCH = /#[\w_-]+\s?/gu
   const MD_LINK_LINE_SEARCH = /\[\[.*?\|(.*?)\]\]/g
   const MD_LINK_SEARCH = /\[\[(.*?)\]\]/g
   const LINK_SEARCH = /\[(.*?)\]\(.*?\)/g
@@ -64,7 +64,7 @@ export function textToTask(
   let originalTitle: string = titleLine
     .replace(BLOCK_REFERENCE, '')
     .replace(INLINE_FIELD_SEARCH, '')
-    .replace(TAG_SEARCH, '')
+    .replace(HASHTAG_SEARCH, '')
     .replace(REMINDER_MATCH, '')
 
   if (mainFormat === 'simple') {
@@ -111,11 +111,11 @@ export function textToTask(
 
   const parseScheduledAndLength = () => {
     let rawScheduled = item.scheduled as DateTime | undefined
-    let rawLength = item.length as Duration | undefined
-    let length: TaskProps['length']
+    let rawLength = (item.length || item.duration) as Duration | undefined
+    let duration: TaskProps['duration']
     let scheduled: TaskProps['scheduled']
     if (rawLength && Duration.isDuration(rawLength))
-      length = { hour: rawLength.hours, minute: rawLength.minutes }
+      duration = { hour: rawLength.hours, minute: rawLength.minutes }
 
     let isDate: boolean = true
     if (rawScheduled) {
@@ -216,7 +216,7 @@ export function textToTask(
           let endTime = rawScheduled.set({ hour: endHour, minute: endMinute })
           if (endTime < rawScheduled) endTime = endTime.plus({ day: 1 })
           rawLength = endTime.diff(rawScheduled).shiftTo('hour', 'minute')
-          length = { hour: rawLength.hours, minute: rawLength.minutes }
+          duration = { hour: rawLength.hours, minute: rawLength.minutes }
         }
       }
     }
@@ -228,7 +228,7 @@ export function textToTask(
       ) as string
     }
 
-    return { scheduled, length }
+    return { scheduled, length: duration }
   }
 
   const parseDateKey = (key: 'due' | 'created' | 'start' | 'completion') => {
@@ -319,6 +319,17 @@ export function textToTask(
 
   const query = parseQuery()
 
+  let filteredTags = [...item.tags]
+  const textString = item.text as string
+  let firstBracket = textString.indexOf('[[')
+  let secondBracket = textString.indexOf(']]', firstBracket)
+  while (firstBracket !== -1 && secondBracket !== -1) {
+    const inLink = item.text.slice(firstBracket, secondBracket)
+    filteredTags = filteredTags.filter((tag) => !inLink.includes(tag))
+    firstBracket = textString.indexOf('[[', secondBracket)
+    secondBracket = textString.indexOf(']]', firstBracket)
+  }
+
   return {
     id: parseId(item),
     page: false,
@@ -332,8 +343,8 @@ export function textToTask(
     reminder,
     due,
     scheduled,
-    length,
-    tags: item.tags,
+    duration: length,
+    tags: filteredTags,
     title,
     originalTitle,
     originalText: item.text,
@@ -369,7 +380,7 @@ export function pageToTask(
 
   const parseScheduledAndLength = () => {
     let scheduled: TaskProps['scheduled'] = testDateTime(item.scheduled)
-    let length: TaskProps['length'] = testDuration(item.length)
+    let length: TaskProps['duration'] = testDuration(item.length)
     let isDate = false
     let startHours: number | undefined = undefined,
       startMinutes: number | undefined = undefined
@@ -443,7 +454,7 @@ export function pageToTask(
     reminder: testDateTime(item.reminder),
     due: testDateTime(item.due),
     scheduled,
-    length,
+    duration: length,
     tags: [...item.file.tags],
     title: item.file.name as any,
     originalTitle: item.file.name as any,
@@ -548,10 +559,10 @@ export function taskToText(
         let scheduledTime = task.scheduled.slice(11, 16).replace(/^0/, '')
         if (
           scheduledTime &&
-          task.length &&
-          task.length.hour + task.length.minute > 0
+          task.duration &&
+          task.duration.hour + task.duration.minute > 0
         ) {
-          const end = DateTime.fromISO(task.scheduled).plus(task.length)
+          const end = DateTime.fromISO(task.scheduled).plus(task.duration)
           scheduledTime += ` - ${end.toFormat('HH:mm').replace(/^0/, '')}`
         }
         const checkbox = draft.slice(0, 6)
@@ -569,12 +580,12 @@ export function taskToText(
       }
       if (
         (!task.scheduled || isDateISO(task.scheduled)) &&
-        task.length &&
-        task.length.hour + task.length.minute > 0
+        task.duration &&
+        task.duration.hour + task.duration.minute > 0
       ) {
-        draft += `  [length:: ${
-          task.length.hour ? `${task.length.hour}h` : ''
-        }${task.length.minute ? `${task.length.minute}m` : ''}]`
+        draft += `  [duration:: ${
+          task.duration.hour ? `${task.duration.hour}h` : ''
+        }${task.duration.minute ? `${task.duration.minute}m` : ''}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
@@ -594,10 +605,10 @@ export function taskToText(
       }
       draft += formatReminder()
       if (task.due) draft += `  [due:: ${task.due}]`
-      if (task.length && task.length.hour + task.length.minute > 0) {
-        draft += `  [length:: ${
-          task.length.hour ? `${task.length.hour}h` : ''
-        }${task.length.minute ? `${task.length.minute}m` : ''}]`
+      if (task.duration && task.duration.hour + task.duration.minute > 0) {
+        draft += `  [duration:: ${
+          task.duration.hour ? `${task.duration.hour}h` : ''
+        }${task.duration.minute ? `${task.duration.minute}m` : ''}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
@@ -612,10 +623,10 @@ export function taskToText(
       if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
       draft += formatReminder()
       if (task.due) draft += `  [due:: ${task.due}]`
-      if (task.length && task.length.hour + task.length.minute > 0) {
-        draft += `  [length:: ${
-          task.length.hour ? `${task.length.hour}h` : ''
-        }${task.length.minute ? `${task.length.minute}m` : ''}]`
+      if (task.duration && task.duration.hour + task.duration.minute > 0) {
+        draft += `  [duration:: ${
+          task.duration.hour ? `${task.duration.hour}h` : ''
+        }${task.duration.minute ? `${task.duration.minute}m` : ''}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
@@ -635,11 +646,11 @@ export function taskToText(
       draft += formatReminder()
       if (task.due) draft += `  [due:: ${task.due}]`
       if (
-        task.length &&
-        task.length.hour + task.length.minute > 0 &&
+        task.duration &&
+        task.duration.hour + task.duration.minute > 0 &&
         task.scheduled
       ) {
-        const endTime = DateTime.fromISO(task.scheduled).plus(task.length)
+        const endTime = DateTime.fromISO(task.scheduled).plus(task.duration)
         draft += `  [endTime:: ${endTime.hour}:${endTime.minute}]`
       }
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
@@ -652,10 +663,10 @@ export function taskToText(
 
       break
     case 'tasks':
-      if (task.length && task.length.hour + task.length.minute > 0)
-        draft += `  [length:: ${
-          task.length.hour ? `${task.length.hour}h` : ''
-        }${task.length.minute ? `${task.length.minute}m` : ''}]`
+      if (task.duration && task.duration.hour + task.duration.minute > 0)
+        draft += `  [duration:: ${
+          task.duration.hour ? `${task.duration.hour}h` : ''
+        }${task.duration.minute ? `${task.duration.minute}m` : ''}]`
       if (task.scheduled && !isDateISO(task.scheduled)) {
         draft += `  [startTime:: ${task.scheduled.slice(11)}]`
       }
@@ -692,8 +703,8 @@ export function taskToPage(task: TaskProps, frontmatter: Record<string, any>) {
         delete frontmatter['allDay']
         frontmatter.date = task.scheduled.slice(0, 10)
         frontmatter.startTime = task.scheduled.slice(11, 16)
-        if (task.length) {
-          const endTime = DateTime.fromISO(task.scheduled).plus(task.length)
+        if (task.duration) {
+          const endTime = DateTime.fromISO(task.scheduled).plus(task.duration)
           frontmatter.endTime = toISO(endTime).slice(11, 16)
         }
       }
@@ -706,11 +717,11 @@ export function taskToPage(task: TaskProps, frontmatter: Record<string, any>) {
   } else {
     setProperty(frontmatter, 'scheduled', task['scheduled'])
 
-    if (task.length && task.length.hour + task.length.minute) {
+    if (task.duration && task.duration.hour + task.duration.minute) {
       setProperty(
         frontmatter,
         'length',
-        `${task.length.hour}h${task.length.minute}m`
+        `${task.duration.hour}h${task.duration.minute}m`
       )
     }
   }

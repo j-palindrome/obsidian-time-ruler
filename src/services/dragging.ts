@@ -130,13 +130,13 @@ export const onDragEnd = async (
             .toObject() as { hours: number; minutes: number }
           if (dragData.dragType === 'task-length') {
             setters.patchTasks([dragData.id], {
-              length: { hour: hours, minute: minutes },
+              duration: { hour: hours, minute: minutes },
             })
           } else {
             setters.set({
               newTask: {
                 scheduled: dragData.start,
-                length: { hour: hours, minute: minutes },
+                duration: { hour: hours, minute: minutes },
               },
             })
           }
