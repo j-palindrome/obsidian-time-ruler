@@ -27,7 +27,9 @@ export const onDragEnd = async (
   }
 
   if (dragData?.dragType === 'new_button' && !dropData) {
-    setters.set({ newTask: { scheduled: undefined } })
+    setters.set({ newTask: { task: { scheduled: undefined }, type: 'new' } })
+  } else if (dragData?.dragType === 'task' && dropData?.type === 'move') {
+    setters.set({ newTask: { task: dragData, type: 'move' } })
   } else if (dropData && dragData) {
     if (!isTaskProps(dropData)) {
       switch (dropData.type) {
@@ -119,7 +121,9 @@ export const onDragEnd = async (
           }
           break
         case 'new_button':
-          setters.set({ newTask: { scheduled: dropData.scheduled } })
+          setters.set({
+            newTask: { task: { scheduled: dropData.scheduled }, type: 'new' },
+          })
           break
         case 'time':
         case 'task-length':
@@ -135,8 +139,11 @@ export const onDragEnd = async (
           } else {
             setters.set({
               newTask: {
-                scheduled: dragData.start,
-                duration: { hour: hours, minute: minutes },
+                task: {
+                  scheduled: dragData.start,
+                  duration: { hour: hours, minute: minutes },
+                },
+                type: 'new',
               },
             })
           }

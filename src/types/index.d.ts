@@ -101,6 +101,7 @@ declare global {
     | Partial<TaskProps>
     | { type: 'heading'; heading: string }
     | { type: 'delete' }
+    | { type: 'move' }
 }
 
 declare module 'obsidian' {

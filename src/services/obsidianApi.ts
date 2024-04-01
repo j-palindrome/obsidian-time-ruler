@@ -356,6 +356,34 @@ export default class ObsidianAPI extends Component {
     setters.set({ fileOrder: newFileOrder })
   }
 
+  async moveTask(task: TaskProps, selectedHeading: string) {
+    if (task.page) {
+      alert("Moving pages isn't supported yet.")
+      return
+    }
+    const file = await this.getFile(task.path)
+    invariant(file)
+
+    const fileText = await app.vault.read(file)
+    const lines = fileText.split('\n')
+
+    const copyLines = lines.splice(
+      task.position.start.line,
+      task.position.end.line + 1 - task.position.start.line
+    )
+
+    await app.vault.modify(file, lines.join('\n'))
+    const { fileName, position } = await this.findPosition(selectedHeading)
+    const moveFile = await this.getFile(fileName)
+    invariant(moveFile)
+
+    await app.vault.process(moveFile, (text) => {
+      const lines = text.split('\n')
+      lines.splice(position.start.line, 0, ...copyLines)
+      return lines.join('\n')
+    })
+  }
+
   createNewTask = (
     newTask: Partial<TaskProps>,
     selectedHeading: string | null,
@@ -405,11 +433,7 @@ export default class ObsidianAPI extends Component {
     return file
   }
 
-  private async createTaskInPath(
-    path: string,
-    dropData: Partial<TaskProps>,
-    completed = false
-  ) {
+  private async findPosition(path: string) {
     let [fileName, heading] = path.split('#')
     if (!fileName.endsWith('.md')) fileName += '.md'
 
@@ -465,6 +489,16 @@ export default class ObsidianAPI extends Component {
         end: { col: 0, line: targetLine, offset: 0 },
       }
     }
+
+    return { position, fileName }
+  }
+
+  private async createTaskInPath(
+    path: string,
+    dropData: Partial<TaskProps>,
+    completed = false
+  ) {
+    const { position, fileName } = await this.findPosition(path)
 
     const defaultTask: TaskProps = {
       page: false,

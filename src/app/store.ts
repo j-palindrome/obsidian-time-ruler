@@ -34,7 +34,7 @@ export type AppState = {
     template: string
   }
   fileOrder: string[]
-  newTask: false | Partial<TaskProps>
+  newTask: null | { task: Partial<TaskProps>; type: 'new' | 'move' }
   settings: Pick<
     TimeRulerPlugin['settings'],
     | 'dayStartEnd'
@@ -76,7 +76,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     folder: '',
     template: '',
   },
-  newTask: false,
+  newTask: null,
   collapsed: {},
   settings: {
     dayStartEnd: [0, 24],

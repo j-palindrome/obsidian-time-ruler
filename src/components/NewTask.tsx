@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
-import { getters, setters, useAppStore } from '../app/store'
+import { AppState, getters, setters, useAppStore } from '../app/store'
 import {
   convertSearchToRegExp,
   getHeading,
@@ -22,7 +22,9 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     data,
   })
 
-  const newTask = useAppStore((state) => state.newTask)
+  const newTaskData = useAppStore((state) => state.newTask)
+  const newTask = newTaskData ? newTaskData.task : false
+  const newTaskMode = newTaskData ? newTaskData.type : undefined
   const frame = useRef<HTMLDivElement>(null)
   const inputFrame = useRef<HTMLInputElement>(null)
 
@@ -31,7 +33,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     const els = document.elementsFromPoint(ev.clientX, ev.clientY)
 
     if (!els.includes(frame.current)) {
-      setters.set({ newTask: false })
+      setters.set({ newTask: null })
     }
   }
 
@@ -66,30 +68,43 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     setSearch('')
   }, [newTask])
 
-  const draggingTask = useAppStore(
-    (state) =>
-      state.dragData &&
-      ['task', 'group', 'block'].includes(state.dragData.dragType)
+  const draggingTask = useAppStore((state) =>
+    state.dragData &&
+    ['task', 'group', 'block'].includes(state.dragData.dragType)
+      ? state.dragData
+      : undefined
   )
 
   return (
     <div className='flex relative z-30 pl-2'>
-      {draggingTask && (
-        <Droppable id={`delete-task`} data={{ type: 'delete' }}>
-          <Button
-            src='x'
-            className='!rounded-full h-10 w-10 bg-red-900 mr-2 flex-none'
-          />
-        </Droppable>
+      {draggingTask ? (
+        <>
+          <Droppable id={`delete-task`} data={{ type: 'delete' }}>
+            <Button
+              src='x'
+              className='!rounded-full h-10 w-10 bg-red-900 mr-2 flex-none'
+            />
+          </Droppable>
+          {draggingTask.dragType === 'task' && (
+            <Droppable id={`move-task`} data={{ type: 'move' }}>
+              <Button
+                src='move-right'
+                className='!rounded-full h-10 w-10 bg-blue-900 mr-2 flex-none'
+              />
+            </Droppable>
+          )}
+        </>
+      ) : (
+        <Button
+          {...attributes}
+          {...listeners}
+          ref={setNodeRef}
+          className='relative flex-none h-10 w-10 cursor-grab !rounded-full bg-accent child:invert'
+          src='plus'
+        />
       )}
-      <Button
-        {...attributes}
-        {...listeners}
-        ref={setNodeRef}
-        className='relative flex-none h-10 w-10 cursor-grab !rounded-full bg-accent child:invert'
-        src='plus'
-      />
-      {newTask && (
+
+      {newTaskData && newTask && newTaskMode && (
         <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-8 space-y-2 '>
           <div
             className='flex h-full max-h-[50vh] w-full flex-col space-y-1 overflow-y-auto overflow-x-hidden rounded-icon border border-solid border-faint bg-code p-2 max-w-2xl backdrop-blur'
@@ -97,7 +112,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
           >
             <div className='flex items-center'>
               <div className='pl-2 font-menu text-lg font-bold mr-2'>
-                New Task
+                {newTaskMode === 'new' ? 'New Task' : 'Move Task'}
               </div>
               <div className='text-sm text-faint'>
                 {newTask.scheduled ?? 'Unscheduled'}
@@ -120,7 +135,10 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
               placeholder='title...'
               onChange={(ev) =>
                 setters.set({
-                  newTask: { ...newTask, originalTitle: ev.target.value },
+                  newTask: {
+                    task: { ...newTask, originalTitle: ev.target.value },
+                    type: newTaskMode!,
+                  },
                 })
               }
               onKeyDown={(ev) =>
@@ -146,7 +164,11 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
             ></input>
             <div className='h-0 w-full grow space-y-1 overflow-y-auto text-sm'>
               {filteredHeadings.map((path) => (
-                <NewTaskHeading key={path} headingPath={path} />
+                <NewTaskHeading
+                  key={path}
+                  headingPath={path}
+                  newTaskData={newTaskData}
+                />
               ))}
             </div>
           </div>
@@ -156,20 +178,31 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   )
 }
 
-function NewTaskHeading({ headingPath }: { headingPath: string }) {
+function NewTaskHeading({
+  headingPath,
+  newTaskData,
+}: {
+  headingPath: string
+  newTaskData: NonNullable<AppState['newTask']>
+}) {
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
   const [container, title] = splitHeading(headingPath)
-  const newTask = useAppStore((state) => state.newTask)
-  invariant(newTask)
+  const newTask = newTaskData.task
+  const newTaskType = newTaskData.type
 
   return (
     <div
       key={headingPath}
-      onMouseDown={() => {
-        getters
-          .getObsidianAPI()
-          .createNewTask(newTask, headingPath, dailyNoteInfo)
-        setTimeout(() => setters.set({ newTask: false }))
+      onMouseDown={async () => {
+        const api = getters.getObsidianAPI()
+        if (newTaskType === 'move') {
+          console.log('deleting task', newTask)
+
+          await api.moveTask(newTask as TaskProps, headingPath)
+        } else {
+          api.createNewTask(newTask, headingPath, dailyNoteInfo)
+        }
+        setTimeout(() => setters.set({ newTask: null }))
       }}
       className={`flex items-center w-full selectable cursor-pointer rounded-icon px-2 hover:underline ${
         headingPath.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
