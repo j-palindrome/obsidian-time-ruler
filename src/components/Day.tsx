@@ -82,7 +82,11 @@ export default function Day({
 
       if (scheduledForToday) {
         invariant(scheduled)
-        if (isDateISO(scheduled)) {
+        if (
+          isDateISO(scheduled) ||
+          scheduled < startDate ||
+          scheduled > endISO
+        ) {
           allDay.tasks.push(task)
         } else {
           if (blocksByTime[scheduled]) blocksByTime[scheduled].tasks.push(task)

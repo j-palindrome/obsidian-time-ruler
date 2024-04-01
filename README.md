@@ -58,6 +58,7 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
 
 - To **reschedule** a task, drag-and-drop the task onto the target block or time. You can drag a task to one of the day buttons or a day's heading to reschedule to that day. Click on a task to jump to it in Obsidian.
 - To **create** a new scheduled task, drag the `+` button (top left) onto a time. For unscheduled, simply click the `+` button.
+- To **move** a task to a different file or heading, drag it to the blue `->` button (top left).
 - To change the **duration** of a task, drag its duration onto a time.
 - To change the **deadline** of a task, drag its deadline onto a time.
 - To **unschedule** a task, drag the task to the `Unscheduled` button.

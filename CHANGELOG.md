@@ -18,11 +18,17 @@
 
 # Changelog
 
-## 2.3.0 (Upcoming)
+## 2.3.0 (4/1/2023)
+**Added:**
+- Added move button (blue right arrow) to move tasks to different files
+- Added option to hide unscheduled subtasks from Time Ruler, streamlining the display
+
 **Changed:**
 - Removed "Upcoming" section, due tasks now show with their path/priority group
 
 **Fixed:**
+- Fixed bug with [length](https://github.com/joshuatazrein/obsidian-time-ruler/issues/101) field, it is now called "duration" (although "length" is still recognized)
+- Fixed bug with [links](https://github.com/joshuatazrein/obsidian-time-ruler/issues/107) being recognized as tags
 - Reorder headings within "Hybrid" sort mode
 
 ## 2.2.0 (1/31/2023)

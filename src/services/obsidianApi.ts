@@ -367,9 +367,15 @@ export default class ObsidianAPI extends Component {
     const fileText = await app.vault.read(file)
     const lines = fileText.split('\n')
 
+    // tasks move their subtasks as well
+    let subtask = task
+    while (subtask.children.length > 0) {
+      subtask = getters.getTask(_.last(subtask.children)!)
+    }
+    const end = subtask.position.end.line
     const copyLines = lines.splice(
       task.position.start.line,
-      task.position.end.line + 1 - task.position.start.line
+      end + 1 - task.position.start.line
     )
 
     await app.vault.modify(file, lines.join('\n'))
@@ -382,6 +388,7 @@ export default class ObsidianAPI extends Component {
       lines.splice(position.start.line, 0, ...copyLines)
       return lines.join('\n')
     })
+    openTask({ ...task, path: fileName, position })
   }
 
   createNewTask = (

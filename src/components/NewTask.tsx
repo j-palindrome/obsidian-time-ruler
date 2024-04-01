@@ -54,6 +54,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     return _.uniq(
       _.flatMap(state.tasks, (task) => {
         if (task.completed) return []
+        if (task.page && newTaskMode === 'move') return []
         return getHeading(task, dailyNoteInfo, 'path')
       })
     ).sort()
@@ -196,8 +197,6 @@ function NewTaskHeading({
       onMouseDown={async () => {
         const api = getters.getObsidianAPI()
         if (newTaskType === 'move') {
-          console.log('deleting task', newTask)
-
           await api.moveTask(newTask as TaskProps, headingPath)
         } else {
           api.createNewTask(newTask, headingPath, dailyNoteInfo)
@@ -205,7 +204,7 @@ function NewTaskHeading({
         setTimeout(() => setters.set({ newTask: null }))
       }}
       className={`flex items-center w-full selectable cursor-pointer rounded-icon px-2 hover:underline ${
-        headingPath.includes('#') ? 'text-muted pl-4' : 'font-bold text-accent'
+        headingPath.includes('#') ? 'text-muted' : 'font-bold text-accent'
       }`}
     >
       <div className='grow'>{title}</div>

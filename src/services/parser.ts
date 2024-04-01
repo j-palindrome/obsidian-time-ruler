@@ -380,7 +380,9 @@ export function pageToTask(
 
   const parseScheduledAndLength = () => {
     let scheduled: TaskProps['scheduled'] = testDateTime(item.scheduled)
-    let length: TaskProps['duration'] = testDuration(item.length)
+    let length: TaskProps['duration'] = testDuration(
+      item.length || item.duration
+    )
     let isDate = false
     let startHours: number | undefined = undefined,
       startMinutes: number | undefined = undefined
