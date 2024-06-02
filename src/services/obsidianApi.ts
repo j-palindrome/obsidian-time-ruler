@@ -612,16 +612,12 @@ export default class ObsidianAPI extends Component {
     this.registerEvent(
       // @ts-ignore
       this.app.workspace.on('layout-change', (cb) => {
-        console.log('layout changed', cb)
-
         setters.set({ recreateWindow: getters.get('recreateWindow') + 1 })
       })
     )
     this.registerEvent(
       // @ts-ignore
       this.app.workspace.on('resize', (cb) => {
-        console.log('resized')
-
         setters.set({ recreateWindow: getters.get('recreateWindow') + 1 })
       })
     )

@@ -21,6 +21,9 @@
 **Fixed:**
 - Fixed error where tasks didn't show beyond a [week in the future or past](https://github.com/j-palindrome/obsidian-time-ruler/issues/100)
 - Fixed error with adding [calendars](https://github.com/j-palindrome/obsidian-time-ruler/issues/109)
+- Fixed error with duplicating [durations](https://github.com/j-palindrome/obsidian-time-ruler/issues/111)
+- Full support for [emojis](https://github.com/j-palindrome/obsidian-time-ruler/issues/113) in task titles.
+- Fixed incorrect parsing of [tags in task titles](https://github.com/j-palindrome/obsidian-time-ruler/issues/116)
 
 **Changed:**
 - Show only first last part of task headings (enclosing file or folder)

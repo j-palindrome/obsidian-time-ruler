@@ -235,7 +235,6 @@ export const useChildWidth = () => {
 
   // this needs to be refreshed upon moving the app to new window...
   useEffect(() => {
-    console.log('environment just created again')
     function outputSize() {
       if (Platform.isMobile) {
         setChildWidth(1)
@@ -243,11 +242,9 @@ export const useChildWidth = () => {
       }
       const timeRuler = document.querySelector('#time-ruler')
       if (!timeRuler) {
-        console.log('no time ruler')
         window.setTimeout(outputSize, 500)
         return
       }
-      console.log('time ruler success')
 
       invariant(timeRuler)
       const width = timeRuler.clientWidth

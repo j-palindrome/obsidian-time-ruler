@@ -1,5 +1,8 @@
+import _ from 'lodash'
 import { DateTime, Duration } from 'luxon'
 import { Literal, PageMetadata, STask } from 'obsidian-dataview'
+import { AppState, getters } from '../app/store'
+import TimeRulerPlugin from '../main'
 import {
   RESERVED_FIELDS,
   TaskPriorities,
@@ -10,7 +13,6 @@ import {
   priorityNumberToSimplePriority,
   simplePriorityToNumber,
 } from '../types/enums'
-import _ from 'lodash'
 import {
   hasPriority,
   isDateISO,
@@ -18,29 +20,24 @@ import {
   parseFileFromPath,
   toISO,
 } from './util'
-import { AppState, getters } from '../app/store'
-import { startTransition } from 'react'
-import { create } from 'zustand'
-import TimeRulerPlugin from '../main'
-import moment from 'moment'
 
 const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
   `[${_.values(keyToTasksEmoji).join('')}] ?(${ISO_MATCH})?`,
-  'gi'
+  'giu'
 )
 const TASKS_REPEAT_SEARCH = new RegExp(
   `${keyToTasksEmoji.repeat} ?([a-zA-Z0-9 ]+)`,
-  'i'
+  'iu'
 )
 
-const SIMPLE_SCHEDULED_DATE = /^(\d{4}-\d{2}-\d{2}) /
-const SIMPLE_SCHEDULED_TIME = /^(\d{1,2}(:\d{1,2})?( ?- ?\d{1,2}(:\d{1,2})?)?)/
-const SIMPLE_PRIORITY = / (\?|\!{1,3})$/
-const SIMPLE_DUE = / ?> ?(\d{4}-\d{2}-\d{2})/
+const SIMPLE_SCHEDULED_DATE = /^(\d{4}-\d{2}-\d{2}) /u
+const SIMPLE_SCHEDULED_TIME = /^(\d{1,2}(:\d{1,2})?( ?- ?\d{1,2}(:\d{1,2})?)?)/u
+const SIMPLE_PRIORITY = / (\?|!{1,3})$/u
+const SIMPLE_DUE = / ?> ?(\d{4}-\d{2}-\d{2})/u
 
-const KANBAN_DATE = / ?@\{(\d{4}-\d{2}-\d{2})\}/
-const KANBAN_TIME = / ?@@\{(\d{2}:\d{2})\}/
+const KANBAN_DATE = / ?@\{(\d{4}-\d{2}-\d{2})\}/u
+const KANBAN_TIME = / ?@@\{(\d{2}:\d{2})\}/u
 
 export function textToTask(
   item: any,
@@ -48,18 +45,19 @@ export function textToTask(
   defaultFormat: TimeRulerPlugin['settings']['fieldFormat']
 ): TaskProps {
   const { main: mainFormat } = detectFieldFormat(item.text, defaultFormat)
-  const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */g
-  const HASHTAG_SEARCH = /#[\w_-]+\s?/gu
-  const MD_LINK_LINE_SEARCH = /\[\[.*?\|(.*?)\]\]/g
-  const MD_LINK_SEARCH = /\[\[(.*?)\]\]/g
-  const LINK_SEARCH = /\[(.*?)\]\(.*?\)/g
+  const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */gu
+  const HASHTAG_SEARCH = /#[\w_\-\/]+\s?/gu
+  const MD_LINK_LINE_SEARCH = /\[\[.*?\|(.*?)\]\]/gu
+  const MD_LINK_SEARCH = /\[\[(.*?)\]\]/gu
+  const LINK_SEARCH = /\[(.*?)\]\(.*?\)/gu
   const REMINDER_MATCH = new RegExp(
-    ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`
+    ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`,
+    'u'
   )
 
-  const BLOCK_REFERENCE = /\^{a-z0-9}+$/
+  const BLOCK_REFERENCE = /\^[a-z0-9]+$/u
 
-  const titleLine: string = item.text.match(/(.*?)(\n|$)/)?.[1] ?? ''
+  const titleLine: string = item.text.match(/(.*?)(\n|$)/u)?.[1] ?? ''
 
   let originalTitle: string = titleLine
     .replace(BLOCK_REFERENCE, '')
@@ -88,8 +86,8 @@ export function textToTask(
     .replace(MD_LINK_LINE_SEARCH, '$1')
     .replace(MD_LINK_SEARCH, '$1')
     .replace(LINK_SEARCH, '[$1]')
-    .replace(/^\s+/, '')
-    .replace(/\s+$/, '')
+    .replace(/^\s+/u, '')
+    .replace(/\s+$/u, '')
 
   let notes = item.text.includes('\n')
     ? item.text.match(/\n((.|\n)*$)/)?.[1]
@@ -622,9 +620,6 @@ export function taskToText(
       if (task.completion) draft += `  [completion:: ${task.completion}]`
       break
     case 'dataview':
-      if (task.title.includes('TEST')) {
-        console.log('setting duration:', task)
-      }
       if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
       draft += formatReminder()
       if (task.due) draft += `  [due:: ${task.due}]`
