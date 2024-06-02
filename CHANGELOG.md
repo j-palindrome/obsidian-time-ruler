@@ -1,7 +1,6 @@
 # Roadmap
 
 ## Developing
-- Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - Fix [wrong date bug](https://github.com/joshuatazrein/obsidian-time-ruler/issues/85)
 
 ## Planned
@@ -17,6 +16,14 @@
 - Add more flexibility for [Tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/46#issuecomment-1708749520) users
 
 # Changelog
+
+## 2.4.0 (6/1/2024)
+
+**Changed:**
+- Show only first last part of task headings (enclosing file or folder)
+
+**Added:**
+- Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 
 ## 2.3.0 (4/1/2023)
 **Added:**

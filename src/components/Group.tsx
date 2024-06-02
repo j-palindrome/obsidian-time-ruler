@@ -50,6 +50,12 @@ export default function Group({
     })
 
   const [container, heading] = splitHeading(headingPath)
+  let formattedContainer = container.slice(
+    container.includes('/') ? container.lastIndexOf('/') + 1 : 0
+  )
+  if (formattedContainer.length > 25)
+    formattedContainer = formattedContainer.slice(0, 25) + '...'
+  formattedContainer = formattedContainer.replace('.md', '')
 
   const collapsed = useAppStore(
     (state) => state.collapsed[headingPath] ?? false
@@ -126,10 +132,7 @@ export default function Group({
                 <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
                 {container && !hidePaths.includes(container) && (
                   <div className='w-fit flex-none text-right pr-2'>
-                    {(
-                      container.slice(0, 25) +
-                      (container.length > 25 ? '...' : '')
-                    ).replace('.md', '')}
+                    {formattedContainer}
                   </div>
                 )}
               </div>
