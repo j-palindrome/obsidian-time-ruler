@@ -166,9 +166,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   )
 
   const dayStart = useAppStore((state) => state.settings.dayStartEnd[0])
-  const roundedNow = toISO(roundMinutes(DateTime.now()))
-  const nowBoundary = toISO(roundMinutes(DateTime.now().plus({ minute: 15 })))
-  const tomorrow = toISO(today.plus({ days: 1, hours: dayStart }))
 
   const times: TimesType = [
     { type: 'unscheduled' },
@@ -198,18 +195,18 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     getters.getObsidianAPI()?.loadTasks('', showingPastDates)
   }, [searchWithinWeeks, showingPastDates])
 
-  // useEffect(() => {
-  //   if (showingPastDates && -weeksShownState < searchWithinWeeks[0]) {
-  //     setters.set({
-  //       searchWithinWeeks: [-weeksShownState, searchWithinWeeks[1]],
-  //     })
-  //   }
-  //   if (!showingPastDates && weeksShownState > searchWithinWeeks[1]) {
-  //     setters.set({
-  //       searchWithinWeeks: [searchWithinWeeks[0], weeksShownState],
-  //     })
-  //   }
-  // }, [showingPastDates, weeksShownState])
+  useEffect(() => {
+    if (showingPastDates && -weeksShownState < searchWithinWeeks[0]) {
+      setters.set({
+        searchWithinWeeks: [-weeksShownState, searchWithinWeeks[1]],
+      })
+    }
+    if (!showingPastDates && weeksShownState > searchWithinWeeks[1]) {
+      setters.set({
+        searchWithinWeeks: [searchWithinWeeks[0], weeksShownState],
+      })
+    }
+  }, [showingPastDates, weeksShownState])
 
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
 

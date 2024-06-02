@@ -18,6 +18,8 @@
 # Changelog
 
 ## 2.4.0 (6/1/2024)
+**Fixed:**
+- Fixed error where tasks didn't show beyond a [week in the future or past](https://github.com/j-palindrome/obsidian-time-ruler/issues/100)
 
 **Changed:**
 - Show only first last part of task headings (enclosing file or folder)

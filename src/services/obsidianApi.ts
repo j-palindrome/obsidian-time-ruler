@@ -95,6 +95,8 @@ export default class ObsidianAPI extends Component {
       const taskDate = task.scheduled ?? task.completion
       if (!DateTime.isDateTime(taskDate)) return true
       const dateString = toISO(taskDate)
+      if (task.text?.includes('TEST'))
+        console.log('date test', task, dateString, dateBounds[1])
 
       // Incomplete looks at preceding tasks, complete looks at following tasks
       return completed
@@ -214,6 +216,8 @@ export default class ObsidianAPI extends Component {
 
     const dailyNoteInfo = getters.get('dailyNoteInfo')
     const searchWithinWeeks = getters.get('searchWithinWeeks')
+    console.log('search within weeks:', searchWithinWeeks)
+
     const showingPastDates = getters.get('showingPastDates')
     const dateBounds: [string, string] = showingPastDates
       ? [
