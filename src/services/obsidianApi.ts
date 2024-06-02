@@ -68,7 +68,7 @@ export default class ObsidianAPI extends Component {
   }
 
   reload() {
-    const excludePaths = app.vault.getConfig('userIgnoreFilters') as
+    const excludePaths = this.app.vault.getConfig('userIgnoreFilters') as
       | string[]
       | undefined
     if (!excludePaths) return
@@ -95,9 +95,6 @@ export default class ObsidianAPI extends Component {
       const taskDate = task.scheduled ?? task.completion
       if (!DateTime.isDateTime(taskDate)) return true
       const dateString = toISO(taskDate)
-      if (task.text?.includes('TEST'))
-        console.log('date test', task, dateString, dateBounds[1])
-
       // Incomplete looks at preceding tasks, complete looks at following tasks
       return completed
         ? dateString >= dateBounds[0]
@@ -216,7 +213,6 @@ export default class ObsidianAPI extends Component {
 
     const dailyNoteInfo = getters.get('dailyNoteInfo')
     const searchWithinWeeks = getters.get('searchWithinWeeks')
-    console.log('search within weeks:', searchWithinWeeks)
 
     const showingPastDates = getters.get('showingPastDates')
     const dateBounds: [string, string] = showingPastDates
@@ -368,7 +364,7 @@ export default class ObsidianAPI extends Component {
     const file = await this.getFile(task.path)
     invariant(file)
 
-    const fileText = await app.vault.read(file)
+    const fileText = await this.app.vault.read(file)
     const lines = fileText.split('\n')
 
     // tasks move their subtasks as well
@@ -382,12 +378,12 @@ export default class ObsidianAPI extends Component {
       end + 1 - task.position.start.line
     )
 
-    await app.vault.modify(file, lines.join('\n'))
+    await this.app.vault.modify(file, lines.join('\n'))
     const { fileName, position } = await this.findPosition(selectedHeading)
     const moveFile = await this.getFile(fileName)
     invariant(moveFile)
 
-    await app.vault.process(moveFile, (text) => {
+    await this.app.vault.process(moveFile, (text) => {
       const lines = text.split('\n')
       lines.splice(position.start.line, 0, ...copyLines)
       return lines.join('\n')
@@ -422,7 +418,7 @@ export default class ObsidianAPI extends Component {
     let [fileName] = path.split('#')
     if (!fileName.endsWith('.md')) fileName += '.md'
 
-    let file = app.vault.getAbstractFileByPath(fileName)
+    let file = this.app.vault.getAbstractFileByPath(fileName)
     const dailyNoteInfo = getters.get('dailyNoteInfo')
     if (!(file instanceof TFile)) {
       let starterText = ''
@@ -432,10 +428,10 @@ export default class ObsidianAPI extends Component {
             (dailyNoteInfo.template.endsWith('.md') ? '' : '.md')
         )
         if (templateFile) {
-          starterText = await app.vault.read(templateFile)
+          starterText = await this.app.vault.read(templateFile)
         }
       }
-      file = await app.vault.create(fileName, starterText)
+      file = await this.app.vault.create(fileName, starterText)
     }
     if (!(file instanceof TFile)) {
       new Notice(`Time Ruler: failed to create file ${fileName}`)
@@ -454,7 +450,7 @@ export default class ObsidianAPI extends Component {
     }
 
     const file = await this.createFileFromPath(path)
-    const text = await app.vault.read(file)
+    const text = await this.app.vault.read(file)
     const lines = text.split('\n')
 
     let targetLine: number
@@ -535,10 +531,14 @@ export default class ObsidianAPI extends Component {
   }
 
   private async getFile(path: string) {
-    let abstractFile = app.vault.getAbstractFileByPath(parseFileFromPath(path))
+    let abstractFile = this.app.vault.getAbstractFileByPath(
+      parseFileFromPath(path)
+    )
     if (!abstractFile || !(abstractFile instanceof TFile)) {
-      await app.vault.create(parseFileFromPath(path), '')
-      abstractFile = app.vault.getAbstractFileByPath(parseFileFromPath(path))
+      await this.app.vault.create(parseFileFromPath(path), '')
+      abstractFile = this.app.vault.getAbstractFileByPath(
+        parseFileFromPath(path)
+      )
     }
 
     if (abstractFile && abstractFile instanceof TFile) return abstractFile
@@ -577,7 +577,7 @@ export default class ObsidianAPI extends Component {
         }
       }
 
-      await app.vault.modify(file, lines.join('\n'))
+      await this.app.vault.modify(file, lines.join('\n'))
     }
 
     setters.set(updatedTasks)
@@ -587,11 +587,11 @@ export default class ObsidianAPI extends Component {
     const file = await this.getFile(task.path)
     if (!file) return
     if (task.page) {
-      app.fileManager.processFrontMatter(file, (frontmatter) => {
+      this.app.fileManager.processFrontMatter(file, (frontmatter) => {
         taskToPage(task, frontmatter)
       })
     } else {
-      const fileText = await app.vault.read(file)
+      const fileText = await this.app.vault.read(file)
       const lines = fileText.split('\n')
 
       let thisLine = lines[task.position.start.line] ?? ''
@@ -604,13 +604,29 @@ export default class ObsidianAPI extends Component {
         lines[task.position.start.line] = newText
       }
 
-      await app.vault.modify(file, lines.join('\n'))
+      await this.app.vault.modify(file, lines.join('\n'))
     }
   }
 
   async onload() {
     this.registerEvent(
-      app.metadataCache.on(
+      // @ts-ignore
+      this.app.workspace.on('layout-change', (cb) => {
+        console.log('layout changed', cb)
+
+        setters.set({ recreateWindow: getters.get('recreateWindow') + 1 })
+      })
+    )
+    this.registerEvent(
+      // @ts-ignore
+      this.app.workspace.on('resize', (cb) => {
+        console.log('resized')
+
+        setters.set({ recreateWindow: getters.get('recreateWindow') + 1 })
+      })
+    )
+    this.registerEvent(
+      this.app.metadataCache.on(
         // @ts-ignore
         'dataview:metadata-change',
         (...args) => {
@@ -651,9 +667,9 @@ export async function getDailyNoteInfo(): Promise<
 }
 
 export async function openTask(task: TaskProps) {
-  await app.workspace.openLinkText(parseFileFromPath(task.path), '')
+  await this.app.workspace.openLinkText(parseFileFromPath(task.path), '')
 
-  const mdView = app.workspace.getActiveViewOfType(MarkdownView)
+  const mdView = this.app.workspace.getActiveViewOfType(MarkdownView)
   if (!mdView) return
 
   let cmEditor = mdView.editor

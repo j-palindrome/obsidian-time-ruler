@@ -264,12 +264,9 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const scroller = useRef<HTMLDivElement>(null)
   const [scrollViews, setScrollViews] = useState([-1, 1])
 
-  const container = useRef<HTMLDivElement>(null)
   const calendarMode = viewMode === 'week'
 
-  const { childWidth, childClass } = useChildWidth({
-    container,
-  })
+  const { childWidth, childClass } = useChildWidth()
 
   const trueChildWidth = useAppStore((state) => state.childWidth)
 
@@ -286,11 +283,11 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       setScrollViews([leftLevel, rightLevel])
     }
   }
-  useEffect(updateScroll, [childWidth])
+  useEffect(updateScroll, [childWidth, calendarMode])
 
   useEffect(() => {
     updateScroll()
-  }, [calendarMode])
+  }, [])
 
   useEffect(() => {
     const childNodes = $('#time-ruler-times')[0].childNodes
@@ -366,7 +363,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       >
         <div
           id='time-ruler'
-          ref={container}
           style={{
             height: '100%',
             width: '100%',

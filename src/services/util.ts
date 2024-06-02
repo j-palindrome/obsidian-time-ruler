@@ -213,14 +213,11 @@ export const useHourDisplay = (hours: number) => {
   return hourDisplay
 }
 
-export const useChildWidth = ({
-  container,
-}: {
-  container: React.RefObject<HTMLDivElement>
-}) => {
+export const useChildWidth = () => {
   const [_childWidth, childWidthRef] = useAppStoreRef(
     (state) => state.childWidth
   )
+  const recreateWindow = useAppStore((state) => state.recreateWindow)
   const setChildWidth = (newChildWidth: number) => {
     if (newChildWidth !== childWidthRef.current)
       setters.set({ childWidth: newChildWidth })
@@ -236,40 +233,38 @@ export const useChildWidth = ({
     'child:w-1/4',
   ]
 
-  function outputSize() {
-    if (Platform.isMobile) {
-      setChildWidth(1)
-      return
-    }
-    const timeRuler = container.current
-    invariant(timeRuler)
-    const width = timeRuler.clientWidth
-    const newChildWidth =
-      width < 500
-        ? 1
-        : width < 800
-        ? 2
-        : width < 1200 && viewModeRef.current !== 'week'
-        ? 3
-        : 4
-
-    setChildWidth(newChildWidth)
-  }
-
-  useEffect(outputSize, [viewMode])
-
+  // this needs to be refreshed upon moving the app to new window...
   useEffect(() => {
-    outputSize()
-    const timeRuler = document.querySelector('#time-ruler') as HTMLElement
-    if (!timeRuler) return
-    const observer = new ResizeObserver(outputSize)
-    observer.observe(timeRuler)
-    window.addEventListener('resize', outputSize)
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('resize', outputSize)
+    console.log('environment just created again')
+    function outputSize() {
+      if (Platform.isMobile) {
+        setChildWidth(1)
+        return
+      }
+      const timeRuler = document.querySelector('#time-ruler')
+      if (!timeRuler) {
+        console.log('no time ruler')
+        window.setTimeout(outputSize, 500)
+        return
+      }
+      console.log('time ruler success')
+
+      invariant(timeRuler)
+      const width = timeRuler.clientWidth
+      const newChildWidth =
+        width < 500
+          ? 1
+          : width < 800
+          ? 2
+          : width < 1200 && viewModeRef.current !== 'week'
+          ? 3
+          : 4
+
+      setChildWidth(newChildWidth)
     }
-  }, [])
+
+    outputSize()
+  }, [recreateWindow, viewMode])
 
   const appChildWidth = viewMode === 'hour' ? 1 : childWidthRef.current
   const appChildClass = childWidthToClass[appChildWidth]

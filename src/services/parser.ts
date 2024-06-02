@@ -622,6 +622,9 @@ export function taskToText(
       if (task.completion) draft += `  [completion:: ${task.completion}]`
       break
     case 'dataview':
+      if (task.title.includes('TEST')) {
+        console.log('setting duration:', task)
+      }
       if (task.scheduled) draft += `  [scheduled:: ${task.scheduled}]`
       draft += formatReminder()
       if (task.due) draft += `  [due:: ${task.due}]`

@@ -59,6 +59,7 @@ export type AppState = {
     startISO?: string
     playing: boolean
   }
+  recreateWindow: number
 }
 
 export const useAppStore = createWithEqualityFn<AppState>(() => ({
@@ -100,6 +101,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     startISO: undefined,
     playing: false,
   },
+  recreateWindow: 0,
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {
