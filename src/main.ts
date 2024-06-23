@@ -204,6 +204,8 @@ export default class TimeRulerPlugin extends Plugin {
       ? this.app.workspace.getLeaf(true)
       : this.app.workspace.getRightLeaf(false)
 
+    invariant(leaf)
+
     await leaf.setViewState({
       type: TIME_RULER_VIEW,
       active: true,
