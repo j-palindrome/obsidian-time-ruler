@@ -66,9 +66,10 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
 - Dragging and holding over a **date button** will scroll to that date, allowing you to drop the task there.
 
 ## Online calendars
-- To **import** a calendar, simply copy a shared link (iCal format) into Settings.
+- To **import** a calendar, simply copy a shared link (iCal format) into Settings (Ensure that the Access Permission for your calendar is set to public!).
 - **Events** show as blocks which can contain tasks scheduled at the same time. You can drag an event to reschedule the tasks contained, but the event is read-only. 
 - To **refresh** events, click the `Refresh` button (the circular arrow) in the toolbar.
+- For Google Calendar Users - You can find your iCal link at - "Calendar Settings\\[Your Calendar]\\Integrate Calendar\\Public address in iCal format\\".
 
 ## Buttons
 
