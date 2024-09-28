@@ -192,12 +192,15 @@ export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
 export const parseTaskDate = (task: TaskProps): string | undefined =>
   task.scheduled || task.completion
 
-export const toISO = (date: DateTime) =>
-  date.toISO({
+export const toISO = (date: DateTime, isDate?: boolean) => {
+  const d = date.toISO({
     suppressMilliseconds: true,
     suppressSeconds: true,
     includeOffset: false,
   }) as string
+  if (isDate) return d.slice(0, 10)
+  else return d
+}
 
 export const useHourDisplay = (hours: number) => {
   const twentyFourHourFormat = useAppStore(

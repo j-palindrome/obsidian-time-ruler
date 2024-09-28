@@ -44,7 +44,7 @@ export default function Day({
   /**
    * find the nearest scheduled date in parents (include ALL tasks which will be in this block). Day -> Hours -> Block all take a single flat list of scheduled tasks, which they use to calculate total length of the block. Blocks group them by parent -> filepath/heading, calculating queries and unscheduled parents.
    */
-  const [allDay, blocksByTime] = useAppStore((state) => {
+  const [allDay, blocksByTime, pastTasks] = useAppStore((state) => {
     const allDay: BlockProps = {
       startISO: startDate,
       endISO: startDate,
@@ -114,13 +114,17 @@ export default function Day({
       }
     })
 
-    for (let event of _.filter(state.events, (event) =>
-      isDateISO(event.startISO)
-        ? event.startISO <= startDate && event.endISO >= startDate
-        : event.endISO > startISO &&
-          event.startISO < endISO &&
+    for (let event of _.filter(state.events, (event) => {
+      if (event.startISO === '2024-09-28')
+        console.log(event.startISO, event.endISO)
+
+      const shouldInclude = isDateISO(event.startISO)
+        ? event.startISO <= startDate && event.endISO > startDate
+        : event.startISO < endISO &&
+          event.endISO > startISO &&
           (showingPastDates ? event.startISO <= now : event.endISO >= now)
-    )) {
+      return shouldInclude
+    })) {
       if (isDateISO(event.startISO)) allDay.events.push(event)
       else if (blocksByTime[event.startISO])
         blocksByTime[event.startISO].events.push(event)
@@ -133,11 +137,8 @@ export default function Day({
           blocks: [],
         }
     }
-
-    debugger
-    return [pastTasks, allDay, blocksByTime]
+    return [allDay, blocksByTime, pastTasks]
   }, shallow)
-  console.log(allDay, blocksByTime, startDate)
 
   let blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
 
@@ -238,7 +239,8 @@ export default function Day({
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        {allDay.tasks.length + allDay.events.length > 0 && (
+        {allDay.tasks.length + allDay.events.length + pastTasks.tasks.length >
+          0 && (
           <div
             className={`relative w-full child:mb-1 overflow-x-hidden rounded-icon mt-1 ${
               {
@@ -273,6 +275,18 @@ export default function Day({
                 type='all-day'
                 events={[]}
                 tasks={allDay.tasks}
+                startISO={startDate}
+                endISO={startDate}
+                dragContainer={dragContainer}
+                blocks={[]}
+              />
+            )}
+            {pastTasks.tasks.length > 0 && (
+              <Block
+                type='all-day'
+                title='past'
+                events={[]}
+                tasks={pastTasks.tasks}
                 startISO={startDate}
                 endISO={startDate}
                 dragContainer={dragContainer}

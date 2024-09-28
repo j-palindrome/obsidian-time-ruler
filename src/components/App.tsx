@@ -290,7 +290,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }, [])
 
   useEffect(() => {
-    const childNodes = $('#time-ruler-times')[0].childNodes
+    const childNodes = $('#time-ruler-times')[0]?.childNodes
+    if (!childNodes) return
     const firstElement = childNodes.item(
       showingPastDates ? childNodes.length - 2 : 1
     ) as HTMLElement

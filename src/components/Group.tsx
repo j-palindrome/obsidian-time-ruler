@@ -25,6 +25,7 @@ export type GroupComponentProps = {
   tasks: TaskProps[]
   type: BlockType
   dragContainer: string
+  startISO?: string
 }
 
 export default function Group({
@@ -33,6 +34,7 @@ export default function Group({
   type,
   hidePaths,
   dragContainer,
+  startISO,
 }: GroupComponentProps) {
   const dragData: DragData = {
     dragType: 'group',
@@ -142,7 +144,12 @@ export default function Group({
 
       {!collapsed &&
         sortedTasks.map((task) => (
-          <Task key={task.id} dragContainer={dragContainer} {...task} />
+          <Task
+            key={task.id}
+            dragContainer={dragContainer}
+            {...task}
+            startISO={startISO}
+          />
         ))}
     </div>
   )

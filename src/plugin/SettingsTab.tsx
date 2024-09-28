@@ -42,7 +42,6 @@ function Calendars({
             style={{ marginRight: '4px' }}
             onClick={() => {
               if (!confirm('Remove this calendar?')) return
-              console.log('updated version')
 
               plugin.settings.calendars = _.pull(
                 [...plugin.settings.calendars],

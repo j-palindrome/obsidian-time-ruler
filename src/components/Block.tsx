@@ -39,6 +39,7 @@ export type BlockProps = {
   tasks: TaskProps[]
   events: EventProps[]
   blocks: BlockProps[]
+  title?: string
 }
 
 export default function Block({
@@ -53,6 +54,7 @@ export default function Block({
   events,
   dragging,
   blocks,
+  title,
 }: BlockComponentProps) {
   let showingTasks = useAppStore((state) => {
     const children = _.flatMap(tasks, (task) => getChildren(task, state.tasks))
@@ -252,7 +254,7 @@ export default function Block({
                   <hr className='border-t border-t-faint opacity-50 h-0 my-0 w-full'></hr>
                   {startISO && (
                     <span className='ml-2 whitespace-nowrap flex-none'>
-                      {formatStart(startISO)}
+                      {title ?? formatStart(startISO)}
                     </span>
                   )}
                   {hideTimes &&
@@ -289,6 +291,7 @@ export default function Block({
                   type,
                   hidePaths: onlyPath ? [...hidePaths, onlyPath] : hidePaths,
                   dragContainer: `${dragContainer}::${startISO}`,
+                  startISO,
                 }}
               />
             ))}

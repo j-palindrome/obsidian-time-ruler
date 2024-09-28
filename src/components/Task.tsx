@@ -15,6 +15,7 @@ import { TaskPriorities, priorityNumberToSimplePriority } from '../types/enums'
 import Block from './Block'
 import Button from './Button'
 import Logo from './Logo'
+import invariant from 'tiny-invariant'
 
 export type TaskComponentProps = TaskProps & {
   subtasks?: TaskProps[]
@@ -31,7 +32,7 @@ export default function Task({
 }: TaskComponentProps) {
   const completeTask = () => {
     setters.patchTasks([task.id], {
-      completion: toISO(roundMinutes(DateTime.now())),
+      completion: toISO(roundMinutes(DateTime.now()), true),
       completed: true,
     })
   }
@@ -110,6 +111,15 @@ export default function Task({
 
   const hasLengthDrag =
     task.duration || (task.scheduled && !isDateISO(task.scheduled))
+
+  if (task.due) {
+    console.log(
+      DateTime.fromISO(startISO as string),
+      DateTime.fromISO(task.due)
+        .diff(DateTime.fromISO(startISO as string))
+        .shiftTo('days').days
+    )
+  }
 
   return (
     <div
@@ -190,7 +200,11 @@ export default function Task({
               >
                 {!task.due
                   ? 'due'
-                  : DateTime.fromISO(task.due).toFormat('EEEEE M/d')}
+                  : `${
+                      DateTime.fromISO(task.due)
+                        .diff(DateTime.fromISO(startISO as string))
+                        .shiftTo('days').days
+                    }d`}
               </div>
             )}
 

@@ -226,10 +226,6 @@ export function textToTask(
       ) as string
     }
 
-    if (item['startTime']) {
-      console.log('full cal:', item, scheduled, duration)
-    }
-
     return { scheduled, length: duration }
   }
 
@@ -732,7 +728,6 @@ export function taskToPage(task: TaskProps, frontmatter: Record<string, any>) {
 
   for (let property of [
     'due',
-    'completion',
     'reminder',
     'completed',
     'completion',
