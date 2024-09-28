@@ -20,13 +20,13 @@
 ## 2.5.0 (9/28/2024)
 
 **Added:**
-- Add settings for [remaining days](https://github.com/joshuatazrein/obsidian-time-ruler/issues/112)
+- Add settings for [remaining days](https://github.com/joshuatazrein/obsidian-time-ruler/issues/112) in deadlines
 - Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 
 **Fixed:**
 - Fixed this bug: [Empty/Cleared Interface when time ruler is moved to another window · Issue #102 · joshuatazrein/obsidian-time-ruler · GitHub](https://github.com/joshuatazrein/obsidian-time-ruler/issues/102?notification_referrer_id=NT_kwDOBQ8O87M5ODYzNDc1MzMyOjg0ODcyOTQ3)
 - [Done tasks marked by Time Ruler are marked with time · Issue #114 · j-palindrome/obsidian-time-ruler · GitHub](https://github.com/j-palindrome/obsidian-time-ruler/issues/114)
-- All-day events overflowing onto the next day's events
+- Fixed all-day events overflowing onto the next day's events
 
 ## 2.4.0 (6/1/2024)
 **Fixed:**

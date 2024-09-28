@@ -115,9 +115,6 @@ export default function Day({
     })
 
     for (let event of _.filter(state.events, (event) => {
-      if (event.startISO === '2024-09-28')
-        console.log(event.startISO, event.endISO)
-
       const shouldInclude = isDateISO(event.startISO)
         ? event.startISO <= startDate && event.endISO > startDate
         : event.startISO < endISO &&

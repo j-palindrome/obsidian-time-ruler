@@ -112,15 +112,6 @@ export default function Task({
   const hasLengthDrag =
     task.duration || (task.scheduled && !isDateISO(task.scheduled))
 
-  if (task.due) {
-    console.log(
-      DateTime.fromISO(startISO as string),
-      DateTime.fromISO(task.due)
-        .diff(DateTime.fromISO(startISO as string))
-        .shiftTo('days').days
-    )
-  }
-
   return (
     <div
       className={`relative rounded-icon py-0.5 transition-colors duration-300 w-full min-h-line`}
