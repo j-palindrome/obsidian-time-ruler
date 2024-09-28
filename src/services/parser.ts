@@ -169,7 +169,7 @@ export function textToTask(
         minute: number | undefined = 0
       let endHour: number | undefined,
         endMinute: number | undefined = 0
-      if (item['startTime']) {
+      if (item['startTime'] && typeof item['startTime'] === 'string') {
         const splitStartTime = item['startTime'].split(':')
         hour = parseInt(splitStartTime[0])
         minute = parseInt(splitStartTime[1])
@@ -224,6 +224,10 @@ export function textToTask(
       scheduled = (
         isDate ? rawScheduled.toISODate() : toISO(rawScheduled)
       ) as string
+    }
+
+    if (item['startTime']) {
+      console.log('full cal:', item, scheduled, duration)
     }
 
     return { scheduled, length: duration }

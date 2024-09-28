@@ -37,6 +37,7 @@ export default function Day({
   const now = toISO(roundMinutes(DateTime.now()))
 
   const startDate = getStartDate(DateTime.fromISO(startISO))
+  const endDate = getStartDate(DateTime.fromISO(startISO).plus({ day: 1 }))
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
   const id = startDate
@@ -45,6 +46,13 @@ export default function Day({
    */
   const [allDay, blocksByTime] = useAppStore((state) => {
     const allDay: BlockProps = {
+      startISO: startDate,
+      endISO: startDate,
+      blocks: [],
+      tasks: [],
+      events: [],
+    }
+    const pastTasks: BlockProps = {
       startISO: startDate,
       endISO: startDate,
       blocks: [],
@@ -61,16 +69,15 @@ export default function Day({
         (showCompleted || task.completed === showingPastDates)
       if (!isShown) return
 
+      const scheduledPast =
+        !isNow || !scheduled
+          ? false
+          : showingPastDates
+          ? scheduled >= endDate
+          : scheduled < startDate
+
       const scheduledForToday = !scheduled
         ? false
-        : isNow
-        ? isDateISO(scheduled)
-          ? showingPastDates
-            ? scheduled >= startDate
-            : scheduled <= startDate
-          : showingPastDates
-          ? scheduled >= startISO
-          : scheduled < endISO
         : isDateISO(scheduled)
         ? scheduled === startDate
         : scheduled >= startISO && scheduled < endISO
@@ -80,7 +87,10 @@ export default function Day({
         (!task.due ? false : isNow || task.due >= startDate) &&
         (!task.scheduled || task.scheduled < startDate)
 
-      if (scheduledForToday) {
+      if (scheduledPast) {
+        invariant(scheduled)
+        pastTasks.tasks.push(task)
+      } else if (scheduledForToday) {
         invariant(scheduled)
         if (
           isDateISO(scheduled) ||
@@ -124,8 +134,10 @@ export default function Day({
         }
     }
 
-    return [allDay, blocksByTime]
+    debugger
+    return [pastTasks, allDay, blocksByTime]
   }, shallow)
+  console.log(allDay, blocksByTime, startDate)
 
   let blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
 

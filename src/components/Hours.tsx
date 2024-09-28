@@ -27,6 +27,8 @@ export default function Hours({
   for (let i = 0; i < blocks.length; i++) {
     let nestedBlocks: BlockProps[] = []
     const thisBlock = blocks[i]
+    console.log('this block', thisBlock, blocks)
+
     const thisEndISO = getEndISO(thisBlock)
 
     while (blocks[i + 1] && (blocks[i + 1].startISO as string) < thisEndISO) {

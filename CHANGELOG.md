@@ -1,6 +1,7 @@
 ## Developing
 - [Cannot add calendar: Time Ruler: Error creating calendar – Cannot add property 0, object is not extensible · Issue #109 · joshuatazrein/obsidian-time-ruler · GitHub](https://github.com/joshuatazrein/obsidian-time-ruler/issues/109)
 - [ ] Add settings for [remaining days](https://github.com/joshuatazrein/obsidian-time-ruler/issues/112)
+- [ ] Fix having incorrect [scheduled](https://github.com/j-palindrome/obsidian-time-ruler/issues/125) for Tasks format
 - [ ] Fix [issue](https://github.com/joshuatazrein/obsidian-time-ruler/issues/110)
 - [ ] Add support for [ICS Calendar repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/50)
 - [ ] Cleared interface
