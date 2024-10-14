@@ -605,6 +605,7 @@ const Buttons = ({
                     ['path', 'Path', 'folder-tree'],
                     ['priority', 'Priority', 'alert-circle'],
                     ['hybrid', 'Hybrid', 'arrow-down-narrow-wide'],
+                    ['tags', 'Tags', 'hash'],
                     [false, 'None', 'x'],
                   ].map(
                     ([groupBy, title, src]: [

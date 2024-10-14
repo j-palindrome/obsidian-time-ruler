@@ -21,7 +21,7 @@ import {
   toISO,
 } from './util'
 
-const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
+export const ISO_MATCH = '\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})?'
 const TASKS_EMOJI_SEARCH = new RegExp(
   `[${_.values(keyToTasksEmoji).join('')}] ?(${ISO_MATCH})?`,
   'giu'

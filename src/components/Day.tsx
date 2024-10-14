@@ -80,7 +80,8 @@ export default function Day({
         ? false
         : isDateISO(scheduled)
         ? scheduled === startDate
-        : scheduled >= startISO && scheduled < endISO
+        : (isNow ? scheduled > startDate : scheduled >= startISO) &&
+          scheduled < endISO
 
       const dueToday =
         !showingPastDates &&

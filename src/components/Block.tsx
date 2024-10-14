@@ -71,31 +71,18 @@ export default function Block({
 
   const sortedGroups = useAppStore((state) => {
     switch (state.settings.groupBy) {
-      case 'priority':
+      case false:
+        return _.entries(groupedTasks)
+      default:
         return _.sortBy(
           _.entries(groupedTasks),
           ([group]) => (group === UNGROUPED ? 0 : 1),
-          0
-        )
-      case 'path':
-        return _.sortBy(
-          _.entries(groupedTasks),
-          ([group, _tasks]) => (group === UNGROUPED ? 0 : 1),
-          ([group, _tasks]) =>
-            state.fileOrder.indexOf(parseFileFromPath(group)),
-          '1.0.position.start.line'
-        )
-      case 'hybrid':
-        return _.sortBy(
-          _.entries(groupedTasks),
-          ([group, _tasks]) => (group === UNGROUPED ? 0 : 1),
+          0,
           '1.0.priority',
           ([group, _tasks]) =>
             state.fileOrder.indexOf(parseFileFromPath(group)),
           '1.0.position.start.line'
         )
-      case false:
-        return _.entries(groupedTasks)
     }
   }, shallow)
 

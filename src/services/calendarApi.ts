@@ -122,6 +122,8 @@ export default class CalendarAPI extends Component {
               events[thisId] = props
             }
           } else {
+            if (event.summary.includes('TEST')) console.log(event)
+
             let end = DateTime.fromJSDate(event.end).setZone('local')
             if (end < dateBounds[0]) continue
 

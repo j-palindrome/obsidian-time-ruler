@@ -76,6 +76,13 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
       : undefined
   )
 
+  const checkForClick = () => {
+    if (!getters.get('dragData')) {
+      setters.set({ newTask: { task: { scheduled: undefined }, type: 'new' } })
+    }
+    window.removeEventListener('mouseup', checkForClick)
+  }
+
   return (
     <div className='flex relative z-30 pl-2'>
       {draggingTask ? (
@@ -96,13 +103,18 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
           )}
         </>
       ) : (
-        <Button
-          {...attributes}
-          {...listeners}
-          ref={setNodeRef}
-          className='relative flex-none h-10 w-10 cursor-grab !rounded-full bg-accent child:invert'
-          src='plus'
-        />
+        <>
+          <Button
+            {...attributes}
+            {...listeners}
+            onMouseDown={() => {
+              window.addEventListener('mouseup', checkForClick)
+            }}
+            ref={setNodeRef}
+            className='relative flex-none h-10 w-10 cursor-grab !rounded-full bg-accent child:invert'
+            src='plus'
+          />
+        </>
       )}
 
       {newTaskData && newTask && newTaskMode && (

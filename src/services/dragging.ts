@@ -20,15 +20,14 @@ export const onDragEnd = async (
 ) => {
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
+  const dragMode = getters.get('dragMode')
 
   if (ev.active.id === ev.over?.id) {
     setters.set({ dragData: null })
     return
   }
 
-  if (dragData?.dragType === 'new_button' && !dropData) {
-    setters.set({ newTask: { task: { scheduled: undefined }, type: 'new' } })
-  } else if (dragData?.dragType === 'task' && dropData?.type === 'move') {
+  if (dragData?.dragType === 'task' && dropData?.type === 'move') {
     setters.set({ newTask: { task: dragData, type: 'move' } })
   } else if (dropData && dragData) {
     if (!isTaskProps(dropData)) {
@@ -67,59 +66,6 @@ export const onDragEnd = async (
       }
     } else {
       switch (dragData.dragType) {
-        case 'now':
-          if (!dropData.scheduled) break
-
-          const dayStart = getters.get('settings').dayStartEnd[0]
-          const startOfDay = DateTime.now()
-            .startOf('day')
-            .plus({ hours: dayStart })
-          const today = toISO(startOfDay)
-          const tomorrow = toISO(startOfDay.plus({ days: 1 }))
-          const tasks = getters.get('tasks')
-          const futureTasks: Record<string, TaskProps[]> = {}
-
-          for (let task of _.values(tasks)) {
-            if (task.completed) continue
-            const scheduled = parseTaskDate(task)
-            if (
-              scheduled &&
-              !isDateISO(scheduled) &&
-              scheduled >= today &&
-              scheduled < tomorrow
-            ) {
-              if (task.queryParent) continue
-              let parent = task.parent
-              while (parent) {
-                if (tasks[parent].queryParent) continue
-                parent = tasks[parent].parent
-              }
-              if (futureTasks[scheduled]) futureTasks[scheduled].push(task)
-              else futureTasks[scheduled] = [task]
-            }
-          }
-
-          const tasksByTime = _.sortBy(_.entries(futureTasks), 0)
-          const { hours: shiftHours, minutes: shiftMinutes } = DateTime.fromISO(
-            dropData.scheduled
-          )
-            .diff(DateTime.fromISO(tasksByTime[0][0]))
-            .shiftTo('hours', 'minutes')
-
-          if (!confirm(`Shift tasks by ${shiftHours}h${shiftMinutes}m?`)) break
-
-          for (let [time, tasks] of tasksByTime) {
-            const timeParse = DateTime.fromISO(time)
-            await setters.patchTasks(
-              tasks.map((task) => task.id),
-              {
-                scheduled: toISO(
-                  timeParse.plus({ hours: shiftHours, minutes: shiftMinutes })
-                ),
-              }
-            )
-          }
-          break
         case 'new_button':
           setters.set({
             newTask: { task: { scheduled: dropData.scheduled }, type: 'new' },

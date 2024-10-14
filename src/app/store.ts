@@ -24,6 +24,7 @@ export type AppState = {
     calendar?: CalendarAPI
   }
   dragData: DragData | null
+  dragMode: 'ripple' | 'normal'
   findingTask: string | null
   inScroll: number
   searchStatus: boolean
@@ -71,6 +72,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
   inScroll: 0,
   searchStatus: false,
   viewMode: 'hour',
+  dragMode: 'normal',
   fileOrder: [],
   dailyNoteInfo: {
     format: 'YYYY-MM-DD',

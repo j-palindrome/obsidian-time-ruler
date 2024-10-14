@@ -12,7 +12,7 @@ import { getAPI } from 'obsidian-dataview'
 import TimeRulerView, { TIME_RULER_VIEW } from './index'
 import SettingsTab from './plugin/SettingsTab'
 import { openTaskInRuler } from './services/obsidianApi'
-import { taskToText, textToTask } from './services/parser'
+import { ISO_MATCH, taskToText, textToTask } from './services/parser'
 import { getters, setters } from './app/store'
 import invariant from 'tiny-invariant'
 import { roundMinutes, toISO } from './services/util'
@@ -35,7 +35,7 @@ type TimeRulerSettings = {
   }
   showCompleted: boolean
   dayStartEnd: [number, number]
-  groupBy: false | 'priority' | 'path' | 'hybrid'
+  groupBy: false | 'priority' | 'path' | 'hybrid' | 'tags'
   twentyFourHourFormat: boolean
   filterFunction: string
   addTaskToEnd: boolean
@@ -156,28 +156,30 @@ export default class TimeRulerPlugin extends Plugin {
     menu.addItem((item) =>
       item
         .setIcon('ruler')
-        .setTitle('Do now')
-        .onClick(() => this.editTask(context, cursor.line, 'now'))
+        .setTitle('Do today')
+        .onClick(() => this.editTask(context, cursor.line, 'today'))
     )
-    menu.addItem((item) =>
-      item
-        .setIcon('ruler')
-        .setTitle('Unschedule')
-        .onClick(() => this.editTask(context, cursor.line, 'unschedule'))
-    )
+    if (line.match(new RegExp(ISO_MATCH))) {
+      menu.addItem((item) =>
+        item
+          .setIcon('ruler')
+          .setTitle('Unschedule')
+          .onClick(() => this.editTask(context, cursor.line, 'unschedule'))
+      )
+    }
   }
 
   async editTask(
     context: MarkdownView,
     line: number,
-    modification: 'now' | 'unschedule'
+    modification: 'today' | 'unschedule'
   ) {
     invariant(context.file)
     const id = context.file.path.replace('.md', '') + '::' + line
     let scheduled: TaskProps['scheduled']
     switch (modification) {
-      case 'now':
-        scheduled = toISO(roundMinutes(DateTime.now()))
+      case 'today':
+        scheduled = toISO(roundMinutes(DateTime.now()), true)
         break
       case 'unschedule':
         scheduled = ''

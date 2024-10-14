@@ -126,7 +126,12 @@ export const splitHeading = (heading: string) => {
 }
 
 export const getHeading = (
-  { path, page, priority }: Pick<TaskProps, 'path' | 'page' | 'priority'>,
+  {
+    path,
+    page,
+    priority,
+    tags,
+  }: Pick<TaskProps, 'path' | 'page' | 'priority' | 'tags'>,
   dailyNoteInfo: AppState['dailyNoteInfo'],
   groupBy: AppState['settings']['groupBy'],
   hidePaths: string[] = []
@@ -136,9 +141,11 @@ export const getHeading = (
   if (
     groupBy === 'priority' ||
     (groupBy === 'hybrid' && priority !== TaskPriorities.DEFAULT)
-  )
+  ) {
     heading = priorityNumberToSimplePriority[priority]
-  else if (groupBy === 'path' || groupBy === 'hybrid') {
+  } else if (groupBy === 'tags') {
+    heading = tags.sort().join(', ')
+  } else if (groupBy === 'path' || groupBy === 'hybrid') {
     // replace daily note
     const file = parseFileFromPath(heading)
     const date = parseDateFromPath(file, dailyNoteInfo)

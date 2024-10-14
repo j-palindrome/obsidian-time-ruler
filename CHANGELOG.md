@@ -17,6 +17,14 @@
 
 # Changelog
 
+## 2.5.2 (10/14/2024)
+**Changed:**
+- "Do now" button is now "Do Today"
+
+**Fixed:**
+- No longer displaying [remaining days as decimal](https://github.com/j-palindrome/obsidian-time-ruler/issues/133)
+- Support [tag sorting](https://github.com/j-palindrome/obsidian-time-ruler/issues/96)
+
 ## 2.5.0 (9/28/2024)
 
 **Added:**

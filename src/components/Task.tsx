@@ -218,7 +218,7 @@ export default function Task({
           <Logo src='align-justify' className='py-2 px-1 h-full' />
         </div>
       </div>
-      {task.tags.length > 0 && (
+      {task.tags.length > 0 && groupBy !== 'tags' && (
         <div className='no-scrollbar flex space-x-2 overflow-x-auto pl-indent text-xs child:whitespace-nowrap'>
           {task.tags.map((tag) => (
             <div
