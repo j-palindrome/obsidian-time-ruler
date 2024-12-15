@@ -94,12 +94,18 @@ When editing a task via drag-and-drop, tasks are converted back to the formattin
 
 ## Customization Settings
 - **Custom Filter**: This is passed to `dv.pages(<custom filter>)`. It only filters out certain pages, and can't filter specific tasks within those. Use Custom Statuses to filter out tasks. See this [link](https://blacksmithgu.github.io/obsidian-dataview/api/code-reference/#dvpagessource) for `dv.pages()` and this [link](https://blacksmithgu.github.io/obsidian-dataview/reference/sources/) for how to format query sources.
+<img width="772" alt="image" src="https://github.com/user-attachments/assets/1dc6928a-cdaa-4077-b4bc-1eb87bc43460" />
+
   - Include a folder and its children: `"folder"`
   - Exclude a folder and its children: `-"folder"`
   - Include two folders and exclude a third: `"folder" or "folder2" and -"folder3"`
   - Include tags: `#tag or #tag2 and -#tag3`
   - Include pages which link to a page: `[[page]]`
   - Include links from page: `outgoing([[page]])`
+- **Filter Function**: Provides a filtering function that uses the data passed from dv.pages()['file']['tasks']
+<img width="772" alt="image" src="https://github.com/user-attachments/assets/be4961ec-fdef-4f6b-b247-2636f25e4e3b" />
+  - Filtering out empty tasks: `(tasks) => tasks.where(task => task.text != "")`
+  - Filtering out empty tags: ` (tasks) => tasks.where(task => task.tags.length===0)`
 - **Custom Status**: Either **include only** certain custom statuses, or **exclude all** specified custom statuses (characters between `[ ]` in tasks).
 - To style Time Ruler, the following classes are added: 
   - `task-list-item`, `task-list-item-checkbox`, `task-due`, `task-scheduled`, `data-task`, and `task-priority` coincide with [Tasks plugin](https://publish.obsidian.md/tasks/Advanced/Styling) styling, and additional `task-duration` and `task-reminder` classes are added to those parts of tasks, so you can style them with CSS snippets (unfortunately, you will need to add your own custom status styling, due to custom themes being formatted for the Obsidian markdown editor, and not Time Ruler).
