@@ -86,13 +86,18 @@ export const parseFileFromPath = (path: string) => {
   if (path.includes('#')) path = path.slice(0, path.indexOf('#'))
   if (path.includes('>')) path = path.slice(0, path.indexOf('>'))
   if (path.includes('::')) path = path.slice(0, path.indexOf('::'))
+  if (path === 'Daily') {
+    path = parsePathFromDate(new Date().toISOString().slice(0, 10))
+  }
+  if (!path.endsWith('.md')) path += '.md'
   return path
 }
 
 export const parsePathFromDate = (
   date: string,
-  dailyNoteInfo: AppState['dailyNoteInfo']
+  dailyNoteInfo?: AppState['dailyNoteInfo']
 ) => {
+  if (!dailyNoteInfo) dailyNoteInfo = getters.get('dailyNoteInfo')
   const formattedDate = moment(date).format(dailyNoteInfo.format)
   return dailyNoteInfo.folder + formattedDate + '.md'
 }
@@ -120,7 +125,10 @@ export const splitHeading = (heading: string) => {
       : heading.includes('#')
       ? heading.split('#', 2)
       : heading.includes('/')
-      ? heading.split('/', 2)
+      ? [
+          heading.slice(0, heading.lastIndexOf('/')),
+          heading.slice(heading.lastIndexOf('/') + 1),
+        ]
       : ['', heading]
   ) as [string, string]
 }
@@ -146,12 +154,13 @@ export const getHeading = (
   } else if (groupBy === 'tags') {
     heading = tags.sort().join(', ')
   } else if (groupBy === 'path' || groupBy === 'hybrid') {
-    // replace daily note
-    const file = parseFileFromPath(heading)
-    const date = parseDateFromPath(file, dailyNoteInfo)
-    if (date) heading = heading.replace(file, `Daily: ${date.format('MMM DD')}`)
     if (page) {
       heading = parseFolderFromPath(path)
+    } else {
+      // replace daily note
+      const file = parseFileFromPath(heading)
+      const date = parseDateFromPath(file, dailyNoteInfo)
+      if (date) heading = 'Daily' + (heading.match(/#.+$/)?.[0] ?? '')
     }
   } else heading = UNGROUPED
 
@@ -196,8 +205,20 @@ export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
   }
 }
 
-export const parseTaskDate = (task: TaskProps): string | undefined =>
-  task.scheduled || task.completion
+export const parseTaskDate = (
+  task: TaskProps,
+  tasks: AppState['tasks']
+): string | undefined => {
+  let currentParent = task
+  const parseDate = (task) => task.scheduled || task.completion
+  // parents with later scheduled dates "pull" their children forward
+  while (currentParent.parent) {
+    const nextScheduled = parseDate(tasks[currentParent.parent])
+    if (!nextScheduled || nextScheduled < parseDate(currentParent)) break
+    currentParent = tasks[currentParent.parent]
+  }
+  return parseDate(currentParent)
+}
 
 export const toISO = (date: DateTime, isDate?: boolean) => {
   const d = date.toISO({
@@ -437,11 +458,11 @@ export const getParentScheduled = (
   task: TaskProps,
   tasks: AppState['tasks']
 ) => {
-  if (parseTaskDate(task)) return parseTaskDate(task)
+  if (parseTaskDate(task, tasks)) return parseTaskDate(task, tasks)
   let parent = task.parent ?? task.queryParent
   while (parent) {
     task = tasks[parent]
-    if (parseTaskDate(task)) return parseTaskDate(task)
+    if (parseTaskDate(task, tasks)) return parseTaskDate(task, tasks)
     parent = task.parent ?? task.queryParent
   }
   return undefined

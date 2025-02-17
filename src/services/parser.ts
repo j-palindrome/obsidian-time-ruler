@@ -318,6 +318,8 @@ export function textToTask(
   const query = parseQuery()
 
   let filteredTags = [...item.tags]
+  let links = item.outlinks.map((x) => `"${x.path}"`)
+
   const textString = item.text as string
   let firstBracket = textString.indexOf('[[')
   let secondBracket = textString.indexOf(']]', firstBracket)
@@ -358,6 +360,7 @@ export function textToTask(
     blockReference: titleLine.match(BLOCK_REFERENCE)?.[0],
     completed: item.completed,
     query,
+    links,
   }
 }
 
@@ -473,6 +476,7 @@ export function pageToTask(
     blockReference: undefined,
     fieldFormat,
     query: (item.query as string) ?? undefined,
+    links: [],
   }
 }
 

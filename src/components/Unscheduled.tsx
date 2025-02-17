@@ -20,7 +20,7 @@ function _Unscheduled() {
           (showingPastDates ? task.completed : !task.completed)) &&
         !task.parent &&
         !task.queryParent &&
-        !parseTaskDate(task) &&
+        !parseTaskDate(task, state.tasks) &&
         !task.due
     )
   )

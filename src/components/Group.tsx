@@ -72,13 +72,16 @@ export default function Group({
         parseFileFromPath(headingPath)
   )
 
-  const sortedTasks = _.sortBy(
-    tasks,
-    (task) => (task.due ? `0::${task.due}` : '1'),
-    'priority',
-    'path',
-    'position.start.line'
-  )
+  const sortedTasks =
+    type === 'upcoming'
+      ? _.sortBy(tasks, 'due', 'priority')
+      : _.sortBy(
+          tasks,
+          'path',
+          'position.start.line'
+          // 'priority',
+          // (task) => (task.due ? `0::${task.due}` : '1')
+        )
 
   const isPriority = _.keys(simplePriorityToNumber).includes(heading)
 

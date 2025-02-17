@@ -153,36 +153,62 @@ export default class TimeRulerPlugin extends Plugin {
         .setTitle('Reveal in Time Ruler')
         .onClick(() => this.jumpToTask(context))
     )
-    menu.addItem((item) =>
-      item
-        .setIcon('ruler')
-        .setTitle('Do today')
-        .onClick(() => this.editTask(context, cursor.line, 'today'))
-    )
-    if (line.match(new RegExp(ISO_MATCH))) {
-      menu.addItem((item) =>
+    menu.addItem((menu) => {
+      // @ts-ignore
+      const submenu = menu.setTitle('Do').setIcon('ruler').setSubmenu()
+
+      submenu.addItem((item) =>
         item
-          .setIcon('ruler')
-          .setTitle('Unschedule')
-          .onClick(() => this.editTask(context, cursor.line, 'unschedule'))
+          .setTitle('Today')
+          .onClick(() => this.editTask(context, cursor.line, 'today'))
       )
-    }
+      submenu.addItem((item) =>
+        item
+          .setTitle('Tomorrow')
+          .onClick(() => this.editTask(context, cursor.line, 'tomorrow'))
+      )
+      submenu.addItem((item) =>
+        item
+          .setTitle('Now')
+          .onClick(() => this.editTask(context, cursor.line, 'now'))
+      )
+      submenu.addItem((item) =>
+        item
+          .setTitle('Next week')
+          .onClick(() => this.editTask(context, cursor.line, 'next-week'))
+      )
+      if (line.match(new RegExp(ISO_MATCH))) {
+        submenu.addItem((item) =>
+          item
+            .setTitle('Unschedule')
+            .onClick(() => this.editTask(context, cursor.line, 'unschedule'))
+        )
+      }
+    })
   }
 
   async editTask(
     context: MarkdownView,
     line: number,
-    modification: 'today' | 'unschedule'
+    modification: 'now' | 'today' | 'tomorrow' | 'next-week' | 'unschedule'
   ) {
     invariant(context.file)
     const id = context.file.path.replace('.md', '') + '::' + line
     let scheduled: TaskProps['scheduled']
     switch (modification) {
+      case 'now':
+        scheduled = toISO(roundMinutes(DateTime.now()))
+        break
       case 'today':
         scheduled = toISO(roundMinutes(DateTime.now()), true)
         break
+      case 'tomorrow':
+        scheduled = toISO(roundMinutes(DateTime.now().plus({ day: 1 })), true)
+      case 'next-week':
+        scheduled = toISO(roundMinutes(DateTime.now().plus({ week: 1 })), true)
       case 'unschedule':
         scheduled = ''
+        break
     }
     setters.patchTasks([id], { scheduled })
   }

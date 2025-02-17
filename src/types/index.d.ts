@@ -45,6 +45,7 @@ declare global {
     query?: string
     queryParent?: string
     queryChildren?: string[]
+    links: string[]
 
     // Obsidian Reminder
     reminder?: string

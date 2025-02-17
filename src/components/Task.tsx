@@ -5,6 +5,7 @@ import { setters, useAppStore } from '../app/store'
 import { openTask } from '../services/obsidianApi'
 import {
   getHeading,
+  getToday,
   isDateISO,
   nestedScheduled,
   parseTaskDate,
@@ -38,6 +39,7 @@ export default function Task({
   }
 
   subtasks = useAppStore((state) => {
+    const taskDate = parseTaskDate(task, state.tasks)
     let newSubtasks = _.flatMap(
       subtasks ??
         task.children
@@ -45,7 +47,15 @@ export default function Task({
           .map((id) => state.tasks[id]),
       (subtask) => {
         if (!subtask) return []
-        if (!nestedScheduled(parseTaskDate(task), subtask.scheduled)) {
+        if (
+          !subtask.scheduled &&
+          !subtask.due &&
+          !state.settings.scheduledSubtasks
+        )
+          return []
+        if (subtask.due && !task.scheduled) return []
+
+        if (!nestedScheduled(taskDate, parseTaskDate(subtask, state.tasks))) {
           return []
         }
         if (subtask.completed !== state.showingPastDates) return []
@@ -53,7 +63,7 @@ export default function Task({
       }
     )
 
-    if (!state.settings.scheduledSubtasks)
+    if (!state.settings.scheduledSubtasks && task.scheduled)
       newSubtasks = newSubtasks.filter((task) => task.scheduled)
     return newSubtasks
   })
@@ -109,8 +119,13 @@ export default function Task({
 
   if (!task) return <></>
 
+  const showingPastDates = useAppStore((state) => state.showingPastDates)
+  const today = getToday()
+  const now = DateTime.now().toISO()
   const hasLengthDrag =
-    task.duration || (task.scheduled && !isDateISO(task.scheduled))
+    task.scheduled &&
+    !isDateISO(task.scheduled) &&
+    (showingPastDates ? task.scheduled > today : task.scheduled < now)
 
   return (
     <div
@@ -139,15 +154,14 @@ export default function Task({
         <div className={`flex w-full`}>
           <div
             className={`w-fit cursor-pointer break-words leading-line hover:underline ${
-              [TaskPriorities.HIGH, TaskPriorities.HIGHEST].includes(
-                task.priority
-              )
+              [TaskPriorities.HIGHEST].includes(task.priority)
                 ? 'text-accent'
                 : renderType === 'deadline'
                 ? ''
                 : task.priority === TaskPriorities.LOW ||
                   isLink ||
-                  task.status === 'x'
+                  task.status === 'x' ||
+                  !task.title
                 ? 'text-faint'
                 : ''
             }`}
@@ -163,41 +177,6 @@ export default function Task({
                 {priorityNumberToSimplePriority[task.priority]}
               </div>
             )}
-            {hasLengthDrag && (
-              <div
-                className={`task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
-                  !task.duration ? 'hidden group-hover:block' : ''
-                }`}
-                ref={setLengthNodeRef}
-                {...lengthAttributes}
-                {...lengthListeners}
-              >
-                {!task.duration
-                  ? 'length'
-                  : `${task.duration?.hour ? `${task.duration?.hour}h` : ''}${
-                      task.duration?.minute ? `${task.duration?.minute}m` : ''
-                    }`}
-              </div>
-            )}
-
-            {!task.completed && (
-              <div
-                ref={setDeadlineNodeRef}
-                {...deadlineAttributes}
-                {...deadlineListeners}
-                className={`task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
-                  !task.due ? 'hidden group-hover:block' : ''
-                }`}
-              >
-                {!task.due
-                  ? 'due'
-                  : `${
-                      DateTime.fromISO(task.due)
-                        .diff(DateTime.fromISO(startISO as string))
-                        .shiftTo('days').days
-                    }d`}
-              </div>
-            )}
 
             {!task.completed && task.reminder && (
               <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
@@ -209,8 +188,48 @@ export default function Task({
             )}
           </div>
         </div>
+        {hasLengthDrag && (
+          <div
+            className={`task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+              !task.duration ? 'hidden group-hover:block' : ''
+            }`}
+            ref={setLengthNodeRef}
+            {...lengthAttributes}
+            {...lengthListeners}
+          >
+            {!task.duration
+              ? 'length'
+              : `${task.duration?.hour ? `${task.duration?.hour}h` : ''}${
+                  task.duration?.minute ? `${task.duration?.minute}m` : ''
+                }`}
+          </div>
+        )}
+
+        {!task.completed && (
+          <div
+            ref={setDeadlineNodeRef}
+            {...deadlineAttributes}
+            {...deadlineListeners}
+            className={`task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+              !task.due ? 'hidden group-hover:block' : ''
+            }`}
+          >
+            {!task.due
+              ? 'due'
+              : `${Math.floor(
+                  DateTime.fromISO(task.due)
+                    .diff(
+                      DateTime.fromISO(
+                        (startISO ??
+                          new Date().toISOString().slice(0, 10)) as string
+                      )
+                    )
+                    .shiftTo('days').days
+                )}d`}
+          </div>
+        )}
         <div
-          className='hidden group-hover:flex cursor-grab grow items-center ml-1 h-line'
+          className='flex opacity-0 group-hover:opacity-100 cursor-grab grow items-center ml-1 h-line'
           {...attributes}
           {...listeners}
           ref={setActivatorNodeRef}

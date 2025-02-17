@@ -1,14 +1,13 @@
 ## Developing
 - Support markdown in Tasks
 - Support [Add hyperlink support for external calendar event locations · Issue #121 · j-palindrome/obsidian-time-ruler · GitHub](https://github.com/j-palindrome/obsidian-time-ruler/issues/121)
-- support [tag sorting](https://github.com/joshuatazrein/obsidian-time-ruler/issues/96)
+- Support [last pathname sorting](https://github.com/j-palindrome/obsidian-time-ruler/issues/128)
 - Fix Full Calendar meetings in [Daily Notes](https://github.com/j-palindrome/obsidian-time-ruler/issues/117)
+- Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
 
 ## Planned
 - Support [Task repeats](https://github.com/joshuatazrein/obsidian-time-ruler/issues/5)
-- Support [aliases](https://github.com/joshuatazrein/obsidian-time-ruler/issues/76)
-- Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
-- Support [colors in calendar & tasks](https://github.com/joshuatazrein/obsidian-time-ruler/issues/72)
+- Support [aliases](https://github.com/joshuatazrein/obsidian-time-
 - Option to support [Tasks API on click](https://github.com/joshuatazrein/obsidian-time-ruler/issues/74)
 - Add in ability to make queries in [Tasks as well](https://github.com/j-palindrome/obsidian-time-ruler/issues/123)
 

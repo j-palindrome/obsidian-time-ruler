@@ -32,7 +32,12 @@ export type BlockComponentProps = BlockProps & {
 }
 
 export const UNGROUPED = '__ungrouped'
-export type BlockType = 'event' | 'unscheduled' | 'child' | 'all-day'
+export type BlockType =
+  | 'event'
+  | 'unscheduled'
+  | 'child'
+  | 'all-day'
+  | 'upcoming'
 export type BlockProps = {
   startISO?: string
   endISO?: string
@@ -58,6 +63,7 @@ export default function Block({
 }: BlockComponentProps) {
   let showingTasks = useAppStore((state) => {
     const children = _.flatMap(tasks, (task) => getChildren(task, state.tasks))
+    // filter out tasks which are children of other tasks
     return tasks.filter((task) => !children.includes(task.id))
   }, shallow)
 
@@ -65,7 +71,12 @@ export default function Block({
 
   const groupedTasks = useAppStore((state) => {
     return _.groupBy(topLevel, (task) =>
-      getHeading(task, state.dailyNoteInfo, state.settings.groupBy, hidePaths)
+      getHeading(
+        task,
+        state.dailyNoteInfo,
+        type === 'upcoming' ? false : state.settings.groupBy,
+        hidePaths
+      )
     )
   })
 
@@ -77,23 +88,14 @@ export default function Block({
         return _.sortBy(
           _.entries(groupedTasks),
           ([group]) => (group === UNGROUPED ? 0 : 1),
-          0,
           '1.0.priority',
-          ([group, _tasks]) =>
-            state.fileOrder.indexOf(parseFileFromPath(group)),
+          ([group, _tasks]) => {
+            return state.fileOrder.indexOf(parseFileFromPath(group))
+          },
           '1.0.position.start.line'
         )
     }
   }, shallow)
-
-  const expanded = useAppStore(
-    (state) =>
-      _.sum(
-        sortedGroups
-          .filter(([group]) => group !== UNGROUPED)
-          .map(([group]) => (state.collapsed[group] ? 0 : 1))
-      ) > 0
-  )
 
   const dragData: DragData = {
     dragType: 'block',
@@ -144,30 +146,15 @@ export default function Block({
       ? startISO
       : _.max([startISO, toISO(roundMinutes(DateTime.now()))])
 
-  const collapseButton = () => (
-    <div className='w-indent flex-none px-1'>
-      <Button
-        className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 h-4 py-0.5 flex-none'
-        src={expanded ? 'chevron-down' : 'chevron-right'}
-        onClick={() => {
-          setters.patchCollapsed(
-            _.map(sortedGroups, 0).filter((x) => x !== UNGROUPED),
-            expanded
-          )
-          return false
-        }}
-        onPointerDown={() => false}
-      />
-    </div>
-  )
+  const [collapsed, setCollapsed] = useState(false)
 
-  const collapsed = useAppStore((state) =>
-    type === 'unscheduled'
-      ? _.sum(
-          sortedGroups.map(([title]) => (state.collapsed[title] ? 1 : 0))
-        ) === sortedGroups.length
-      : false
-  )
+  // const collapsed = useAppStore((state) =>
+  //   type === 'unscheduled'
+  //     ? _.sum(
+  //         sortedGroups.map(([title]) => (state.collapsed[title] ? 1 : 0))
+  //       ) === sortedGroups.length
+  //     : false
+  // )
 
   const [unscheduledPortal, setUnscheduledPortal] =
     useState<HTMLDivElement | null>(null)
@@ -199,13 +186,11 @@ export default function Block({
         id={id}
         data-role='block'
         className={`relative w-full rounded-icon ${
-          ['event', 'unscheduled', 'all-day'].includes(type)
-            ? 'bg-code pb-2'
-            : ''
+          type !== 'child' ? 'bg-code pb-2' : ''
         } `}
         ref={draggable ? setNodeRef : undefined}
       >
-        {(type === 'event' || type === 'all-day') && (
+        {!['child', 'unscheduled'].includes(type) && (
           <Droppable
             data={{ scheduled: startISO ?? '' }}
             id={`${dragContainer}::${type}::${startISO}::${
@@ -215,7 +200,17 @@ export default function Block({
             <div
               className={`selectable flex rounded-icon font-menu text-xs w-full py-0.5 group`}
             >
-              {collapseButton()}
+              <div className='w-indent flex-none px-1'>
+                <Button
+                  className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 h-4 py-0.5 flex-none'
+                  src={!collapsed ? 'chevron-down' : 'chevron-right'}
+                  onClick={() => {
+                    setCollapsed(!collapsed)
+                    return false
+                  }}
+                  onPointerDown={() => false}
+                />
+              </div>
 
               <div className='w-full flex'>
                 <div className={`w-fit flex-none max-w-[80%] mr-2`}>
@@ -269,19 +264,20 @@ export default function Block({
               type === 'event' ? 'pt-1 pl-1 pb-1' : ''
             }`}
           >
-            {sortedGroups.map(([path, tasks]) => (
-              <Group
-                key={path}
-                {...{
-                  headingPath: path,
-                  tasks,
-                  type,
-                  hidePaths: onlyPath ? [...hidePaths, onlyPath] : hidePaths,
-                  dragContainer: `${dragContainer}::${startISO}`,
-                  startISO,
-                }}
-              />
-            ))}
+            {!collapsed &&
+              sortedGroups.map(([path, tasks]) => (
+                <Group
+                  key={path}
+                  {...{
+                    headingPath: path,
+                    tasks,
+                    type,
+                    hidePaths: onlyPath ? [...hidePaths, onlyPath] : hidePaths,
+                    dragContainer: `${dragContainer}::${startISO}`,
+                    startISO,
+                  }}
+                />
+              ))}
           </div>
           {firstStartISO && firstEndISO && firstStartISO < firstEndISO && (
             <div className='w-10 flex-none'>

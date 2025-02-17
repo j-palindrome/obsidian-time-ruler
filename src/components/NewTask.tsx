@@ -24,6 +24,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
 
   const newTaskData = useAppStore((state) => state.newTask)
   const newTask = newTaskData ? newTaskData.task : false
+
   const newTaskMode = newTaskData ? newTaskData.type : undefined
   const frame = useRef<HTMLDivElement>(null)
   const inputFrame = useRef<HTMLInputElement>(null)
@@ -56,7 +57,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
         if (task.completed) return []
         if (task.page && newTaskMode === 'move') return []
         return getHeading(task, dailyNoteInfo, 'path')
-      })
+      }).concat(['Daily'])
     ).sort()
   }, shallow)
 
@@ -77,7 +78,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   )
 
   const checkForClick = () => {
-    if (!getters.get('dragData')) {
+    if (!getters.get('dragData') && !getters.get('newTask')) {
       setters.set({ newTask: { task: { scheduled: undefined }, type: 'new' } })
     }
     window.removeEventListener('mouseup', checkForClick)

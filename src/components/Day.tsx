@@ -44,7 +44,7 @@ export default function Day({
   /**
    * find the nearest scheduled date in parents (include ALL tasks which will be in this block). Day -> Hours -> Block all take a single flat list of scheduled tasks, which they use to calculate total length of the block. Blocks group them by parent -> filepath/heading, calculating queries and unscheduled parents.
    */
-  const [allDay, blocksByTime, pastTasks] = useAppStore((state) => {
+  const [allDay, blocksByTime, pastTasks, upcoming] = useAppStore((state) => {
     const allDay: BlockProps = {
       startISO: startDate,
       endISO: startDate,
@@ -59,9 +59,16 @@ export default function Day({
       tasks: [],
       events: [],
     }
+    const upcoming: BlockProps = {
+      startISO: startDate,
+      endISO: startDate,
+      blocks: [],
+      tasks: [],
+      events: [],
+    }
     const blocksByTime: Record<string, BlockProps> = {}
     _.forEach(state.tasks, (task) => {
-      const scheduled = parseTaskDate(task)
+      const scheduled = parseTaskDate(task, state.tasks)
 
       const isShown =
         (task.due || scheduled) &&
@@ -111,9 +118,19 @@ export default function Day({
             }
         }
       } else if (dueToday) {
-        allDay.tasks.push(task)
+        upcoming.tasks.push(task)
       }
     })
+
+    // const flattenedTasks = _.values(blocksByTime)
+    //   .flatMap((x) => x.tasks.concat(x.blocks.flatMap((x) => x.tasks)))
+    //   .map((x) => x.id)
+    // allDay.tasks = allDay.tasks.filter(
+    //   (task) => !task.parent || !flattenedTasks.includes(task.parent)
+    // )
+    // pastTasks.tasks = pastTasks.tasks.filter(
+    //   (task) => !task.parent || !flattenedTasks.includes(task.parent)
+    // )
 
     for (let event of _.filter(state.events, (event) => {
       const shouldInclude = isDateISO(event.startISO)
@@ -135,7 +152,7 @@ export default function Day({
           blocks: [],
         }
     }
-    return [allDay, blocksByTime, pastTasks]
+    return [allDay, blocksByTime, pastTasks, upcoming]
   }, shallow)
 
   let blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
@@ -237,7 +254,10 @@ export default function Day({
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        {allDay.tasks.length + allDay.events.length + pastTasks.tasks.length >
+        {allDay.tasks.length +
+          allDay.events.length +
+          pastTasks.tasks.length +
+          upcoming.tasks.length >
           0 && (
           <div
             className={`relative w-full child:mb-1 overflow-x-hidden rounded-icon mt-1 ${
@@ -255,6 +275,18 @@ export default function Day({
             data-auto-scroll={calendarMode ? undefined : 'y'}
             ref={allDayFrame}
           >
+            {pastTasks.tasks.length > 0 && (
+              <Block
+                type='all-day'
+                title='past'
+                events={[]}
+                tasks={pastTasks.tasks}
+                startISO={startDate}
+                endISO={startDate}
+                dragContainer={dragContainer + '-past'}
+                blocks={[]}
+              />
+            )}
             {allDay.events.map((event) => (
               <Block
                 type='event'
@@ -271,23 +303,25 @@ export default function Day({
             {allDay.tasks.length > 0 && (
               <Block
                 type='all-day'
+                title='today'
                 events={[]}
                 tasks={allDay.tasks}
                 startISO={startDate}
                 endISO={startDate}
-                dragContainer={dragContainer}
+                dragContainer={dragContainer + '-allDay'}
                 blocks={[]}
               />
             )}
-            {pastTasks.tasks.length > 0 && (
+
+            {upcoming.tasks.length > 0 && (
               <Block
-                type='all-day'
-                title='past'
+                type='upcoming'
+                title='upcoming'
                 events={[]}
-                tasks={pastTasks.tasks}
+                tasks={upcoming.tasks}
                 startISO={startDate}
                 endISO={startDate}
-                dragContainer={dragContainer}
+                dragContainer={dragContainer + '-upcoming'}
                 blocks={[]}
               />
             )}
@@ -300,6 +334,10 @@ export default function Day({
               day: 'h-fit',
               week: 'h-fit',
             }[viewMode]
+          } ${
+            isNow && focus
+              ? 'border border-solid border-accent rounded-lg px-1'
+              : ''
           }`}
         >
           {isNow && (
@@ -311,15 +349,17 @@ export default function Day({
                 }}
               >
                 <div className='h-full grow flex font-menu items-center space-x-2 pl-indent'>
-                  <span className='text-xs'>Now</span>
+                  <span className='text-xs text-accent'>Now</span>
                   <hr className='w-full border-selection'></hr>
                 </div>
               </Droppable>
               <Button
-                className=''
-                src={focus ? 'maximize-2' : 'minimize-2'}
+                className={`ml-1 ${isNow && focus ? 'bg-accent' : ''}`}
+                src={focus ? 'minimize-2' : 'maximize-2'}
+                title='focus on now'
                 onClick={() => {
                   if (!focus) {
+                    // also collapse today's tasks
                     setters.patchCollapsed([id], true)
                   }
                   setters.patchCollapsed([TR_NOW], !focus)

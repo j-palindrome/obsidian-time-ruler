@@ -291,7 +291,10 @@ export default class ObsidianAPI extends Component {
     if (!updated) return
 
     const queries = _.sortBy(
-      _.filter(updatedTasks, (task) => !task.completed && !!task.query),
+      _.filter(
+        updatedTasks,
+        (task) => !task.completed && !!(task.query || task.links.length > 0)
+      ),
       (task) => getParentScheduled(task, updatedTasks) ?? '99999'
     )
 
@@ -303,9 +306,13 @@ export default class ObsidianAPI extends Component {
     const alreadyQueried: Set<string> = new Set()
     // queries "steal" children, with most earlier scheduled overriding later scheduled
     for (const task of queries) {
-      invariant(task.query)
-
-      const queriedTasks = queryTasks(task.id, task.query, updatedTasks)
+      const queriedTasks = (
+        task.query ? queryTasks(task.id, task.query, updatedTasks) : []
+      ).concat(
+        ...task.links.map((path) =>
+          queryTasks(task.id, `"${path}"`, updatedTasks)
+        )
+      )
 
       const queryChildren: string[] = []
       for (let queriedTask of queriedTasks) {
@@ -358,7 +365,7 @@ export default class ObsidianAPI extends Component {
 
   async moveTask(task: TaskProps, selectedHeading: string) {
     if (task.page) {
-      alert("Moving pages isn't supported yet.")
+      alert("Moving pages isn't supported.")
       return
     }
     const file = await this.getFile(task.path)
@@ -377,18 +384,23 @@ export default class ObsidianAPI extends Component {
       task.position.start.line,
       end + 1 - task.position.start.line
     )
-
     await this.app.vault.modify(file, lines.join('\n'))
-    const { fileName, position } = await this.findPosition(selectedHeading)
-    const moveFile = await this.getFile(fileName)
+
+    const { filePath, position } = await this.findPosition(selectedHeading)
+    const moveFile = await this.getFile(filePath)
     invariant(moveFile)
+
+    // preserve scheduled date when moving out of Daily notes
+    const copyTask = { ...task, path: filePath }
+    const textTask = taskToText(copyTask, this.settings.fieldFormat)
+    const pasteLines = [textTask].concat(copyLines.slice(1))
 
     await this.app.vault.process(moveFile, (text) => {
       const lines = text.split('\n')
-      lines.splice(position.start.line, 0, ...copyLines)
+      lines.splice(position.start.line, 0, ...pasteLines)
       return lines.join('\n')
     })
-    openTask({ ...task, path: fileName, position })
+    openTask({ ...task, path: filePath, position })
   }
 
   createNewTask = (
@@ -441,8 +453,8 @@ export default class ObsidianAPI extends Component {
   }
 
   private async findPosition(path: string) {
-    let [fileName, heading] = path.split('#')
-    if (!fileName.endsWith('.md')) fileName += '.md'
+    let filePath = parseFileFromPath(path)
+    let heading = path.split('#')[1]
 
     let position = {
       start: { col: 0, line: 0, offset: 0 },
@@ -497,7 +509,7 @@ export default class ObsidianAPI extends Component {
       }
     }
 
-    return { position, fileName }
+    return { position, filePath }
   }
 
   private async createTaskInPath(
@@ -505,7 +517,7 @@ export default class ObsidianAPI extends Component {
     dropData: Partial<TaskProps>,
     completed = false
   ) {
-    const { position, fileName } = await this.findPosition(path)
+    const { position, filePath: fileName } = await this.findPosition(path)
 
     const defaultTask: TaskProps = {
       page: false,
@@ -522,6 +534,7 @@ export default class ObsidianAPI extends Component {
       status: ' ',
       fieldFormat: this.settings.fieldFormat,
       completed,
+      links: [],
       ...dropData,
     }
 
