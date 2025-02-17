@@ -277,11 +277,7 @@ export default function Task({
           {!collapsed && subtasks.length > 0 && (
             <Block
               dragContainer={`${dragContainer}::${task.id}`}
-              hidePaths={[
-                getHeading(task, dailyNoteInfo, groupBy),
-                getHeading(task, dailyNoteInfo, 'path'),
-                getHeading({ ...task, page: false }, dailyNoteInfo, 'path'),
-              ]}
+              hidePaths={[getHeading(task, dailyNoteInfo, groupBy), task.path]}
               startISO={startISO}
               tasks={subtasks}
               events={[]}

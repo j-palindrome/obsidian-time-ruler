@@ -161,6 +161,7 @@ export const getHeading = (
       const file = parseFileFromPath(heading)
       const date = parseDateFromPath(file, dailyNoteInfo)
       if (date) heading = 'Daily' + (heading.match(/#.+$/)?.[0] ?? '')
+      else heading = file.replace('.md', '')
     }
   } else heading = UNGROUPED
 

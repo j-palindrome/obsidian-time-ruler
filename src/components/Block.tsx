@@ -130,15 +130,6 @@ export default function Block({
   const hideTimes = useAppStore((state) => state.settings.hideTimes)
   const draggable = tasks.length > 0
 
-  const onlyPath: string | undefined =
-    events.length === 0 &&
-    type === 'event' &&
-    sortedGroups.length === 1 &&
-    sortedGroups[0][0] !== UNGROUPED
-      ? sortedGroups[0][0]
-      : undefined
-  const onlyPathTitle = onlyPath ? splitHeading(onlyPath)[1] : undefined
-
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const firstEndISO = blocks[0]?.startISO || endISO
   const firstStartISO =
@@ -214,12 +205,6 @@ export default function Block({
 
               <div className='w-full flex'>
                 <div className={`w-fit flex-none max-w-[80%] mr-2`}>
-                  {onlyPathTitle && (
-                    <div>
-                      {onlyPathTitle.slice(0, 40) +
-                        (onlyPathTitle.length > 40 ? '...' : '')}
-                    </div>
-                  )}
                   {events.map(({ title, id }) => (
                     <div key={id}>
                       {title.slice(0, 40) + (title.length > 40 ? '...' : '')}
@@ -265,19 +250,21 @@ export default function Block({
             }`}
           >
             {!collapsed &&
-              sortedGroups.map(([path, tasks]) => (
-                <Group
-                  key={path}
-                  {...{
-                    headingPath: path,
-                    tasks,
-                    type,
-                    hidePaths: onlyPath ? [...hidePaths, onlyPath] : hidePaths,
-                    dragContainer: `${dragContainer}::${startISO}`,
-                    startISO,
-                  }}
-                />
-              ))}
+              sortedGroups.map(([path, tasks]) => {
+                return (
+                  <Group
+                    key={path}
+                    {...{
+                      headingPath: path,
+                      tasks,
+                      type,
+                      hidePaths,
+                      dragContainer: `${dragContainer}::${startISO}`,
+                      startISO,
+                    }}
+                  />
+                )
+              })}
           </div>
           {firstStartISO && firstEndISO && firstStartISO < firstEndISO && (
             <div className='w-10 flex-none'>

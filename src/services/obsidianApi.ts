@@ -239,11 +239,7 @@ export default class ObsidianAPI extends Component {
     }
 
     const newFiles = _.uniq(
-      processedTasks.map((task) =>
-        parseFileFromPath(
-          getHeading(task, dailyNoteInfo, getters.get('settings').groupBy)
-        )
-      )
+      processedTasks.map((task) => parseFileFromPath(task.path))
     )
       .filter((heading) => !this.settings.fileOrder.includes(heading))
       .sort()

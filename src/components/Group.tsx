@@ -72,16 +72,29 @@ export default function Group({
         parseFileFromPath(headingPath)
   )
 
-  const sortedTasks =
-    type === 'upcoming'
-      ? _.sortBy(tasks, 'due', 'priority')
-      : _.sortBy(
-          tasks,
-          'path',
-          'position.start.line'
-          // 'priority',
-          // (task) => (task.due ? `0::${task.due}` : '1')
-        )
+  const groupedTasks = _.groupBy(tasks, (task) => {
+    if (type === 'upcoming' || !task.path.includes('#')) return UNGROUPED
+    const slicedPath = task.path.slice(task.path.indexOf('#') + 1)
+    if (hidePaths.find((path) => path.includes(slicedPath))) return UNGROUPED
+    if (heading.includes(slicedPath)) return UNGROUPED
+    return slicedPath
+  })
+
+  const sortedTasks = _.sortBy(Object.entries(groupedTasks), 0).map(
+    ([heading, tasks]) =>
+      [
+        heading,
+        type === 'upcoming'
+          ? _.sortBy(tasks, 'due', 'priority')
+          : _.sortBy(
+              tasks,
+              'path',
+              'position.start.line'
+              // 'priority',
+              // (task) => (task.due ? `0::${task.due}` : '1')
+            ),
+      ] as [string, TaskProps[]]
+  )
 
   const isPriority = _.keys(simplePriorityToNumber).includes(heading)
 
@@ -144,16 +157,29 @@ export default function Group({
             </div>
           </>
         )}
-
-      {!collapsed &&
-        sortedTasks.map((task) => (
+      {sortedTasks
+        .find(([heading]) => heading === UNGROUPED)?.[1]
+        .map((task) => (
           <Task
-            key={task.id}
             dragContainer={dragContainer}
+            key={task.path + task.id}
             {...task}
-            startISO={startISO}
           />
         ))}
+
+      {!collapsed &&
+        sortedTasks
+          .filter(([heading]) => heading !== UNGROUPED)
+          .map(([heading, tasks]) => (
+            <Group
+              key={heading}
+              headingPath={heading}
+              dragContainer={dragContainer}
+              hidePaths={hidePaths}
+              tasks={tasks}
+              type={type}
+            ></Group>
+          ))}
     </div>
   )
 }
