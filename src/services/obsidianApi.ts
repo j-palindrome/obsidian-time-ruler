@@ -641,7 +641,6 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:metadata-change',
         (...args) => {
-          console.log('change:', args)
           switch (args[0]) {
             case 'update':
               this.loadTasks(args[1].path, getters.get('showingPastDates'))

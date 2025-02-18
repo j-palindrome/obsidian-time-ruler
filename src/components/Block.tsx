@@ -243,8 +243,6 @@ export default function Block({
           >
             {!collapsed &&
               sortedGroups.map(([path, tasks]) => {
-                console.log(path)
-
                 return (
                   <Group
                     key={path}
