@@ -73,7 +73,8 @@ export default function Day({
       const isShown =
         (task.due || scheduled) &&
         !task.queryParent &&
-        (showCompleted || task.completed === showingPastDates)
+        ((showCompleted && scheduled === startDate) ||
+          task.completed === showingPastDates)
       if (!isShown) return
 
       const scheduledPast =
@@ -121,16 +122,6 @@ export default function Day({
         upcoming.tasks.push(task)
       }
     })
-
-    // const flattenedTasks = _.values(blocksByTime)
-    //   .flatMap((x) => x.tasks.concat(x.blocks.flatMap((x) => x.tasks)))
-    //   .map((x) => x.id)
-    // allDay.tasks = allDay.tasks.filter(
-    //   (task) => !task.parent || !flattenedTasks.includes(task.parent)
-    // )
-    // pastTasks.tasks = pastTasks.tasks.filter(
-    //   (task) => !task.parent || !flattenedTasks.includes(task.parent)
-    // )
 
     for (let event of _.filter(state.events, (event) => {
       const shouldInclude = isDateISO(event.startISO)
@@ -189,7 +180,6 @@ export default function Day({
   useEffect(expandIfFound, [foundTaskInAllDay])
 
   const allDayFrame = useRef<HTMLDivElement>(null)
-  const [allDayHeight, setAllDayHeight] = useState<string | undefined>()
 
   const wide = useAppStore((state) => state.childWidth > 1)
 
@@ -269,9 +259,6 @@ export default function Day({
                 week: 'h-fit',
               }[viewMode]
             } ${collapsed ? 'hidden' : 'block'}`}
-            style={{
-              height: viewMode === 'hour' ? allDayHeight : '',
-            }}
             data-auto-scroll={calendarMode ? undefined : 'y'}
             ref={allDayFrame}
           >

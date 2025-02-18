@@ -323,6 +323,16 @@ export default class SettingsTab extends PluginSettingTab {
         })
       )
 
+    new Setting(containerEl)
+      .setName('Open in Main Tab')
+      .setDesc('Toggle opening Time Ruler in the main view vs. the sidebar.')
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.openInMain).onChange((value) => {
+          this.plugin.settings.openInMain = value
+          this.plugin.saveSettings()
+        })
+      )
+
     let newCalendarLink: TextComponent
     new Setting(containerEl)
       .setName('Calendars')
@@ -341,12 +351,10 @@ export default class SettingsTab extends PluginSettingTab {
           }
           try {
             await this.addCalendarName(newValue)
-            this.plugin.settings.calendars.push(newValue)
-            this.plugin.settings.calendars = _.uniq(
-              this.plugin.settings.calendars
-            )
+            const newCalendars = [...this.plugin.settings.calendars]
+            newCalendars.push(newValue)
+            this.plugin.settings.calendars = _.uniq(newCalendars)
             this.plugin.saveSettings()
-
             newCalendarLink.setValue('')
             this.updateCalendars()
           } catch (err) {

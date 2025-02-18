@@ -79,7 +79,9 @@ export const getTodayNote = () => {
 
 export const parseFolderFromPath = (path: string) => {
   if (path.endsWith('/')) path = path.slice(0, path.length - 1)
-  return path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
+  if (path.includes('/')) path = path.slice(0, path.lastIndexOf('/'))
+  if (!path.includes('/')) return path
+  return path.slice(path.lastIndexOf('/') + 1)
 }
 
 export const parseFileFromPath = (path: string) => {
@@ -133,6 +135,24 @@ export const splitHeading = (heading: string) => {
   ) as [string, string]
 }
 
+export const getSubHeading = (
+  task: TaskProps,
+  groupBy: AppState['settings']['groupBy'],
+  hidePaths: string[]
+) => {
+  switch (groupBy) {
+    case 'hybrid':
+    case 'path':
+    case 'priority':
+      if (!task.path.includes('#')) return UNGROUPED
+      const slicedPath = task.path.slice(task.path.indexOf('#') + 1)
+      if (hidePaths.find((path) => path.includes(slicedPath))) return UNGROUPED
+      return slicedPath
+    case 'tags':
+      return UNGROUPED
+  }
+}
+
 export const getHeading = (
   {
     path,
@@ -152,7 +172,10 @@ export const getHeading = (
   ) {
     heading = priorityNumberToSimplePriority[priority]
   } else if (groupBy === 'tags') {
-    heading = tags.sort().join(', ')
+    heading = [...tags]
+      .map((x) => x.replace('#', ''))
+      .sort()
+      .join(', ')
   } else if (groupBy === 'path' || groupBy === 'hybrid') {
     if (page) {
       heading = parseFolderFromPath(path)
@@ -165,7 +188,7 @@ export const getHeading = (
     }
   } else heading = UNGROUPED
 
-  if (hidePaths.includes(heading)) heading = UNGROUPED
+  if (hidePaths.find((path) => path.includes(heading))) heading = UNGROUPED
   return heading
 }
 

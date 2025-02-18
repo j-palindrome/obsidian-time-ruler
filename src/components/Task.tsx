@@ -153,7 +153,7 @@ export default function Task({
         </div>
         <div className={`flex w-full`}>
           <div
-            className={`w-fit cursor-pointer break-words leading-line hover:underline ${
+            className={`w-fit cursor-pointer break-words leading-line ${
               [TaskPriorities.HIGHEST].includes(task.priority)
                 ? 'text-accent'
                 : renderType === 'deadline'
@@ -190,7 +190,7 @@ export default function Task({
         </div>
         {hasLengthDrag && (
           <div
-            className={`task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+            className={`mt-1 task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
               !task.duration ? 'hidden group-hover:block' : ''
             }`}
             ref={setLengthNodeRef}
@@ -210,7 +210,7 @@ export default function Task({
             ref={setDeadlineNodeRef}
             {...deadlineAttributes}
             {...deadlineListeners}
-            className={`task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+            className={`mt-1 task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
               !task.due ? 'hidden group-hover:block' : ''
             }`}
           >
@@ -226,6 +226,15 @@ export default function Task({
                     )
                     .shiftTo('days').days
                 )}d`}
+          </div>
+        )}
+
+        {!task.completed && task.reminder && (
+          <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
+            <Logo src='alarm-clock' className='mr-1' />
+            <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
+              'M/d'
+            )}${task.reminder.slice(10)}`}</span>
           </div>
         )}
         <div
@@ -263,7 +272,7 @@ export default function Task({
             }`}
           >
             <div
-              className='h-full w-full transition-colors duration-300 hover:bg-selection rounded-icon flex items-center justify-center cursor-pointer'
+              className='h-full w-full transition-colors duration-200 hover:bg-selection rounded-icon flex items-center justify-center cursor-pointer'
               onClick={() => setters.patchCollapsed([task.id], !collapsed)}
             >
               <div
@@ -284,7 +293,7 @@ export default function Task({
               type='child'
               parentId={task.id}
               blocks={[]}
-            ></Block>
+            />
           )}
         </div>
       )}

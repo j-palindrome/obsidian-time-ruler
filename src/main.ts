@@ -44,6 +44,7 @@ type TimeRulerSettings = {
   borders: boolean
   viewMode: 'hour' | 'day' | 'week'
   scheduledSubtasks: boolean
+  openInMain: boolean
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -70,6 +71,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   borders: true,
   viewMode: 'day',
   scheduledSubtasks: true,
+  openInMain: false,
 }
 
 export default class TimeRulerPlugin extends Plugin {
@@ -88,7 +90,7 @@ export default class TimeRulerPlugin extends Plugin {
 
     this.addCommand({
       icon: 'ruler',
-      callback: () => this.activateView(),
+      callback: () => this.activateView(this.settings.openInMain),
       id: 'activate-view',
       name: 'Open Time Ruler',
     })
@@ -100,7 +102,16 @@ export default class TimeRulerPlugin extends Plugin {
       name: 'Open Time Ruler in Main Tab',
     })
 
-    this.addRibbonIcon('ruler', 'Open Time Ruler', () => this.activateView())
+    this.addCommand({
+      icon: 'ruler',
+      callback: () => this.activateView(false),
+      id: 'activate-view-sidebar',
+      name: 'Open Time Ruler in Sidebar',
+    })
+
+    this.addRibbonIcon('ruler', 'Open Time Ruler', () => {
+      this.activateView(this.settings.openInMain)
+    })
 
     this.registerEvent(
       this.app.workspace.on('editor-menu', (menu, _, context) =>
@@ -204,8 +215,10 @@ export default class TimeRulerPlugin extends Plugin {
         break
       case 'tomorrow':
         scheduled = toISO(roundMinutes(DateTime.now().plus({ day: 1 })), true)
+        break
       case 'next-week':
         scheduled = toISO(roundMinutes(DateTime.now().plus({ week: 1 })), true)
+        break
       case 'unschedule':
         scheduled = ''
         break
@@ -213,7 +226,7 @@ export default class TimeRulerPlugin extends Plugin {
     setters.patchTasks([id], { scheduled })
   }
 
-  async activateView(main?: true) {
+  async activateView(main?: boolean) {
     let dataViewPlugin = getAPI(this.app)
     if (!dataViewPlugin) {
       // wait for Dataview plugin to load (usually <100ms)

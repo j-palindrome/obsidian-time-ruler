@@ -166,13 +166,15 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   )
 
   const dayStart = useAppStore((state) => state.settings.dayStartEnd[0])
+  const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
   const times: TimesType = [
     { type: 'unscheduled' },
     {
-      startISO: showingPastDates
-        ? toISO(today.startOf('day').plus({ hours: dayStart }))
-        : toISO(now),
+      startISO:
+        showingPastDates || showCompleted
+          ? toISO(today.startOf('day').plus({ hours: dayStart }))
+          : toISO(now),
       endISO: showingPastDates
         ? toISO(now)
         : toISO(today.plus({ days: 1, hours: dayStart })),

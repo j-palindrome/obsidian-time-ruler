@@ -46,7 +46,7 @@ export function textToTask(
 ): TaskProps {
   const { main: mainFormat } = detectFieldFormat(item.text, defaultFormat)
   const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */gu
-  const HASHTAG_SEARCH = /#[\w_\-\/]+\s?/gu
+  const HASHTAG_SEARCH = /#[^\s]+\s?/gu
   const MD_LINK_LINE_SEARCH = /\[\[.*?\|(.*?)\]\]/gu
   const MD_LINK_SEARCH = /\[\[(.*?)\]\]/gu
   const LINK_SEARCH = /\[(.*?)\]\(.*?\)/gu

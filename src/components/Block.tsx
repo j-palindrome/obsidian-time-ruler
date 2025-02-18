@@ -139,14 +139,6 @@ export default function Block({
 
   const [collapsed, setCollapsed] = useState(false)
 
-  // const collapsed = useAppStore((state) =>
-  //   type === 'unscheduled'
-  //     ? _.sum(
-  //         sortedGroups.map(([title]) => (state.collapsed[title] ? 1 : 0))
-  //       ) === sortedGroups.length
-  //     : false
-  // )
-
   const [unscheduledPortal, setUnscheduledPortal] =
     useState<HTMLDivElement | null>(null)
 
@@ -251,6 +243,8 @@ export default function Block({
           >
             {!collapsed &&
               sortedGroups.map(([path, tasks]) => {
+                console.log(path)
+
                 return (
                   <Group
                     key={path}

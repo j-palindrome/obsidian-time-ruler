@@ -206,6 +206,16 @@ export default class ObsidianAPI extends Component {
     return processedTasks
   }
 
+  forgetTasks(path: string) {
+    const newTasks = { ...getters.get('tasks') }
+    for (let [title, task] of Object.entries(newTasks).filter(([title, task]) =>
+      task.path.includes(path)
+    )) {
+      delete newTasks[title]
+    }
+    setters.set({ tasks: newTasks })
+  }
+
   loadTasks(path: string, completed: boolean) {
     if (!dv.index.initialized) {
       return
@@ -225,15 +235,10 @@ export default class ObsidianAPI extends Component {
           DateTime.now().plus({ weeks: searchWithinWeeks[1] }).toISODate(),
         ]
     const tasks = this.searchTasks(path, dailyNoteInfo, completed, dateBounds)
-    this.updateTasks([...tasks], path, dailyNoteInfo, completed)
+    this.updateTasks([...tasks], path, completed)
   }
 
-  updateTasks(
-    processedTasks: TaskProps[],
-    path: string,
-    dailyNoteInfo: AppState['dailyNoteInfo'],
-    completed: boolean
-  ) {
+  updateTasks(processedTasks: TaskProps[], path: string, completed: boolean) {
     const updatedTasks = {
       ...getters.get('tasks'),
     }
@@ -265,6 +270,7 @@ export default class ObsidianAPI extends Component {
 
     const showCompleted = getters.get('settings').showCompleted
 
+    // TODO: this missed moved files
     for (let { id } of Object.values(updatedTasks).filter(
       (task) =>
         task.id.startsWith(pathName) &&
@@ -635,7 +641,16 @@ export default class ObsidianAPI extends Component {
         // @ts-ignore
         'dataview:metadata-change',
         (...args) => {
-          this.loadTasks(args[1].path, getters.get('showingPastDates'))
+          console.log('change:', args)
+          switch (args[0]) {
+            case 'update':
+              this.loadTasks(args[1].path, getters.get('showingPastDates'))
+              break
+            case 'rename':
+              this.forgetTasks(args[2])
+              this.loadTasks(args[1].path, getters.get('showingPastDates'))
+              break
+          }
         }
       )
     )

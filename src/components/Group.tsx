@@ -3,6 +3,7 @@ import _ from 'lodash'
 import {
   getHeading,
   getParents,
+  getSubHeading,
   parseFileFromPath,
   splitHeading,
 } from 'src/services/util'
@@ -51,9 +52,9 @@ export default function Group({
       data: dragData,
     })
 
-  const [container, heading] = splitHeading(headingPath)
-  let formattedContainer = container.slice(
-    container.includes('/') ? container.lastIndexOf('/') + 1 : 0
+  const [myContainer, heading] = splitHeading(headingPath)
+  let formattedContainer = myContainer.slice(
+    myContainer.includes('/') ? myContainer.lastIndexOf('/') + 1 : 0
   )
   if (formattedContainer.length > 25)
     formattedContainer = formattedContainer.slice(0, 25) + '...'
@@ -72,12 +73,10 @@ export default function Group({
         parseFileFromPath(headingPath)
   )
 
+  const groupBySetting = useAppStore((state) => state.settings.groupBy)
   const groupedTasks = _.groupBy(tasks, (task) => {
-    if (type === 'upcoming' || !task.path.includes('#')) return UNGROUPED
-    const slicedPath = task.path.slice(task.path.indexOf('#') + 1)
-    if (hidePaths.find((path) => path.includes(slicedPath))) return UNGROUPED
-    if (heading.includes(slicedPath)) return UNGROUPED
-    return slicedPath
+    if (type === 'upcoming') return UNGROUPED
+    return getSubHeading(task, groupBySetting, hidePaths)
   })
 
   const sortedTasks = _.sortBy(Object.entries(groupedTasks), 0).map(
@@ -148,7 +147,7 @@ export default function Group({
                   {heading.slice(0, 40) + (heading.length > 40 ? '...' : '')}
                 </div>
                 <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
-                {container && !hidePaths.includes(container) && (
+                {myContainer && !hidePaths.includes(myContainer) && (
                   <div className='w-fit flex-none text-right pr-2'>
                     {formattedContainer}
                   </div>
@@ -157,29 +156,34 @@ export default function Group({
             </div>
           </>
         )}
-      {sortedTasks
-        .find(([heading]) => heading === UNGROUPED)?.[1]
-        .map((task) => (
-          <Task
-            dragContainer={dragContainer}
-            key={task.path + task.id}
-            {...task}
-          />
-        ))}
 
-      {!collapsed &&
-        sortedTasks
-          .filter(([heading]) => heading !== UNGROUPED)
-          .map(([heading, tasks]) => (
-            <Group
-              key={heading}
-              headingPath={heading}
-              dragContainer={dragContainer}
-              hidePaths={hidePaths}
-              tasks={tasks}
-              type={type}
-            ></Group>
-          ))}
+      {!collapsed && (
+        <>
+          {sortedTasks
+            .find(([heading]) => heading === UNGROUPED)?.[1]
+            .map((task) => (
+              <Task
+                dragContainer={dragContainer}
+                key={task.path + task.id}
+                {...task}
+              />
+            ))}
+          {sortedTasks
+            .filter(([heading]) => heading !== UNGROUPED)
+            .map(([heading, tasks]) => {
+              return (
+                <Group
+                  key={heading}
+                  headingPath={heading}
+                  dragContainer={dragContainer}
+                  hidePaths={[...hidePaths, headingPath]}
+                  tasks={tasks}
+                  type={type}
+                ></Group>
+              )
+            })}
+        </>
+      )}
     </div>
   )
 }

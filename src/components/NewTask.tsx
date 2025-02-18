@@ -8,6 +8,7 @@ import {
   convertSearchToRegExp,
   getHeading,
   parseFileFromPath,
+  parseFolderFromPath,
   splitHeading,
 } from '../services/util'
 import Button from './Button'
@@ -56,7 +57,9 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
       _.flatMap(state.tasks, (task) => {
         if (task.completed) return []
         if (task.page && newTaskMode === 'move') return []
-        return getHeading(task, dailyNoteInfo, 'path')
+        return task.page
+          ? parseFolderFromPath(task.path)
+          : task.path.replace('.md', '')
       }).concat(['Daily'])
     ).sort()
   }, shallow)
@@ -200,7 +203,7 @@ function NewTaskHeading({
   newTaskData: NonNullable<AppState['newTask']>
 }) {
   const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const [container, title] = splitHeading(headingPath)
+  const [myContainer, title] = splitHeading(headingPath)
   const newTask = newTaskData.task
   const newTaskType = newTaskData.type
 
@@ -221,7 +224,7 @@ function NewTaskHeading({
       }`}
     >
       <div className='grow'>{title}</div>
-      <div className='text-faint text-xs'>{container}</div>
+      <div className='text-faint text-xs'>{myContainer}</div>
     </div>
   )
 }
