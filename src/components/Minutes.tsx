@@ -23,11 +23,7 @@ export default function Minutes({
   chopStart?: boolean
   dragContainer: string
 }) {
-  const hideTimes = useAppStore((state) => state.settings.hideTimes)
-
   const dayEnd = useAppStore((state) => state.settings.dayStartEnd[1])
-
-  if (hideTimes) return <></>
 
   const times: DateTime[] = []
   const givenStart = DateTime.fromISO(startISO)
@@ -69,7 +65,7 @@ export default function Minutes({
   const startISOs = times.map((time) => toISO(time))
 
   return (
-    <div className={`min-h-[4px]`}>
+    <div>
       {times.map((time, i) => (
         <Time key={startISOs[i]} {...{ type, time, dragContainer }} />
       ))}

@@ -46,6 +46,7 @@ import NewTask from './NewTask'
 import Search from './Search'
 import Task from './Task'
 import Unscheduled from './Unscheduled'
+import { isCallChain } from 'typescript'
 
 type TimesType = (Parameters<typeof Day>[0] | { type: 'unscheduled' })[]
 
@@ -159,11 +160,19 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const today = DateTime.fromISO(getToday())
   const [weeksShownState, setWeeksShown] = useState(1)
   const viewMode = useAppStore((state) => state.settings.viewMode)
+  const calendarMode = viewMode === 'week'
   const datesShown = weeksShownState * 7 * (showingPastDates ? -1 : 1)
-  useEffect(
-    () => getters.getObsidianAPI()?.loadTasks('', showingPastDates),
-    [weeksShownState, showingPastDates]
-  )
+  useEffect(() => {
+    if (calendarMode) {
+      setWeeksShown(4)
+    } else {
+      setWeeksShown(1)
+    }
+  }, [calendarMode])
+
+  useEffect(() => {
+    getters.getObsidianAPI()?.loadTasks('', showingPastDates)
+  }, [weeksShownState, showingPastDates])
 
   const dayStart = useAppStore((state) => state.settings.dayStartEnd[0])
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
@@ -265,8 +274,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const scroller = useRef<HTMLDivElement>(null)
   const [scrollViews, setScrollViews] = useState([-1, 1])
-
-  const calendarMode = viewMode === 'week'
 
   const { childWidth, childClass } = useChildWidth()
 
@@ -401,11 +408,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           />
 
           <div
-            className={`flex h-full w-full snap-mandatory rounded-icon text-base child:flex-none child:snap-start ${childClass} ${
-              calendarMode
-                ? 'flex-wrap overflow-y-auto overflow-x-hidden snap-y justify-center child:h-1/2'
-                : 'snap-x !overflow-x-auto overflow-y-clip child:h-full'
-            }`}
+            className={`flex h-full w-full snap-mandatory rounded-icon text-base child:flex-none child:snap-start ${childClass} !overflow-x-auto overflow-y-clip child:h-full snap-x`}
             id='time-ruler-times'
             data-auto-scroll={calendarMode ? 'y' : 'x'}
             ref={scroller}
@@ -466,6 +469,7 @@ const Buttons = ({
 }) => {
   const now = DateTime.now()
   const viewMode = useAppStore((state) => state.settings.viewMode)
+  const calendarMode = viewMode === 'week'
 
   useEffect(() => {
     $(`#time-ruler-${getToday()}`)[0]?.scrollIntoView()
@@ -474,13 +478,15 @@ const Buttons = ({
   const nextButton = (
     <div className='flex'>
       <Button
-        onClick={() => setWeeksShown(weeksShownState + 1)}
+        onClick={() => setWeeksShown(weeksShownState + (calendarMode ? 4 : 1))}
         src={'chevron-right'}
       />
-      {weeksShownState > 0 && (
+      {weeksShownState > (calendarMode ? 4 : 0) && (
         <Button
           className={`force-hover rounded-icon`}
-          onClick={() => setWeeksShown(weeksShownState - 1)}
+          onClick={() =>
+            setWeeksShown(weeksShownState - (calendarMode ? 4 : 1))
+          }
           src='chevron-left'
         />
       )}
@@ -674,8 +680,12 @@ const Buttons = ({
         />
 
         <div
-          className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start snap-x items-center space-x-2 overflow-x-auto`}
-          data-auto-scroll='x'
+          className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start space-x-2 overflow-x-auto ${
+            calendarMode
+              ? 'overflow-y-auto snap-y space-y-2 flex-wrap h-[152px]'
+              : 'overflow-x-auto snap-x items-center'
+          }`}
+          data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
           {times.map((time, i) => {
             return renderButton(time, i)

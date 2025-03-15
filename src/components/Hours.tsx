@@ -45,19 +45,23 @@ export default function Hours({
     })
   }
 
-  const hideTimes = useAppStore((state) => state.settings.hideTimes)
+  const hideTimes = useAppStore(
+    (state) => state.settings.hideTimes || state.settings.viewMode === 'week'
+  )
 
   return (
     <div className={`pb-1 relative ${hideTimes ? 'space-y-1' : ''}`}>
-      <Minutes
-        dragContainer={dragContainer + '::' + startISO}
-        startISO={startISO}
-        endISO={formattedBlocks[0]?.startISO ?? endISO}
-        chopEnd
-        chopStart={
-          chopStart || startISO === (formattedBlocks[0]?.startISO ?? endISO)
-        }
-      />
+      {!hideTimes && (
+        <Minutes
+          dragContainer={dragContainer + '::' + startISO}
+          startISO={startISO}
+          endISO={formattedBlocks[0]?.startISO ?? endISO}
+          chopEnd
+          chopStart={
+            chopStart || startISO === (formattedBlocks[0]?.startISO ?? endISO)
+          }
+        />
+      )}
 
       {formattedBlocks.map(
         (
@@ -81,13 +85,15 @@ export default function Hours({
               type='event'
             />
 
-            <Minutes
-              dragContainer={dragContainer + '::' + blockStartISO}
-              startISO={blockEndISO as string}
-              endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
-              chopEnd
-              chopStart={blockStartISO === blockEndISO}
-            />
+            {!hideTimes && (
+              <Minutes
+                dragContainer={dragContainer + '::' + blockStartISO}
+                startISO={blockEndISO as string}
+                endISO={formattedBlocks[i + 1]?.startISO ?? endISO}
+                chopEnd
+                chopStart={blockStartISO === blockEndISO}
+              />
+            )}
           </Fragment>
         )
       )}

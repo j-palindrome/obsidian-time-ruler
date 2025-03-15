@@ -72,7 +72,6 @@ export default class CalendarAPI extends Component {
                 const dateTime = DateTime.fromJSDate(new Date(r)).setZone(
                   'local'
                 )
-                console.log('recurring event', event.description, r)
 
                 // Only add dates that weren't already in the range we added from the rrule so that
                 // we don't double-add those events.

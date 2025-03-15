@@ -127,7 +127,9 @@ export default function Block({
       : DateTime.fromISO(date).toFormat(twentyFourHourFormat ? 'T' : 't')
   }
 
-  const hideTimes = useAppStore((state) => state.settings.hideTimes)
+  const hideTimes = useAppStore(
+    (state) => state.settings.hideTimes || state.settings.viewMode === 'week'
+  )
   const draggable = tasks.length > 0
 
   const showingPastDates = useAppStore((state) => state.showingPastDates)
@@ -266,17 +268,20 @@ export default function Block({
               )
             })}
           </div>
-          {firstStartISO && firstEndISO && firstStartISO < firstEndISO && (
-            <div className='w-10 flex-none'>
-              <Minutes
-                startISO={firstStartISO}
-                endISO={firstEndISO}
-                dragContainer={dragContainer}
-                chopStart
-                chopEnd
-              />
-            </div>
-          )}
+          {!hideTimes &&
+            firstStartISO &&
+            firstEndISO &&
+            firstStartISO < firstEndISO && (
+              <div className='w-10 flex-none'>
+                <Minutes
+                  startISO={firstStartISO}
+                  endISO={firstEndISO}
+                  dragContainer={dragContainer}
+                  chopStart
+                  chopEnd
+                />
+              </div>
+            )}
         </div>
         {events[0] && (events[0].location || events[0].notes) && (
           <div className='py-2 pl-indent text-xs'>

@@ -377,12 +377,8 @@ export default class ObsidianAPI extends Component {
     const lines = fileText.split('\n')
 
     // tasks move their subtasks as well
-    let subtask = task
-    console.log(task)
-
     const followingLines = lines.slice(task.position.start.line + 1)
     const nextLine = followingLines.findIndex((line) => !line.startsWith(' '))
-    console.log(followingLines, nextLine)
 
     const copyLines = lines.splice(
       task.position.start.line,

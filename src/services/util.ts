@@ -304,13 +304,7 @@ export const useChildWidth = () => {
       invariant(timeRuler)
       const width = timeRuler.clientWidth
       const newChildWidth =
-        width < 500
-          ? 1
-          : width < 800
-          ? 2
-          : width < 1200 && viewModeRef.current !== 'week'
-          ? 3
-          : 4
+        width < 500 ? 1 : width < 800 ? 2 : width < 1200 ? 3 : 4
 
       setChildWidth(newChildWidth)
     }

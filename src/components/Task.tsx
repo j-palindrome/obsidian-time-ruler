@@ -81,6 +81,8 @@ export default function Task({
     })
 
   const isLink = renderType && ['parent', 'deadline'].includes(renderType)
+  const isCalendar = useAppStore((state) => state.settings.viewMode === 'week')
+  const smallText = isLink || isCalendar
 
   if (!startISO) startISO = task.scheduled
 
@@ -129,13 +131,13 @@ export default function Task({
 
   return (
     <div
-      className={`relative rounded-icon py-0.5 transition-colors duration-300 w-full min-h-line`}
+      className={`relative rounded-icon transition-colors duration-300 w-full min-h-line`}
       data-id={isLink ? '' : task.id}
       data-task={task.status === ' ' ? '' : task.status}
     >
       <div
-        className={`selectable group flex items-start rounded-icon pr-2 font-sans ${
-          isLink ? 'text-sm' : ''
+        className={`pt-0.5 selectable group flex items-start rounded-icon pr-2 font-sans overflow-hidden ${
+          smallText ? 'text-sm' : ''
         }`}
         ref={setNodeRef}
       >
@@ -153,7 +155,11 @@ export default function Task({
         </div>
         <div className={`flex w-full`}>
           <div
-            className={`w-fit cursor-pointer break-words leading-line ${
+            className={`w-full cursor-pointer ${
+              task.title?.split(' ').find((x) => x.length > 20)
+                ? 'break-all'
+                : 'break-words'
+            } leading-line whitespace-normal ${
               [TaskPriorities.HIGHEST].includes(task.priority)
                 ? 'text-accent'
                 : renderType === 'deadline'
@@ -170,7 +176,7 @@ export default function Task({
             {task.title || 'Untitled'}
           </div>
           <div
-            className={`h-line grow items-center space-x-1 font-menu child:my-1 justify-end flex`}
+            className={`h-line w-0 grow items-center space-x-1 font-menu child:my-1 justify-end flex`}
           >
             {task.priority !== TaskPriorities.DEFAULT && (
               <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
@@ -238,7 +244,7 @@ export default function Task({
           </div>
         )}
         <div
-          className='flex opacity-0 group-hover:opacity-100 cursor-grab grow items-center ml-1 h-line'
+          className='hidden group-hover:flex cursor-grab grow items-center ml-1 h-line'
           {...attributes}
           {...listeners}
           ref={setActivatorNodeRef}
