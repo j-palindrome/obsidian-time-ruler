@@ -151,11 +151,9 @@ export default function Day({
   const viewMode = useAppStore((state) => state.settings.viewMode)
   const calendarMode = viewMode === 'week'
 
-  let title = isNow
-    ? 'Today'
-    : DateTime.fromISO(startISO || endISO).toFormat(
-        calendarMode ? 'EEE d' : 'EEE, MMM d'
-      )
+  let title = DateTime.fromISO(startISO || endISO).toFormat(
+    calendarMode ? 'EEE d' : 'EEE, MMM d'
+  )
 
   const collapsed = useAppStore((state) => state.collapsed[id])
 
@@ -202,7 +200,7 @@ export default function Day({
           <div className='flex items-center grow'>
             <div className='flex-none w-indent pr-1'>
               <Button
-                className='flex-none w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300'
+                className='flex-none w-full'
                 src={collapsed ? 'chevron-right' : 'chevron-down'}
                 onClick={() => {
                   setters.patchCollapsed([id], !collapsed)

@@ -87,21 +87,29 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     window.removeEventListener('mouseup', checkForClick)
   }
 
+  const calendarMode = useAppStore(
+    (state) => state.settings.viewMode === 'week'
+  )
+
   return (
-    <div className='flex relative z-30 pl-2'>
+    <div className={`relative z-30 ${calendarMode ? '' : 'flex pl-2'}`}>
       {draggingTask ? (
         <>
           <Droppable id={`delete-task`} data={{ type: 'delete' }}>
             <Button
               src='x'
-              className='!rounded-full h-10 w-10 bg-red-900 mr-2 flex-none'
+              className={`!rounded-full ${
+                calendarMode ? 'h-8 w-8 mb-2' : 'h-10 w-10 mr-2'
+              } bg-red-900 flex-none`}
             />
           </Droppable>
           {draggingTask.dragType === 'task' && (
             <Droppable id={`move-task`} data={{ type: 'move' }}>
               <Button
                 src='move-right'
-                className='!rounded-full h-10 w-10 bg-blue-900 mr-2 flex-none'
+                className={`!rounded-full ${
+                  calendarMode ? 'h-8 w-8' : 'h-10 w-10'
+                } bg-blue-900 flex-none`}
               />
             </Droppable>
           )}
@@ -115,7 +123,9 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
               window.addEventListener('mouseup', checkForClick)
             }}
             ref={setNodeRef}
-            className='relative flex-none h-10 w-10 cursor-grab !rounded-full bg-accent child:invert'
+            className={`relative flex-none cursor-grab !rounded-full bg-accent child:invert ${
+              calendarMode ? 'h-8 w-8' : 'h-10 w-10'
+            }`}
             src='plus'
           />
         </>

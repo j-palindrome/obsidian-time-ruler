@@ -334,30 +334,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     borders ? 'child:border-solid child:border-divider child:border-[1px]' : ''
   }`
 
-  const dayPadding = (time: (typeof times)[number]) => {
-    invariant(time.type !== 'unscheduled')
-    const startDate = DateTime.fromISO(time.startISO)
-    return (
-      <>
-        {_.range(startDate.weekday < 4 ? 1 : 5, startDate.weekday).map(
-          (day) => (
-            <div key={day} className={`${frameClass}`}>
-              <div className='flex-col'>
-                <div className='font-menu pl-8 text-faint flex-none'>
-                  {now
-                    .startOf('week')
-                    .plus({ days: day - 1 })
-                    .toFormat('EEE d')}
-                </div>
-                <div className='grow h-0 w-full rounded-icon bg-code'></div>
-              </div>
-            </div>
-          )
-        )}
-      </>
-    )
-  }
-
   const searchStatus = useAppStore((state) => state.searchStatus)
 
   return (
@@ -415,22 +391,17 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
             onScroll={updateScroll}
           >
             {times.map((time, i) => {
-              const isShowing =
-                calendarMode || (i >= scrollViews[0] && i <= scrollViews[1])
+              const isShowing = i >= scrollViews[0] && i <= scrollViews[1]
               return time.type === 'unscheduled' ? (
                 <div
                   key='unscheduled'
                   id='time-ruler-unscheduled'
-                  className={`${frameClass} ${calendarMode ? '!w-full' : ''}`}
+                  className={`${frameClass}`}
                 >
                   {isShowing && <Unscheduled />}
                 </div>
               ) : (
                 <Fragment key={time.startISO + '::' + time.type}>
-                  {calendarMode &&
-                    i === (showingPastDates ? 0 : 1) &&
-                    childWidth > 1 &&
-                    dayPadding(time)}
                   <div
                     id={`time-ruler-${getStartDate(
                       DateTime.fromISO(time.startISO)
@@ -538,13 +509,7 @@ const Buttons = ({
           }
         >
           {time.type === 'unscheduled'
-            ? 'Unscheduled'
-            : start === today
-            ? 'Today'
-            : start === yesterday
-            ? 'Yesterday'
-            : start === tomorrow
-            ? 'Tomorrow'
+            ? 'None'
             : thisDate!.toFormat('EEE MMM d')}
         </Button>
       </Droppable>
@@ -552,138 +517,151 @@ const Buttons = ({
   }
 
   const hideTimes = useAppStore((state) => state.settings.hideTimes)
+  const childWidth = useAppStore((state) => state.childWidth)
 
   return (
     <>
       <div className={`flex w-full items-center space-x-1 rounded-icon`}>
-        <div className='group relative'>
-          <Button
-            src='more-horizontal'
-            onClick={(ev) => {
-              setShowingModal(!showingModal)
-              ev.stopPropagation()
-            }}
-          />
-          {showingModal && (
-            <div
-              className='tr-menu'
-              ref={modalFrame}
-              onClick={() => setShowingModal(false)}
-            >
-              <div className='flex flex-col items-center'>
-                <div
-                  className='clickable-icon w-full'
-                  onClick={() => {
-                    setters.set({ showingPastDates: !showingPastDates })
-                  }}
-                >
-                  <Logo
-                    src={showingPastDates ? 'chevron-right' : 'chevron-left'}
-                    className='w-6 flex-none'
-                  />
-                  <span className='whitespace-nowrap'>
-                    {showingPastDates ? 'Future' : 'Past'}
-                  </span>
-                </div>
-                <div
-                  className='clickable-icon w-full'
-                  onClick={async () => {
-                    setupStore()
-                  }}
-                >
-                  <Logo src={'rotate-cw'} className='w-6 flex-none' />
-                  <span className='whitespace-nowrap'>Reload</span>
-                </div>
-                <div
-                  className='clickable-icon w-full'
-                  onClick={() => {
-                    getters.getObsidianAPI().setSetting({
-                      hideTimes: !hideTimes,
-                    })
-                  }}
-                >
-                  <Logo src={'kanban'} className='w-6 flex-none rotate-90' />
-                  <span className='whitespace-nowrap'>
-                    {hideTimes ? 'Show' : 'Hide'} Times
-                  </span>
-                </div>
-                <div className='text-muted my-1 w-fit'>Group By</div>
-                <div className='flex w-fit'>
-                  {[
-                    ['path', 'Path', 'folder-tree'],
-                    ['priority', 'Priority', 'alert-circle'],
-                    ['hybrid', 'Hybrid', 'arrow-down-narrow-wide'],
-                    ['tags', 'Tags', 'hash'],
-                    [false, 'None', 'x'],
-                  ].map(
-                    ([groupBy, title, src]: [
-                      AppState['settings']['groupBy'],
-                      string,
-                      string
-                    ]) => (
-                      <div className='flex flex-col items-center' key={title}>
-                        <Button
-                          src={src}
-                          title={title}
-                          className={`${
-                            app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
-                          } !p-0 flex-none`}
-                          onClick={() => {
-                            getters.getObsidianAPI().setSetting({
-                              groupBy: groupBy,
-                            })
-                          }}
-                        />
-                        <div className='text-xs text-faint'>{title}</div>
-                      </div>
-                    )
-                  )}
-                </div>
-                <div className='text-muted my-1 w-fit'>Layout</div>
-                <div className='flex w-fit'>
-                  {[
-                    ['hour', 'Hours', 'square'],
-                    ['day', 'Days', 'gallery-horizontal'],
-                    ['week', 'Weeks', 'layout-grid'],
-                  ].map(
-                    ([viewMode, title, src]: [
-                      AppState['settings']['viewMode'],
-                      string,
-                      string
-                    ]) => (
-                      <div className='flex flex-col items-center' key={title}>
-                        <Button
-                          src={src}
-                          title={title}
-                          className={`${
-                            app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
-                          } !p-0 flex-none`}
-                          onClick={() => {
-                            getters.getObsidianAPI().setSetting({
-                              viewMode,
-                            })
-                          }}
-                        />
-                        <div className='text-xs text-faint'>{title}</div>
-                      </div>
-                    )
-                  )}
+        <div
+          className={`${
+            calendarMode
+              ? ''
+              : 'flex justify-center h-full space-x-1 items-center'
+          }`}
+        >
+          <div className='group relative'>
+            <Button
+              src='more-horizontal'
+              onClick={(ev) => {
+                setShowingModal(!showingModal)
+                ev.stopPropagation()
+              }}
+            />
+            {showingModal && (
+              <div
+                className='tr-menu'
+                ref={modalFrame}
+                onClick={() => setShowingModal(false)}
+              >
+                <div className='flex flex-col items-center'>
+                  <div
+                    className='clickable-icon w-full'
+                    onClick={() => {
+                      setters.set({ showingPastDates: !showingPastDates })
+                    }}
+                  >
+                    <Logo
+                      src={showingPastDates ? 'chevron-right' : 'chevron-left'}
+                      className='w-6 flex-none'
+                    />
+                    <span className='whitespace-nowrap'>
+                      {showingPastDates ? 'Future' : 'Past'}
+                    </span>
+                  </div>
+                  <div
+                    className='clickable-icon w-full'
+                    onClick={async () => {
+                      setupStore()
+                    }}
+                  >
+                    <Logo src={'rotate-cw'} className='w-6 flex-none' />
+                    <span className='whitespace-nowrap'>Reload</span>
+                  </div>
+                  <div
+                    className='clickable-icon w-full'
+                    onClick={() => {
+                      getters.getObsidianAPI().setSetting({
+                        hideTimes: !hideTimes,
+                      })
+                    }}
+                  >
+                    <Logo src={'kanban'} className='w-6 flex-none rotate-90' />
+                    <span className='whitespace-nowrap'>
+                      {hideTimes ? 'Show' : 'Hide'} Times
+                    </span>
+                  </div>
+                  <div className='text-muted my-1 w-fit'>Group By</div>
+                  <div className='flex w-fit'>
+                    {[
+                      ['path', 'Path', 'folder-tree'],
+                      ['priority', 'Priority', 'alert-circle'],
+                      ['hybrid', 'Hybrid', 'arrow-down-narrow-wide'],
+                      ['tags', 'Tags', 'hash'],
+                      [false, 'None', 'x'],
+                    ].map(
+                      ([groupBy, title, src]: [
+                        AppState['settings']['groupBy'],
+                        string,
+                        string
+                      ]) => (
+                        <div className='flex flex-col items-center' key={title}>
+                          <Button
+                            src={src}
+                            title={title}
+                            className={`${
+                              app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
+                            } !p-0 flex-none`}
+                            onClick={() => {
+                              getters.getObsidianAPI().setSetting({
+                                groupBy: groupBy,
+                              })
+                            }}
+                          />
+                          <div className='text-xs text-faint'>{title}</div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <div className='text-muted my-1 w-fit'>Layout</div>
+                  <div className='flex w-fit'>
+                    {[
+                      ['hour', 'Hours', 'square'],
+                      ['day', 'Days', 'gallery-horizontal'],
+                      ['week', 'Weeks', 'layout-grid'],
+                    ].map(
+                      ([viewMode, title, src]: [
+                        AppState['settings']['viewMode'],
+                        string,
+                        string
+                      ]) => (
+                        <div className='flex flex-col items-center' key={title}>
+                          <Button
+                            src={src}
+                            title={title}
+                            className={`${
+                              app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
+                            } !p-0 flex-none`}
+                            onClick={() => {
+                              getters.getObsidianAPI().setSetting({
+                                viewMode,
+                              })
+                            }}
+                          />
+                          <div className='text-xs text-faint'>{title}</div>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          <Button
+            src='search'
+            className={`${calendarMode ? 'mb-2' : ''}`}
+            onClick={() => setters.set({ searchStatus: true })}
+          />
+          {calendarMode && <NewTask dragContainer='buttons' />}
         </div>
 
-        <Button
-          src='search'
-          onClick={() => setters.set({ searchStatus: true })}
-        />
-
         <div
-          className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start space-x-2 overflow-x-auto ${
+          className={`no-scrollbar flex w-full snap-mandatory rounded-icon pb-0.5 child:snap-start overflow-x-auto ${
             calendarMode
-              ? 'overflow-y-auto snap-y space-y-2 flex-wrap h-[152px]'
-              : 'overflow-x-auto snap-x items-center'
+              ? `overflow-y-auto snap-y flex-wrap h-[152px] ${
+                  childWidth > 1 ? '*:w-[14.2%] *:!justify-start' : ''
+                }`
+              : 'overflow-x-auto snap-x space-x-2 items-center'
           }`}
           data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
@@ -693,7 +671,7 @@ const Buttons = ({
 
           {nextButton}
         </div>
-        <NewTask dragContainer='buttons' />
+        {!calendarMode && <NewTask dragContainer='buttons' />}
       </div>
     </>
   )
