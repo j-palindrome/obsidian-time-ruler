@@ -137,8 +137,6 @@ export default function Block({
       ? startISO
       : _.max([startISO, toISO(roundMinutes(DateTime.now()))])
 
-  const [collapsed, setCollapsed] = useState(false)
-
   const [unscheduledPortal, setUnscheduledPortal] =
     useState<HTMLDivElement | null>(null)
 
@@ -149,6 +147,14 @@ export default function Block({
       )
     }
   }, [])
+
+  const collapsed = useAppStore((state) => {
+    if (sortedGroups.length === 0) return false
+    for (let heading of sortedGroups) {
+      if (!state.collapsed[heading[0]]) return false
+    }
+    return true
+  })
 
   return (
     <>
@@ -188,7 +194,10 @@ export default function Block({
                   className='group-hover:opacity-100 opacity-0 transition-opacity duration-200 h-4 py-0.5 flex-none'
                   src={!collapsed ? 'chevron-down' : 'chevron-right'}
                   onClick={() => {
-                    setCollapsed(!collapsed)
+                    setters.patchCollapsed(
+                      sortedGroups.map((x) => x[0]),
+                      !collapsed
+                    )
                     return false
                   }}
                   onPointerDown={() => false}
@@ -241,22 +250,21 @@ export default function Block({
               type === 'event' ? 'pt-1 pl-1 pb-1' : ''
             }`}
           >
-            {!collapsed &&
-              sortedGroups.map(([path, tasks]) => {
-                return (
-                  <Group
-                    key={path}
-                    {...{
-                      headingPath: path,
-                      tasks,
-                      type,
-                      hidePaths,
-                      dragContainer: `${dragContainer}::${startISO}`,
-                      startISO,
-                    }}
-                  />
-                )
-              })}
+            {sortedGroups.map(([path, tasks]) => {
+              return (
+                <Group
+                  key={path}
+                  {...{
+                    headingPath: path,
+                    tasks,
+                    type,
+                    hidePaths,
+                    dragContainer: `${dragContainer}::${startISO}`,
+                    startISO,
+                  }}
+                />
+              )
+            })}
           </div>
           {firstStartISO && firstEndISO && firstStartISO < firstEndISO && (
             <div className='w-10 flex-none'>

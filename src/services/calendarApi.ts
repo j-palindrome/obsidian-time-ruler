@@ -58,9 +58,22 @@ export default class CalendarAPI extends Component {
               dateBounds[0].toJSDate(),
               dateBounds[1].toJSDate()
             )
+            if (dates.length > 0) {
+              // patch for events convering between daylight savings time and the current time
+              const timeDifference =
+                event.start.getTimezoneOffset() - dates[0].getTimezoneOffset()
+              dates.forEach((x: Date) => {
+                x.setTime(x.getTime() - timeDifference * 60 * 1000)
+              })
+            }
+
             if (event.recurrences != undefined) {
               for (var r in event.recurrences) {
-                const dateTime = DateTime.fromJSDate(new Date(r))
+                const dateTime = DateTime.fromJSDate(new Date(r)).setZone(
+                  'local'
+                )
+                console.log('recurring event', event.description, r)
+
                 // Only add dates that weren't already in the range we added from the rrule so that
                 // we don't double-add those events.
                 if (dateTime < dateBounds[1] && dateTime >= dateBounds[0]) {
@@ -83,6 +96,7 @@ export default class CalendarAPI extends Component {
               ) {
                 // We found an override, so for this recurrence, use a potentially different title, start date, and duration.
                 const currentEvent = event.recurrences[dateLookupKey]
+
                 start = DateTime.fromJSDate(currentEvent.start).setZone('local')
                 let curDuration =
                   DateTime.fromJSDate(currentEvent.end).toMillis() -
@@ -101,10 +115,10 @@ export default class CalendarAPI extends Component {
 
               const startString = event.start['dateOnly']
                 ? (start.toISODate() as string)
-                : toISO(start)
+                : toISO(start.setZone('local'))
               const endString = event.start['dateOnly']
                 ? (end.toISODate() as string)
-                : toISO(end)
+                : toISO(end.setZone('local'))
 
               const thisId = `${id}-${startString}`
               const props: EventProps = {

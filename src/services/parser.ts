@@ -54,7 +54,6 @@ export function textToTask(
     ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`,
     'u'
   )
-
   const BLOCK_REFERENCE = /\^[a-z0-9]+$/u
 
   const titleLine: string = item.text.match(/(.*?)(\n|$)/u)?.[1] ?? ''

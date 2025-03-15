@@ -216,7 +216,7 @@ export default function Task({
           >
             {!task.due
               ? 'due'
-              : `${Math.floor(
+              : `${Math.ceil(
                   DateTime.fromISO(task.due)
                     .diff(
                       DateTime.fromISO(
