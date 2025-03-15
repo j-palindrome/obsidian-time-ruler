@@ -33,7 +33,7 @@ function _Unscheduled() {
   )
 
   return (
-    <div className={`h-0 grow flex flex-col`}>
+    <div className={`h-0 grow flex flex-col w-full`}>
       <div className='flex items-center space-x-1 group flex-none'>
         <div
           className='w-indent flex-none pr-1'
@@ -44,20 +44,16 @@ function _Unscheduled() {
         </Droppable>
       </div>
       <div
-        className={`h-0 grow w-full mt-1 rounded-icon ${
-          childWidth > 1
-            ? `unscheduled child:h-full child:child:h-full ${
-                [
-                  '',
-                  'child:child:child:child:w-full',
-                  'child:child:child:child:w-1/2',
-                  'child:child:child:child:w-1/3',
-                  'child:child:child:child:w-1/4',
-                ][childWidth]
-              }`
-            : 'overflow-x-hidden overflow-y-auto'
+        className={`h-0 grow w-full flex-none mt-1 rounded-icon unscheduled child:h-full child:child:h-full ${
+          [
+            '',
+            'child:child:child:child:w-full',
+            'child:child:child:child:w-1/2',
+            'child:child:child:child:w-1/3',
+            'child:child:child:child:w-1/4',
+          ][childWidth]
         }`}
-        data-auto-scroll={childWidth > 1 ? 'x' : 'y'}
+        data-auto-scroll={'x'}
       >
         <Block
           startISO={undefined}

@@ -17,6 +17,7 @@ import Block from './Block'
 import Button from './Button'
 import Logo from './Logo'
 import invariant from 'tiny-invariant'
+import { useEffect } from 'react'
 
 export type TaskComponentProps = TaskProps & {
   subtasks?: TaskProps[]
@@ -29,8 +30,9 @@ export default function Task({
   startISO,
   subtasks,
   renderType,
+  dragging,
   ...task
-}: TaskComponentProps) {
+}: TaskComponentProps & { dragging?: true }) {
   const completeTask = () => {
     setters.patchTasks([task.id], {
       completion: toISO(roundMinutes(DateTime.now()), true),
@@ -74,11 +76,49 @@ export default function Task({
     dragContainer,
     ...task,
   }
-  const { setNodeRef, setActivatorNodeRef, attributes, listeners } =
-    useDraggable({
-      id: `${task.id}::${renderType}::${dragContainer}`,
-      data: dragData,
-    })
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    active,
+    node,
+    activatorEvent,
+  } = useDraggable({
+    id: `${task.id}::${renderType}::${dragContainer}`,
+    data: dragData,
+  })
+  useEffect(() => {
+    if (!active || !activatorEvent) return
+    const target = activatorEvent.target as HTMLElement
+    // Iterate through target's parents to find element with data-task attribute
+    let taskElement = target
+    while (
+      taskElement &&
+      !taskElement.hasAttribute('data-task') &&
+      taskElement.parentElement
+    ) {
+      taskElement = taskElement.parentElement
+    }
+
+    if (taskElement && taskElement.hasAttribute('data-task')) {
+      // Found element with data-task attribute
+      // You can use the found element here for the drag offset calculation
+      const rect = taskElement.getBoundingClientRect()
+      if (activatorEvent instanceof MouseEvent) {
+        setters.set({
+          dragOffset: (rect.right - activatorEvent.clientX) * -1 + 30,
+        })
+      } else if (activatorEvent instanceof TouchEvent) {
+        setters.set({
+          dragOffset:
+            (rect.right - activatorEvent.touches[0].clientX) * -1 + 30,
+        })
+      }
+    }
+
+    // setters.set({dragOffset: })
+  }, [!!active])
 
   const isLink = renderType && ['parent', 'deadline'].includes(renderType)
   const isCalendar = useAppStore((state) => state.settings.viewMode === 'week')
@@ -129,6 +169,13 @@ export default function Task({
     !isDateISO(task.scheduled) &&
     (showingPastDates ? task.scheduled > today : task.scheduled < now)
 
+  // Get the computed style for the body element
+  const computedStyle = getComputedStyle(document.body)
+  // Get the value of the --line-height-normal CSS variable
+  const lineHeightNormal = computedStyle
+    .getPropertyValue('--line-height-normal')
+    .trim()
+
   return (
     <div
       className={`relative rounded-icon transition-colors duration-300 w-full min-h-line`}
@@ -153,103 +200,121 @@ export default function Task({
             {task.status === 'x' ? <></> : task.status}
           </Button>
         </div>
-        <div className={`flex w-full`}>
-          <div
-            className={`w-full cursor-pointer ${
-              task.title?.split(' ').find((x) => x.length > 20)
-                ? 'break-all'
-                : 'break-words'
-            } leading-line whitespace-normal ${
-              [TaskPriorities.HIGHEST].includes(task.priority)
-                ? 'text-accent'
-                : renderType === 'deadline'
-                ? ''
-                : task.priority === TaskPriorities.LOW ||
-                  isLink ||
-                  task.status === 'x' ||
-                  !task.title
-                ? 'text-faint'
-                : ''
-            }`}
-            onClick={() => openTask(task)}
-          >
-            {task.title || 'Untitled'}
-          </div>
-          <div
-            className={`h-line w-0 grow items-center space-x-1 font-menu child:my-1 justify-end flex`}
-          >
-            {task.priority !== TaskPriorities.DEFAULT && (
-              <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
-                {priorityNumberToSimplePriority[task.priority]}
-              </div>
-            )}
 
-            {!task.completed && task.reminder && (
-              <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
-                <Logo src='alarm-clock' className='mr-1' />
-                <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
-                  'M/d'
-                )}${task.reminder.slice(10)}`}</span>
-              </div>
-            )}
-          </div>
-        </div>
-        {hasLengthDrag && (
-          <div
-            className={`mt-1 task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
-              !task.duration ? 'hidden group-hover:block' : ''
-            }`}
-            ref={setLengthNodeRef}
-            {...lengthAttributes}
-            {...lengthListeners}
-          >
-            {!task.duration
-              ? 'length'
-              : `${task.duration?.hour ? `${task.duration?.hour}h` : ''}${
-                  task.duration?.minute ? `${task.duration?.minute}m` : ''
-                }`}
-          </div>
-        )}
-
-        {!task.completed && (
-          <div
-            ref={setDeadlineNodeRef}
-            {...deadlineAttributes}
-            {...deadlineListeners}
-            className={`mt-1 task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
-              !task.due ? 'hidden group-hover:block' : ''
-            }`}
-          >
-            {!task.due
-              ? 'due'
-              : `${Math.ceil(
-                  DateTime.fromISO(task.due)
-                    .diff(
-                      DateTime.fromISO(
-                        (startISO ??
-                          new Date().toISOString().slice(0, 10)) as string
-                      )
-                    )
-                    .shiftTo('days').days
-                )}d`}
-          </div>
-        )}
-
-        {!task.completed && task.reminder && (
-          <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
-            <Logo src='alarm-clock' className='mr-1' />
-            <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
-              'M/d'
-            )}${task.reminder.slice(10)}`}</span>
-          </div>
-        )}
         <div
-          className='hidden group-hover:flex cursor-grab grow items-center ml-1 h-line'
+          className='flex w-full h-full cursor-grab'
           {...attributes}
           {...listeners}
-          ref={setActivatorNodeRef}
         >
-          <Logo src='align-justify' className='py-2 px-1 h-full' />
+          <div className={`flex w-full h-full`}>
+            <div className='flex w-full mr-4'>
+              <div
+                style={{ maxHeight: `calc( ${lineHeightNormal}em * 2 )` }}
+                className={`w-fit max-w-full cursor-pointer overflow-hidden text-ellipsis ${
+                  task.title?.split(' ').find((x) => x.length > 20)
+                    ? 'break-all'
+                    : 'break-words'
+                } leading-line whitespace-normal ${
+                  [TaskPriorities.HIGHEST].includes(task.priority)
+                    ? 'text-accent'
+                    : renderType === 'deadline'
+                    ? ''
+                    : task.priority === TaskPriorities.LOW ||
+                      isLink ||
+                      task.status === 'x' ||
+                      !task.title
+                    ? 'text-faint'
+                    : ''
+                }`}
+                onMouseDown={() => {
+                  openTask(task)
+                  return false
+                }}
+                onClick={() => false}
+                onMouseUp={() => false}
+              >
+                {task.title || 'Untitled'}
+              </div>
+              <div
+                className='h-full w-0 grow'
+                {...attributes}
+                {...listeners}
+              ></div>
+            </div>
+            <div
+              className={`h-line w-fit items-center space-x-1 font-menu child:my-1 justify-end flex`}
+              {...attributes}
+              {...listeners}
+            >
+              {task.priority !== TaskPriorities.DEFAULT && (
+                <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent'>
+                  {priorityNumberToSimplePriority[task.priority]}
+                </div>
+              )}
+
+              {!task.completed && task.reminder && (
+                <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
+                  <Logo src='alarm-clock' className='mr-1' />
+                  <span>{`${DateTime.fromISO(
+                    task.reminder.slice(0, 10)
+                  ).toFormat('M/d')}${task.reminder.slice(10)}`}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          {!dragging && (
+            <div className='flex h-full group-hover:block'>
+              {hasLengthDrag && (
+                <div
+                  className={`mt-1 task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+                    !task.duration ? 'hidden group-hover:block' : ''
+                  }`}
+                  ref={setLengthNodeRef}
+                  {...lengthAttributes}
+                  {...lengthListeners}
+                >
+                  {!task.duration
+                    ? 'length'
+                    : `${task.duration?.hour ? `${task.duration?.hour}h` : ''}${
+                        task.duration?.minute ? `${task.duration?.minute}m` : ''
+                      }`}
+                </div>
+              )}
+
+              {!task.completed && (
+                <div
+                  ref={setDeadlineNodeRef}
+                  {...deadlineAttributes}
+                  {...deadlineListeners}
+                  className={`mt-1 task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+                    !task.due ? 'hidden group-hover:block' : ''
+                  }`}
+                >
+                  {!task.due
+                    ? 'due'
+                    : `${Math.ceil(
+                        DateTime.fromISO(task.due)
+                          .diff(
+                            DateTime.fromISO(
+                              (startISO ??
+                                new Date().toISOString().slice(0, 10)) as string
+                            )
+                          )
+                          .shiftTo('days').days
+                      )}d`}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!task.completed && task.reminder && !dragging && (
+            <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
+              <Logo src='alarm-clock' className='mr-1' />
+              <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
+                'M/d'
+              )}${task.reminder.slice(10)}`}</span>
+            </div>
+          )}
         </div>
       </div>
       {task.tags.length > 0 && groupBy !== 'tags' && (

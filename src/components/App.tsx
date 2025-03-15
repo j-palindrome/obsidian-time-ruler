@@ -257,7 +257,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
     switch (activeDrag.dragType) {
       case 'task':
-        return <Task {...activeDrag} />
+        return <Task {...activeDrag} dragging />
       case 'task-length':
       case 'time':
         return <></>
@@ -282,9 +282,14 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const updateScroll = () => {
     if (!scroller.current) return
     const scrollWidth = scroller.current.getBoundingClientRect().width
+    const unscheduledWidth = scrollWidth
     if (scrollWidth === 0) return
     const scrolledToChild =
-      scroller.current.scrollLeft / (scrollWidth / childWidth)
+      scroller.current.scrollLeft > 0
+        ? (scroller.current.scrollLeft - unscheduledWidth) /
+            (scrollWidth / childWidth) +
+          1
+        : 0
     const leftLevel = Math.floor(scrolledToChild)
     const rightLevel = Math.ceil(scrolledToChild + childWidth)
 
@@ -317,7 +322,14 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
             },
           }),
         ]
-      : [useSensor(PointerSensor), useSensor(MouseSensor)])
+      : [
+          useSensor(PointerSensor, {
+            activationConstraint: { delay: 150, tolerance: 50 },
+          }),
+          useSensor(MouseSensor, {
+            activationConstraint: { delay: 150, tolerance: 50 },
+          }),
+        ])
   )
 
   useEffect(() => {
@@ -335,6 +347,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }`
 
   const searchStatus = useAppStore((state) => state.searchStatus)
+  const dragOffset = useAppStore((state) => state.dragOffset)
 
   return (
     <>
@@ -367,6 +380,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                 activeDrag?.dragType === 'due'
                   ? undefined
                   : `calc((100% - 48px) / ${trueChildWidth})`,
+              marginLeft:
+                activeDrag?.dragType === 'task'
+                  ? `${Math.floor(dragOffset)}px`
+                  : '',
             }}
           >
             {getDragElement()}
@@ -396,7 +413,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                 <div
                   key='unscheduled'
                   id='time-ruler-unscheduled'
-                  className={`${frameClass}`}
+                  className={`${frameClass} !w-full flex-none`}
                 >
                   {isShowing && <Unscheduled />}
                 </div>

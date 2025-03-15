@@ -143,8 +143,10 @@ export default function Group({
                   ? { ...attributes, ...listeners, ref: setActivatorNodeRef }
                   : undefined)}
               >
-                <div className={`w-fit flex-none max-w-[50%] text-normal`}>
-                  {heading.slice(0, 40) + (heading.length > 40 ? '...' : '')}
+                <div
+                  className={`w-fit flex-none max-w-[50%] text-normal truncate`}
+                >
+                  {heading}
                 </div>
                 <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
                 {myContainer && !hidePaths.includes(myContainer) && (
@@ -165,6 +167,7 @@ export default function Group({
               <Task
                 dragContainer={dragContainer}
                 key={task.path + task.id}
+                startISO={startISO}
                 {...task}
               />
             ))}

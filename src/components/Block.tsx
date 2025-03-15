@@ -178,7 +178,7 @@ export default function Block({
         data-role='block'
         className={`relative w-full rounded-icon ${
           type !== 'child' ? 'bg-code pb-2' : ''
-        } `}
+        } ${type === 'event' ? 'mt-1' : ''}`}
         ref={draggable ? setNodeRef : undefined}
       >
         {!['child', 'unscheduled'].includes(type) && (
