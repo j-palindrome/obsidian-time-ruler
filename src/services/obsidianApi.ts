@@ -378,14 +378,17 @@ export default class ObsidianAPI extends Component {
 
     // tasks move their subtasks as well
     let subtask = task
-    while (subtask.children.length > 0) {
-      subtask = getters.getTask(_.last(subtask.children)!)
-    }
-    const end = subtask.position.end.line
+    console.log(task)
+
+    const followingLines = lines.slice(task.position.start.line + 1)
+    const nextLine = followingLines.findIndex((line) => !line.startsWith(' '))
+    console.log(followingLines, nextLine)
+
     const copyLines = lines.splice(
       task.position.start.line,
-      end + 1 - task.position.start.line
+      (nextLine === -1 ? followingLines.length : nextLine) + 1
     )
+
     await this.app.vault.modify(file, lines.join('\n'))
 
     const { filePath, position } = await this.findPosition(selectedHeading)
