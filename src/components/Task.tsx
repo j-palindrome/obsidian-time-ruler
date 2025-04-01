@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
-import { setters, useAppStore } from '../app/store'
+import { getters, setters, useAppStore } from '../app/store'
 import { openTask } from '../services/obsidianApi'
 import {
   getHeading,
@@ -17,7 +17,7 @@ import Block from './Block'
 import Button from './Button'
 import Logo from './Logo'
 import invariant from 'tiny-invariant'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export type TaskComponentProps = TaskProps & {
   subtasks?: TaskProps[]
@@ -161,13 +161,23 @@ export default function Task({
 
   if (!task) return <></>
 
+  const childWidth = useAppStore((state) => state.childWidth)
+  const [isWide, setIsWide] = useState(false)
+  useEffect(() => {
+    const tR = document.getElementById('#time-ruler')
+    if (!tR) return
+    const width = tR.clientWidth / childWidth
+    if (width > 400 && !isWide) setIsWide(true)
+    else if (width < 400 && isWide) setIsWide(false)
+  }, [childWidth, isWide])
+
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const today = getToday()
   const now = DateTime.now().toISO()
   const hasLengthDrag =
     task.scheduled &&
     !isDateISO(task.scheduled) &&
-    (showingPastDates ? task.scheduled > today : task.scheduled < now)
+    !(showingPastDates ? task.scheduled > today : task.scheduled < now)
 
   // Get the computed style for the body element
   const computedStyle = getComputedStyle(document.body)
@@ -263,7 +273,7 @@ export default function Task({
             </div>
           </div>
           {!dragging && (
-            <div className='flex h-full group-hover:block'>
+            <div className='flex h-full'>
               {hasLengthDrag && (
                 <div
                   className={`mt-1 task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${

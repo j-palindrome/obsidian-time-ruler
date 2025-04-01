@@ -18,6 +18,21 @@
 
 # Changelog
 
+## 2.7.0 (4/1/2025)
+
+**Added:**
+
+- Improved Monthly view
+- Improved look for Tasks and dragging
+
+**Fixed:**
+
+- Fix bug with event times https://github.com/j-palindrome/obsidian-time-ruler/issues/134
+- Can't move task with children
+- Fix [timezones](https://github.com/joshuatazrein/obsidian-time-ruler/issues/70) in calendars
+- duplication error
+- fix deadlines being the wrong date sometimes
+
 ## 2.6.0 (2/17/2025)
 
 **Added:**

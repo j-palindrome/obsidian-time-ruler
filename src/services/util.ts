@@ -291,10 +291,6 @@ export const useChildWidth = () => {
   // this needs to be refreshed upon moving the app to new window...
   useEffect(() => {
     function outputSize() {
-      if (Platform.isMobile) {
-        setChildWidth(1)
-        return
-      }
       const timeRuler = document.querySelector('#time-ruler')
       if (!timeRuler) {
         window.setTimeout(outputSize, 500)
@@ -331,7 +327,6 @@ export const scrollToSection = async (id: string) => {
     }
 
     child.scrollIntoView({
-      block: 'start',
       inline: 'start',
       behavior: 'smooth',
     })
