@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "dev:local": "VAULT=\"/Users/jreinier/Joshua\" npm run dev",
+    "dev:local": "VAULT=\"$HOME/Documents/Joshua\" npm run dev",
     "build": "tsc -noEmit -skipLibCheck && MODE=production node esbuild.config.mjs",
     "check": "tsc -noEmit -skipLibCheck"
   },
