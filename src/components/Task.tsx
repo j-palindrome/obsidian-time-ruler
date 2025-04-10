@@ -88,6 +88,7 @@ export default function Task({
     id: `${task.id}::${renderType}::${dragContainer}`,
     data: dragData,
   })
+
   useEffect(() => {
     if (!active || !activatorEvent) return
     const target = activatorEvent.target as HTMLElement
@@ -107,12 +108,11 @@ export default function Task({
       const rect = taskElement.getBoundingClientRect()
       if (activatorEvent instanceof MouseEvent) {
         setters.set({
-          dragOffset: (rect.right - activatorEvent.clientX) * -1 + 30,
+          dragOffset: rect.right - activatorEvent.clientX,
         })
       } else if (activatorEvent instanceof TouchEvent) {
         setters.set({
-          dragOffset:
-            (rect.right - activatorEvent.touches[0].clientX) * -1 + 30,
+          dragOffset: rect.right - activatorEvent.touches[0].clientX,
         })
       }
     }

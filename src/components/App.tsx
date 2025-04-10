@@ -382,7 +382,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                   : `calc((100% - 48px) / ${trueChildWidth})`,
               marginLeft:
                 activeDrag?.dragType === 'task'
-                  ? `${Math.floor(dragOffset)}px`
+                  ? `${Math.floor(dragOffset) / 2}px`
                   : '',
             }}
           >
