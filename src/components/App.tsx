@@ -324,10 +324,10 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         ]
       : [
           useSensor(PointerSensor, {
-            activationConstraint: { delay: 150, tolerance: 50 },
+            activationConstraint: { delay: 100, tolerance: 50 },
           }),
           useSensor(MouseSensor, {
-            activationConstraint: { delay: 150, tolerance: 50 },
+            activationConstraint: { delay: 100, tolerance: 50 },
           }),
         ])
   )
@@ -382,7 +382,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                   : `calc((100% - 48px) / ${trueChildWidth})`,
               marginLeft:
                 activeDrag?.dragType === 'task'
-                  ? `${Math.floor(dragOffset) / 2}px`
+                  ? `${Math.floor(dragOffset)}px`
                   : '',
             }}
           >

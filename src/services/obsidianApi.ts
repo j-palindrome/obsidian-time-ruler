@@ -306,15 +306,11 @@ export default class ObsidianAPI extends Component {
     )
 
     const alreadyQueried: Set<string> = new Set()
-    // queries "steal" children, with most earlier scheduled overriding later scheduled
+    // // queries "steal" children, with most earlier scheduled overriding later scheduled
     for (const task of queries) {
-      const queriedTasks = (
-        task.query ? queryTasks(task.id, task.query, updatedTasks) : []
-      ).concat(
-        ...task.links.map((path) =>
-          queryTasks(task.id, `"${path}"`, updatedTasks)
-        )
-      )
+      const queriedTasks = task.query
+        ? queryTasks(task.id, task.query, updatedTasks)
+        : []
 
       const queryChildren: string[] = []
       for (let queriedTask of queriedTasks) {

@@ -28,7 +28,8 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
 
   const newTaskMode = newTaskData ? newTaskData.type : undefined
   const frame = useRef<HTMLDivElement>(null)
-  const inputFrame = useRef<HTMLInputElement>(null)
+  const inputFrame = useRef<HTMLInputElement>(null!)
+  const inputRef = useRef<HTMLInputElement>(null!)
 
   const checkShowing = (ev: MouseEvent) => {
     invariant(frame.current)
@@ -55,11 +56,8 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     if (!newTask) return []
     return _.uniq(
       _.flatMap(state.tasks, (task) => {
-        if (task.completed) return []
-        if (task.page && newTaskMode === 'move') return []
-        return task.page
-          ? parseFolderFromPath(task.path)
-          : task.path.replace('.md', '')
+        if (task.completed || task.page) return []
+        return task.path.replace('.md', '')
       }).concat(['Daily'])
     ).sort()
   }, shallow)
@@ -90,6 +88,23 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   const calendarMode = useAppStore(
     (state) => state.settings.viewMode === 'week'
   )
+
+  const [focus, setFocus] = useState(false)
+
+  useEffect(() => {
+    const onFocus = (ev: KeyboardEvent) => {
+      if (ev.key === 'Tab') {
+        ev.stopPropagation()
+        inputRef.current.focus()
+      }
+    }
+    if (focus) {
+      window.addEventListener('keydown', onFocus, { capture: true })
+    }
+    return () => {
+      window.removeEventListener('keydown', onFocus)
+    }
+  }, [focus])
 
   return (
     <div className={`relative z-30 ${calendarMode ? '' : 'flex pl-2'}`}>
@@ -168,18 +183,24 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
                   },
                 })
               }
-              onKeyDown={(ev) =>
-                ev.key === 'Enter' &&
-                getters
-                  .getObsidianAPI()
-                  .createNewTask(newTask, null, dailyNoteInfo)
-              }
+              onFocus={() => setFocus(true)}
+              onBlur={() => setFocus(false)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Tab') {
+                  ev.preventDefault()
+                }
+                if (ev.key === 'Enter')
+                  getters
+                    .getObsidianAPI()
+                    .createNewTask(newTask, null, dailyNoteInfo)
+              }}
             ></input>
 
             <input
               placeholder='search files...'
               className='w-full rounded-icon border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
               value={search}
+              ref={inputRef}
               onChange={(ev) => setSearch(ev.target.value)}
               onKeyDown={(ev) => {
                 if (ev.key === 'Enter') {
@@ -233,8 +254,13 @@ function NewTaskHeading({
         headingPath.includes('#') ? 'text-muted' : 'font-bold text-accent'
       }`}
     >
-      <div className='grow'>{title}</div>
-      <div className='text-faint text-xs'>{myContainer}</div>
+      <div className='grow mr-2 whitespace-nowrap'>
+        {title.slice(0, 30) + (title.length > 30 ? '...' : '')}
+      </div>
+      <div className='text-faint text-xs whitespace-nowrap text-right'>
+        {(myContainer.length > 30 ? '...' : '') +
+          myContainer.slice(Math.max(0, myContainer.length - 30))}
+      </div>
     </div>
   )
 }

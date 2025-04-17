@@ -48,7 +48,6 @@ export function textToTask(
   const INLINE_FIELD_SEARCH = /[\[\(][^\]\)]+:: [^\]\)]+[\]\)] */gu
   const HASHTAG_SEARCH = /#[^\s]+\s?/gu
   const MD_LINK_LINE_SEARCH = /\[\[.*?\|(.*?)\]\]/gu
-  const MD_LINK_SEARCH = /\[\[(.*?)\]\]/gu
   const LINK_SEARCH = /\[(.*?)\]\(.*?\)/gu
   const REMINDER_MATCH = new RegExp(
     ` ?${keyToTasksEmoji.reminder} ?(${ISO_MATCH}( \\d{2}:\\d{2})?)|\\(@(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\)|@\\{(\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?)\\}`,
@@ -83,7 +82,6 @@ export function textToTask(
 
   let title: string = originalTitle
     .replace(MD_LINK_LINE_SEARCH, '$1')
-    .replace(MD_LINK_SEARCH, '$1')
     .replace(LINK_SEARCH, '[$1]')
     .replace(/^\s+/u, '')
     .replace(/\s+$/u, '')

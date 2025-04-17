@@ -17,7 +17,8 @@ import Block from './Block'
 import Button from './Button'
 import Logo from './Logo'
 import invariant from 'tiny-invariant'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRect } from '@dnd-kit/core/dist/hooks/utilities'
 
 export type TaskComponentProps = TaskProps & {
   subtasks?: TaskProps[]
@@ -81,7 +82,7 @@ export default function Task({
     attributes,
     listeners,
     transform,
-    active,
+    isDragging,
     node,
     activatorEvent,
   } = useDraggable({
@@ -89,8 +90,9 @@ export default function Task({
     data: dragData,
   })
 
+  let dragOffsetRef = useRef(0)
   useEffect(() => {
-    if (!active || !activatorEvent) return
+    if (!isDragging || !activatorEvent) return
     const target = activatorEvent.target as HTMLElement
     // Iterate through target's parents to find element with data-task attribute
     let taskElement = target
@@ -107,18 +109,26 @@ export default function Task({
       // You can use the found element here for the drag offset calculation
       const rect = taskElement.getBoundingClientRect()
       if (activatorEvent instanceof MouseEvent) {
-        setters.set({
-          dragOffset: rect.right - activatorEvent.clientX,
-        })
+        const dragOffset = rect.right - activatorEvent.clientX
+        if (dragOffset !== dragOffsetRef.current) {
+          dragOffsetRef.current = dragOffset
+          setters.set({
+            dragOffset,
+          })
+        }
       } else if (activatorEvent instanceof TouchEvent) {
-        setters.set({
-          dragOffset: rect.right - activatorEvent.touches[0].clientX,
-        })
+        const dragOffset = rect.right - activatorEvent.touches[0].clientX
+        if (dragOffset !== dragOffsetRef.current) {
+          dragOffsetRef.current = dragOffset
+          setters.set({
+            dragOffset,
+          })
+        }
       }
     }
 
     // setters.set({dragOffset: })
-  }, [!!active])
+  }, [isDragging])
 
   const isLink = renderType && ['parent', 'deadline'].includes(renderType)
   const isCalendar = useAppStore((state) => state.settings.viewMode === 'week')
@@ -186,6 +196,61 @@ export default function Task({
     .getPropertyValue('--line-height-normal')
     .trim()
 
+  const taskTitle = () => {
+    const title = task.title || ''
+    const regex = /\[\[(.*?)\]\]/g
+
+    if (!regex.test(title)) {
+      return <>{title}</>
+    }
+
+    // Reset regex state
+    regex.lastIndex = 0
+
+    const parts: JSX.Element[] = []
+    let lastIndex = 0
+    let match: RegExpMatchArray | null = null
+
+    while ((match = regex.exec(title)) !== null) {
+      // Add text before the match
+      if (match!.index! > lastIndex) {
+        parts.push(
+          <span key={match.index}>
+            {title.substring(lastIndex, match.index)}
+          </span>
+        )
+      }
+
+      const linkText = match[1]
+      // Add the linked text
+      parts.push(
+        <span
+          key={match.index + '-link'}
+          className='text-accent'
+          onClick={(ev) => {
+            ev.stopPropagation()
+            getters
+              .get('apis')
+              .obsidian!.app.workspace.openLinkText(linkText, task.path)
+          }}
+        >
+          {linkText}
+        </span>
+      )
+
+      lastIndex = regex.lastIndex
+    }
+
+    // Add any remaining text after the last match
+    if (lastIndex < title.length) {
+      parts.push(<span key={lastIndex}>{title.substring(lastIndex)}</span>)
+    }
+
+    return <>{parts}</>
+  }
+
+  const isMobile = useMemo(() => getters.getObsidianAPI().app.isMobile, [])
+
   return (
     <div
       className={`relative rounded-icon transition-colors duration-300 w-full min-h-line`}
@@ -203,7 +268,7 @@ export default function Task({
             onPointerDown={() => false}
             onClick={() => completeTask()}
             className={`task-list-item-checkbox selectable flex flex-none items-center justify-center rounded-checkbox border border-solid border-faint p-0 text-xs shadow-none hover:border-normal cursor-pointer ${
-              isLink ? 'h-2 w-2' : app.isMobile ? 'h-5 w-5' : 'h-4 w-4'
+              isLink ? 'h-2 w-2' : isMobile ? 'h-5 w-5' : 'h-4 w-4'
             } ${task.completed ? 'bg-faint' : 'bg-transparent'}`}
             data-task={task.status === ' ' ? '' : task.status}
           >
@@ -243,7 +308,7 @@ export default function Task({
                 onClick={() => false}
                 onMouseUp={() => false}
               >
-                {task.title || 'Untitled'}
+                {taskTitle()}
               </div>
               <div
                 className='h-full w-0 grow'
