@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import _ from 'lodash'
 import {
+  App,
   Notice,
   PluginSettingTab,
   Setting,
@@ -66,7 +67,7 @@ export default class SettingsTab extends PluginSettingTab {
   names: Record<string, string>
   root: Root
 
-  constructor(plugin: TimeRulerPlugin) {
+  constructor(plugin: TimeRulerPlugin, app: App) {
     super(app, plugin)
     this.plugin = plugin
     this.names = {}

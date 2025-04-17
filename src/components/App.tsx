@@ -59,7 +59,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     invariant(dv, 'please install Dataview to use Time Ruler.')
     if (!dv.index.initialized) {
       // @ts-ignore
-      app.metadataCache.on('dataview:index-ready', () => {
+      getters.getApp().metadataCache.on('dataview:index-ready', () => {
         reload()
       })
       return
@@ -120,7 +120,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           negative: true,
           playing: true,
         })
-        if (app.isMobile) {
+        if (getters.getApp().isMobile) {
           sounds.timer.play()
           new Notice('Timer complete')
         } else {
@@ -616,7 +616,9 @@ const Buttons = ({
                             src={src}
                             title={title}
                             className={`${
-                              app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
+                              getters.getApp().isMobile
+                                ? '!w-8 !h-8'
+                                : '!w-6 !h-6'
                             } !p-0 flex-none`}
                             onClick={() => {
                               getters.getObsidianAPI().setSetting({
@@ -646,7 +648,9 @@ const Buttons = ({
                             src={src}
                             title={title}
                             className={`${
-                              app.isMobile ? '!w-8 !h-8' : '!w-6 !h-6'
+                              getters.getApp().isMobile
+                                ? '!w-8 !h-8'
+                                : '!w-6 !h-6'
                             } !p-0 flex-none`}
                             onClick={() => {
                               getters.getObsidianAPI().setSetting({

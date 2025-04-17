@@ -18,6 +18,20 @@
 
 # Changelog
 
+## 2.7.1 (4/17/2025)
+
+**Added:**
+
+- Support links in tasks
+
+**Changed:**
+
+- Linked tasks `[[ ]]` no longer render the link's children
+
+**Fixed:**
+
+- Pressing Tab on New Task no longer indents the editor window
+
 ## 2.7.0 (4/1/2025)
 
 **Added:**

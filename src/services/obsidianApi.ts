@@ -705,7 +705,7 @@ export async function openTask(task: TaskProps) {
    * There's a glitch with Obsidian where it doesn't show this when opening a link from Time Ruler.
    */
   if (Platform.isMobile) {
-    app['mobileNavbar'].show()
+    getters.getApp()['mobileNavbar'].show()
   }
 }
 

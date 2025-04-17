@@ -156,4 +156,5 @@ export const getters = {
   getObsidianAPI: () => useAppStore.getState().apis.obsidian as ObsidianAPI,
   getCalendarAPI: () => useAppStore.getState().apis.calendar as CalendarAPI,
   get: <T extends keyof AppState>(key: T) => useAppStore.getState()[key],
+  getApp: () => useAppStore.getState().apis.obsidian!.app,
 }

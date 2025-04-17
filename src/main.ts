@@ -84,7 +84,7 @@ export default class TimeRulerPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings()
-    this.addSettingTab(new SettingsTab(this))
+    this.addSettingTab(new SettingsTab(this, this.app))
 
     this.registerView(TIME_RULER_VIEW, (leaf) => new TimeRulerView(leaf, this))
 

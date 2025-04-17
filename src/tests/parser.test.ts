@@ -4,7 +4,10 @@ import { textToTask } from '../services/parser'
 import { getDailyNoteInfo } from '../services/obsidianApi'
 import _ from 'lodash'
 
-app['__timeRulerTests'] = async (testPath: string, format = 'dataview') => {
+window['app']['__timeRulerTests'] = async (
+  testPath: string,
+  format = 'dataview'
+) => {
   const dv = getAPI()
   invariant(dv, 'get Dataview')
   const tasks = dv.pages(`"${testPath}"`)['file']['tasks']

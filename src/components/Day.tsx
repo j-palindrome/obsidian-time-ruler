@@ -214,14 +214,18 @@ export default function Day({
               onClick={async () => {
                 const dailyNoteInfo = getters.get('dailyNoteInfo')
                 const path = parsePathFromDate(startDate, dailyNoteInfo)
-                const thisNote = app.vault.getAbstractFileByPath(path)
+                const thisNote = getters
+                  .getApp()
+                  .vault.getAbstractFileByPath(path)
                 if (!thisNote) {
                   await getters.getObsidianAPI().createFileFromPath(path)
                 }
-                app.workspace.openLinkText(
-                  parsePathFromDate(startDate, dailyNoteInfo),
-                  ''
-                )
+                getters
+                  .getApp()
+                  .workspace.openLinkText(
+                    parsePathFromDate(startDate, dailyNoteInfo),
+                    ''
+                  )
               }}
             >
               {title || ''}
