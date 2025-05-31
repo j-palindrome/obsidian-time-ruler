@@ -90,46 +90,6 @@ export default function Task({
     data: dragData,
   })
 
-  let dragOffsetRef = useRef(0)
-  useEffect(() => {
-    if (!isDragging || !activatorEvent) return
-    const target = activatorEvent.target as HTMLElement
-    // Iterate through target's parents to find element with data-task attribute
-    let taskElement = target
-    while (
-      taskElement &&
-      !taskElement.hasAttribute('data-task') &&
-      taskElement.parentElement
-    ) {
-      taskElement = taskElement.parentElement
-    }
-
-    if (taskElement && taskElement.hasAttribute('data-task')) {
-      // Found element with data-task attribute
-      // You can use the found element here for the drag offset calculation
-      const rect = taskElement.getBoundingClientRect()
-      if (activatorEvent instanceof MouseEvent) {
-        const dragOffset = rect.right - activatorEvent.clientX
-        if (dragOffset !== dragOffsetRef.current) {
-          dragOffsetRef.current = dragOffset
-          setters.set({
-            dragOffset,
-          })
-        }
-      } else if (activatorEvent instanceof TouchEvent) {
-        const dragOffset = rect.right - activatorEvent.touches[0].clientX
-        if (dragOffset !== dragOffsetRef.current) {
-          dragOffsetRef.current = dragOffset
-          setters.set({
-            dragOffset,
-          })
-        }
-      }
-    }
-
-    // setters.set({dragOffset: })
-  }, [isDragging])
-
   const isLink = renderType && ['parent', 'deadline'].includes(renderType)
   const isCalendar = useAppStore((state) => state.settings.viewMode === 'week')
   const smallText = isLink || isCalendar

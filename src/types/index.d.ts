@@ -102,6 +102,7 @@ declare global {
     | { type: 'heading'; heading: string }
     | { type: 'delete' }
     | { type: 'move' }
+    | { type: 'unschedule' }
 }
 
 declare module 'obsidian' {

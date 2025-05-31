@@ -1,6 +1,6 @@
 import { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { getters, setters } from 'src/app/store'
-import { isTaskProps } from 'src/types/enums'
+import { isTaskProps, TaskActions } from 'src/types/enums'
 import { DateTime, Duration } from 'luxon'
 import { useAppStoreRef } from '../app/store'
 import _ from 'lodash'
@@ -116,5 +116,7 @@ export const onDragEnd = async (
 }
 
 export const onDragStart = (ev: DragStartEvent) => {
-  setters.set({ dragData: ev.active.data.current as DragData })
+  setters.set({
+    dragData: ev.active.data.current as DragData,
+  })
 }

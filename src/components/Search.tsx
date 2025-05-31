@@ -1,11 +1,26 @@
-import _ from 'lodash'
+import _, { filter } from 'lodash'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { setters, useAppStore } from 'src/app/store'
+import { setters, useAppStore, useAppStoreRef } from 'src/app/store'
 import { openTaskInRuler } from 'src/services/obsidianApi'
 import { convertSearchToRegExp } from 'src/services/util'
 import { parseFolderFromPath } from '../services/util'
 import { priorityNumberToKey } from '../types/enums'
+import Task from './Task'
+import Group from './Group'
+import Block from './Block'
+import {
+  DndContext,
+  MeasuringConfiguration,
+  MouseSensor,
+  PointerSensor,
+  pointerWithin,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { onDragEnd, onDragStart } from 'src/services/dragging'
+import { Platform } from 'obsidian'
 
 export default function Search() {
   const tasks = useAppStore((state) => state.tasks)
@@ -33,37 +48,43 @@ export default function Search() {
   const [search, setSearch] = useState('')
   const searchExp = convertSearchToRegExp(search)
   const splitSearch = search.split('')
-  const foundTasks = _.sortBy(
-    allTasks.filter(([strings]) =>
+  const foundTasks = allTasks
+    .filter(([strings]) =>
       strings.find((string) => !search || (string && searchExp.test(string)))
-    ),
-    ([_matches, task]) => {
-      let total = 0
-      let index = 0
-      const title = task.title.toLowerCase()
-      let notFound = 0
-      for (let char of splitSearch) {
-        const newIndex = title.indexOf(char, index)
-        if (newIndex !== -1) {
-          total += newIndex
-          index = newIndex
-        } else notFound += 1
-      }
+    )
+    .map((x) => x[1])
 
-      return notFound * 25 + total
-    }
-  )
+  // _.sortBy(
+  // allTasks.filter(([strings]) =>
+  //   strings.find((string) => !search || (string && searchExp.test(string)))
+  // ),
+  // ([_matches, task]) => {
+  //   let total = 0
+  //   let index = 0
+  //   const title = task.title.toLowerCase()
+  //   let notFound = 0
+  //   for (let char of splitSearch) {
+  //     const newIndex = title.indexOf(char, index)
+  //     if (newIndex !== -1) {
+  //       total += newIndex
+  //       index = newIndex
+  //     } else notFound += 1
+  //   }
+
+  //   return notFound * 25 + total
+  // }
+  // )
 
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => input.current?.focus(), [])
 
-  return createPortal(
-    <div className='modal-container mod-dim'>
+  return (
+    <div className='!fixed top-0 left-0 w-full h-full !z-50 px-1'>
       <div
-        className='modal-bg'
+        className='absolute top-0 left-0 w-full h-full'
         onClick={() => setters.set({ searchStatus: false })}
       ></div>
-      <div className='prompt'>
+      <div className='prompt !w-full text-base'>
         <div className='prompt-input-container'>
           <input
             className='prompt-input'
@@ -81,50 +102,16 @@ export default function Search() {
           />
         </div>
         <div className='prompt-results'>
-          {foundTasks.map(([_strings, task]) => (
-            <div
-              key={task.id}
-              data-info={task.id}
-              className='clickable-icon suggestion-item mod-complex'
-              onClick={() => {
-                openTaskInRuler(task.id)
-                setters.set({ searchStatus: false })
-              }}
-            >
-              <div
-                className='suggestion-content'
-                style={{
-                  color: 'var(--text-normal)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {task.title}
-              </div>
-              <div
-                className='suggestion-aux'
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '40%',
-                  whiteSpace: 'nowrap',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-faint)',
-                  flex: 'none',
-                }}
-              >
-                {(task.page
-                  ? parseFolderFromPath(task.path)
-                  : task.path
-                ).replace('.md', '')}
-              </div>
-            </div>
-          ))}
+          <Block
+            type='all-day'
+            tasks={foundTasks}
+            events={[]}
+            blocks={[]}
+            dragContainer='search'
+          />
         </div>
         <div className='prompt-instructions'></div>
       </div>
-    </div>,
-    document.querySelector('.app-container') as HTMLDivElement
+    </div>
   )
 }

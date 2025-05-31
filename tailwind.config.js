@@ -14,7 +14,7 @@ module.exports = {
   corePlugins: {
     preflight: false,
   },
-  important: '#time-ruler',
+  important: '.time-ruler',
   theme: {
     extend: {
       padding: {

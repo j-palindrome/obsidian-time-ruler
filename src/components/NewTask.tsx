@@ -13,6 +13,7 @@ import {
 } from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
+import { TaskActions } from 'src/types/enums'
 
 export default function NewTask({ dragContainer }: { dragContainer: string }) {
   const data: DragData = {
@@ -110,11 +111,22 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     <div className={`relative z-30 ${calendarMode ? '' : 'flex pl-2'}`}>
       {draggingTask ? (
         <>
+          <Droppable
+            id={`unschedule-task`}
+            data={{ scheduled: TaskActions.DELETE }}
+          >
+            <Button
+              src='calendar-x'
+              className={`!rounded-full ${
+                calendarMode ? 'h-6 w-6 mb-2' : 'h-6 w-6 mr-2'
+              } bg-red-900 flex-none`}
+            />
+          </Droppable>
           <Droppable id={`delete-task`} data={{ type: 'delete' }}>
             <Button
               src='x'
               className={`!rounded-full ${
-                calendarMode ? 'h-8 w-8 mb-2' : 'h-10 w-10 mr-2'
+                calendarMode ? 'h-6 w-6 mb-2' : 'h-6 w-6 mr-2'
               } bg-red-900 flex-none`}
             />
           </Droppable>
@@ -123,7 +135,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
               <Button
                 src='move-right'
                 className={`!rounded-full ${
-                  calendarMode ? 'h-8 w-8' : 'h-10 w-10'
+                  calendarMode ? 'h-6 w-6' : 'h-6 w-6'
                 } bg-blue-900 flex-none`}
               />
             </Droppable>

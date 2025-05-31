@@ -45,10 +45,9 @@ import { TimeSpanTypes } from './Minutes'
 import NewTask from './NewTask'
 import Search from './Search'
 import Task from './Task'
-import Unscheduled from './Unscheduled'
 import { isCallChain } from 'typescript'
 
-type TimesType = (Parameters<typeof Day>[0] | { type: 'unscheduled' })[]
+type TimesType = Parameters<typeof Day>[0][]
 
 /**
  * @param apis: We need to store these APIs within the store in order to hold their references to call from the store itself, which is why we do things like this.
@@ -145,16 +144,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     }
   }, [])
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      scrollToSection(getToday())
-    }, 1000)
-
-    return () => {
-      clearTimeout(timeout)
-    }
-  }, [])
-
   const showingPastDates = useAppStore((state) => state.showingPastDates)
 
   const today = DateTime.fromISO(getToday())
@@ -178,7 +167,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
   const times: TimesType = [
-    { type: 'unscheduled' },
     {
       startISO:
         showingPastDates || showCompleted
@@ -220,6 +208,12 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }, [showingPastDates, weeksShownState])
 
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
+
+  useEffect(() => {
+    if (activeDrag) {
+      setTimeout(() => setters.set({ searchStatus: false }), 1000)
+    }
+  }, [activeDrag])
 
   useAutoScroll()
 
@@ -347,7 +341,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }`
 
   const searchStatus = useAppStore((state) => state.searchStatus)
-  const dragOffset = useAppStore((state) => state.dragOffset)
 
   return (
     <>
@@ -361,7 +354,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         autoScroll={false}
       >
         <div
-          id='time-ruler'
           style={{
             height: '100%',
             width: '100%',
@@ -370,7 +362,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
             overflow: 'hidden',
             backgroundColor: 'var(--background-secondary)',
           }}
-          className={`time-ruler-container sidebar-color`}
+          className={`time-ruler time-ruler-container sidebar-color`}
+          id='time-ruler'
         >
           <DragOverlay
             dropAnimation={null}
@@ -380,10 +373,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                 activeDrag?.dragType === 'due'
                   ? undefined
                   : `calc((100% - 48px) / ${trueChildWidth})`,
-              marginLeft:
-                activeDrag?.dragType === 'task'
-                  ? `${Math.floor(dragOffset)}px`
-                  : '',
             }}
           >
             {getDragElement()}
@@ -409,15 +398,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           >
             {times.map((time, i) => {
               const isShowing = i >= scrollViews[0] && i <= scrollViews[1]
-              return time.type === 'unscheduled' ? (
-                <div
-                  key='unscheduled'
-                  id='time-ruler-unscheduled'
-                  className={`${frameClass} !w-full flex-none`}
-                >
-                  {isShowing && <Unscheduled />}
-                </div>
-              ) : (
+              return (
                 <Fragment key={time.startISO + '::' + time.type}>
                   <div
                     id={`time-ruler-${getStartDate(
@@ -435,9 +416,9 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
               )
             })}
           </div>
+          {searchStatus && <Search />}
         </div>
       </DndContext>
-      {searchStatus && <Search />}
     </>
   )
 }
@@ -499,35 +480,19 @@ const Buttons = ({
     return () => window.removeEventListener('click', checkShowing)
   }, [showingModal])
 
-  const today = getStartDate(now)
-  const yesterday = getStartDate(now.minus({ days: 1 }))
-  const tomorrow = getStartDate(now.plus({ days: 1 }))
-
   const renderButton = (time: TimesType[number], i) => {
-    const start =
-      time.type === 'unscheduled'
-        ? undefined
-        : getStartDate(DateTime.fromISO(time.startISO))
+    const start = getStartDate(DateTime.fromISO(time.startISO))
     const thisDate = start ? DateTime.fromISO(start) : undefined
     return (
       <Droppable
-        key={time.type === 'unscheduled' ? 'unscheduled' : time.startISO}
-        id={(time.type === 'unscheduled' ? 'unscheduled' : start) + '::button'}
+        key={time.startISO}
+        id={start + '::button'}
         data={{
           scheduled: start,
         }}
       >
-        <Button
-          className='h-[28px]'
-          onClick={() =>
-            scrollToSection(
-              time.type === 'unscheduled' ? 'unscheduled' : start!
-            )
-          }
-        >
-          {time.type === 'unscheduled'
-            ? 'None'
-            : thisDate!.toFormat('EEE MMM d')}
+        <Button className='h-[28px]' onClick={() => scrollToSection(start!)}>
+          {thisDate!.toFormat('EEE MMM d')}
         </Button>
       </Droppable>
     )
