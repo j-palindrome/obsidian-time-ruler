@@ -282,42 +282,40 @@ export default function Task({
           {...listeners}
         >
           <div className={`flex w-full h-full`}>
-            <div className='flex w-full mr-4'>
-              <div
-                style={{ maxHeight: `calc( ${lineHeightNormal}em * 2 )` }}
-                className={`w-fit max-w-full cursor-pointer overflow-hidden text-ellipsis ${
-                  task.title?.split(' ').find((x) => x.length > 20)
-                    ? 'break-all'
-                    : 'break-words'
-                } leading-line whitespace-normal ${
-                  [TaskPriorities.HIGHEST].includes(task.priority)
-                    ? 'text-accent'
-                    : renderType === 'deadline'
-                    ? ''
-                    : task.priority === TaskPriorities.LOW ||
-                      isLink ||
-                      task.status === 'x' ||
-                      !task.title
-                    ? 'text-faint'
-                    : ''
-                }`}
-                onMouseDown={() => {
-                  openTask(task)
-                  return false
-                }}
-                onClick={() => false}
-                onMouseUp={() => false}
-              >
-                {taskTitle()}
-              </div>
-              <div
-                className='h-full w-0 grow'
-                {...attributes}
-                {...listeners}
-              ></div>
+            <div
+              style={{ maxHeight: `calc( ${lineHeightNormal}em * 2 )` }}
+              className={`w-fit max-w-full cursor-pointer overflow-hidden text-ellipsis ${
+                task.title?.split(' ').find((x) => x.length > 20)
+                  ? 'break-all'
+                  : 'break-words'
+              } leading-line whitespace-normal ${
+                [TaskPriorities.HIGHEST].includes(task.priority)
+                  ? 'text-accent'
+                  : renderType === 'deadline'
+                  ? ''
+                  : task.priority === TaskPriorities.LOW ||
+                    isLink ||
+                    task.status === 'x' ||
+                    !task.title
+                  ? 'text-faint'
+                  : ''
+              }`}
+              onMouseDown={() => {
+                openTask(task)
+                return false
+              }}
+              onClick={() => false}
+              onMouseUp={() => false}
+            >
+              {taskTitle()}
             </div>
             <div
-              className={`h-line w-fit items-center space-x-1 font-menu child:my-1 justify-end flex`}
+              className={`w-4 grow h-full cursor-pointer`}
+              {...attributes}
+              {...listeners}
+            ></div>
+            <div
+              className={`h-full w-fit items-center space-x-1 font-menu child:my-1 justify-end flex`}
               {...attributes}
               {...listeners}
             >
@@ -335,61 +333,67 @@ export default function Task({
                   ).toFormat('M/d')}${task.reminder.slice(10)}`}</span>
                 </div>
               )}
+              {!dragging && (
+                <>
+                  {hasLengthDrag && (
+                    <div
+                      className={`mt-1 task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+                        !task.duration ? 'hidden group-hover:block' : ''
+                      }`}
+                      ref={setLengthNodeRef}
+                      {...lengthAttributes}
+                      {...lengthListeners}
+                    >
+                      {!task.duration
+                        ? 'length'
+                        : `${
+                            task.duration?.hour ? `${task.duration?.hour}h` : ''
+                          }${
+                            task.duration?.minute
+                              ? `${task.duration?.minute}m`
+                              : ''
+                          }`}
+                    </div>
+                  )}
+
+                  {!task.completed && (
+                    <div
+                      ref={setDeadlineNodeRef}
+                      {...deadlineAttributes}
+                      {...deadlineListeners}
+                      className={`mt-1 task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
+                        !task.due ? 'hidden group-hover:block' : ''
+                      }`}
+                    >
+                      {!task.due
+                        ? 'due'
+                        : `${Math.ceil(
+                            DateTime.fromISO(task.due)
+                              .diff(
+                                DateTime.fromISO(
+                                  (startISO ??
+                                    new Date()
+                                      .toISOString()
+                                      .slice(0, 10)) as string
+                                )
+                              )
+                              .shiftTo('days').days
+                          )}d`}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!task.completed && task.reminder && !dragging && (
+                <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
+                  <Logo src='alarm-clock' className='mr-1' />
+                  <span>{`${DateTime.fromISO(
+                    task.reminder.slice(0, 10)
+                  ).toFormat('M/d')}${task.reminder.slice(10)}`}</span>
+                </div>
+              )}
             </div>
           </div>
-          {!dragging && (
-            <div className='flex h-full'>
-              {hasLengthDrag && (
-                <div
-                  className={`mt-1 task-duration cursor-ns-resize whitespace-nowrap font-menu text-xs text-accent group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
-                    !task.duration ? 'hidden group-hover:block' : ''
-                  }`}
-                  ref={setLengthNodeRef}
-                  {...lengthAttributes}
-                  {...lengthListeners}
-                >
-                  {!task.duration
-                    ? 'length'
-                    : `${task.duration?.hour ? `${task.duration?.hour}h` : ''}${
-                        task.duration?.minute ? `${task.duration?.minute}m` : ''
-                      }`}
-                </div>
-              )}
-
-              {!task.completed && (
-                <div
-                  ref={setDeadlineNodeRef}
-                  {...deadlineAttributes}
-                  {...deadlineListeners}
-                  className={`mt-1 task-due ml-2 cursor-grab whitespace-nowrap font-menu text-xs text-accent hover:underline group-hover:bg-selection group-hover:rounded-full group-hover:px-2 ${
-                    !task.due ? 'hidden group-hover:block' : ''
-                  }`}
-                >
-                  {!task.due
-                    ? 'due'
-                    : `${Math.ceil(
-                        DateTime.fromISO(task.due)
-                          .diff(
-                            DateTime.fromISO(
-                              (startISO ??
-                                new Date().toISOString().slice(0, 10)) as string
-                            )
-                          )
-                          .shiftTo('days').days
-                      )}d`}
-                </div>
-              )}
-            </div>
-          )}
-
-          {!task.completed && task.reminder && !dragging && (
-            <div className='task-reminder ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal'>
-              <Logo src='alarm-clock' className='mr-1' />
-              <span>{`${DateTime.fromISO(task.reminder.slice(0, 10)).toFormat(
-                'M/d'
-              )}${task.reminder.slice(10)}`}</span>
-            </div>
-          )}
         </div>
       </div>
       {task.tags.length > 0 && groupBy !== 'tags' && (
