@@ -210,7 +210,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
 
   useEffect(() => {
-    if (activeDrag) {
+    if (activeDrag && getters.get('searchStatus')) {
       setTimeout(() => setters.set({ searchStatus: false }), 1000)
     }
   }, [activeDrag])
@@ -316,14 +316,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
             },
           }),
         ]
-      : [
-          useSensor(PointerSensor, {
-            activationConstraint: { delay: 100, tolerance: 50 },
-          }),
-          useSensor(MouseSensor, {
-            activationConstraint: { delay: 100, tolerance: 50 },
-          }),
-        ])
+      : [useSensor(PointerSensor), useSensor(MouseSensor)])
   )
 
   useEffect(() => {

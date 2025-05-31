@@ -108,7 +108,11 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   }, [focus])
 
   return (
-    <div className={`relative z-30 ${calendarMode ? '' : 'flex pl-2'}`}>
+    <div
+      className={`relative z-30 ${
+        calendarMode ? '' : 'flex pl-2 h-10 items-center'
+      }`}
+    >
       {draggingTask ? (
         <>
           <Droppable

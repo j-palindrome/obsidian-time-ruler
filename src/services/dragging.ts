@@ -20,7 +20,6 @@ export const onDragEnd = async (
 ) => {
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
-  const dragMode = getters.get('dragMode')
 
   if (ev.active.id === ev.over?.id) {
     setters.set({ dragData: null })
