@@ -78,40 +78,44 @@ export default function Search() {
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => input.current?.focus(), [])
 
+  const dragging = useAppStore((state) => !state.dragData)
+
   return (
-    <div className='!fixed top-0 left-0 w-full h-full !z-50 px-1'>
-      <div
-        className='absolute top-0 left-0 w-full h-full'
-        onClick={() => setters.set({ searchStatus: false })}
-      ></div>
-      <div className='prompt !w-full text-base'>
-        <div className='prompt-input-container'>
-          <input
-            className='prompt-input'
-            style={{ fontFamily: 'var(--font-interface)' }}
-            value={search}
-            onChange={(ev) => setSearch(ev.target.value)}
-            onKeyDown={(ev) => {
-              if (ev.key === 'Escape') setters.set({ searchStatus: false })
-              else if (ev.key === 'Enter') {
-                if (foundTasks[0]) openTaskInRuler(foundTasks[0][1].id)
-                setters.set({ searchStatus: false })
-              }
-            }}
-            ref={input}
-          />
+    dragging && (
+      <div className='!fixed top-0 left-0 w-full h-full !z-50 px-1'>
+        <div
+          className='absolute top-0 left-0 w-full h-full'
+          onClick={() => setters.set({ searchStatus: false })}
+        ></div>
+        <div className='prompt !w-full text-base'>
+          <div className='prompt-input-container'>
+            <input
+              className='prompt-input'
+              style={{ fontFamily: 'var(--font-interface)' }}
+              value={search}
+              onChange={(ev) => setSearch(ev.target.value)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Escape') setters.set({ searchStatus: false })
+                else if (ev.key === 'Enter') {
+                  if (foundTasks[0]) openTaskInRuler(foundTasks[0][1].id)
+                  setters.set({ searchStatus: false })
+                }
+              }}
+              ref={input}
+            />
+          </div>
+          <div className='prompt-results'>
+            <Block
+              type='all-day'
+              tasks={foundTasks}
+              events={[]}
+              blocks={[]}
+              dragContainer='search'
+            />
+          </div>
+          <div className='prompt-instructions'></div>
         </div>
-        <div className='prompt-results'>
-          <Block
-            type='all-day'
-            tasks={foundTasks}
-            events={[]}
-            blocks={[]}
-            dragContainer='search'
-          />
-        </div>
-        <div className='prompt-instructions'></div>
       </div>
-    </div>
+    )
   )
 }

@@ -26,6 +26,11 @@ export const onDragEnd = async (
     return
   }
 
+  // making sure search is closed
+  if (getters.get('searchStatus') !== false) {
+    setters.set({ searchStatus: false })
+  }
+
   if (dragData?.dragType === 'task' && dropData?.type === 'move') {
     setters.set({ newTask: { task: dragData, type: 'move' } })
   } else if (dropData && dragData) {

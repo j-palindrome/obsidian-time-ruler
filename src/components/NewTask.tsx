@@ -90,23 +90,6 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     (state) => state.settings.viewMode === 'week'
   )
 
-  const [focus, setFocus] = useState(false)
-
-  useEffect(() => {
-    const onFocus = (ev: KeyboardEvent) => {
-      if (ev.key === 'Tab') {
-        ev.stopPropagation()
-        inputRef.current.focus()
-      }
-    }
-    if (focus) {
-      window.addEventListener('keydown', onFocus, { capture: true })
-    }
-    return () => {
-      window.removeEventListener('keydown', onFocus)
-    }
-  }, [focus])
-
   return (
     <div
       className={`relative z-30 ${
@@ -199,12 +182,13 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
                   },
                 })
               }
-              onFocus={() => setFocus(true)}
-              onBlur={() => setFocus(false)}
-              onKeyDown={(ev) => {
+              onKeyDownCapture={(ev) => {
                 if (ev.key === 'Tab') {
-                  ev.preventDefault()
+                  console.log(ev, 'capture')
+                  ev.stopPropagation()
                 }
+              }}
+              onKeyDown={(ev) => {
                 if (ev.key === 'Enter')
                   getters
                     .getObsidianAPI()

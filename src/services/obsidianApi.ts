@@ -618,7 +618,7 @@ export default class ObsidianAPI extends Component {
     }
   }
 
-  async onload() {
+  onload() {
     this.registerEvent(
       // @ts-ignore
       this.app.workspace.on('layout-change', (cb) => {

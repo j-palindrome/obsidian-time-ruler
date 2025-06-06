@@ -10,7 +10,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import $ from 'jquery'
-import _ from 'lodash'
+import _, { cloneDeep } from 'lodash'
 import { DateTime } from 'luxon'
 import { Notice, Platform } from 'obsidian'
 import { getAPI } from 'obsidian-dataview'
@@ -209,12 +209,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const [activeDrag, activeDragRef] = useAppStoreRef((state) => state.dragData)
 
-  useEffect(() => {
-    if (activeDrag && getters.get('searchStatus')) {
-      setTimeout(() => setters.set({ searchStatus: false }), 1000)
-    }
-  }, [activeDrag])
-
   useAutoScroll()
 
   const measuringConfig: MeasuringConfiguration = {
@@ -308,14 +302,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const sensors = useSensors(
     ...(Platform.isMobile
-      ? [
-          useSensor(TouchSensor, {
-            activationConstraint: {
-              delay: 250,
-              tolerance: 5,
-            },
-          }),
-        ]
+      ? [useSensor(PointerSensor), useSensor(TouchSensor)]
       : [useSensor(PointerSensor), useSensor(MouseSensor)])
   )
 
@@ -335,84 +322,87 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const searchStatus = useAppStore((state) => state.searchStatus)
 
+  const apisLoaded = useAppStore((state) => state.apis.obsidian)
   return (
-    <>
-      <DndContext
-        onDragStart={onDragStart}
-        onDragEnd={(ev) => onDragEnd(ev, activeDragRef)}
-        onDragCancel={() => setters.set({ dragData: null })}
-        collisionDetection={pointerWithin}
-        measuring={measuringConfig}
-        sensors={sensors}
-        autoScroll={false}
-      >
-        <div
-          style={{
-            height: '100%',
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            backgroundColor: 'var(--background-secondary)',
-          }}
-          className={`time-ruler time-ruler-container sidebar-color`}
-          id='time-ruler'
+    apisLoaded && (
+      <>
+        <DndContext
+          onDragStart={onDragStart}
+          onDragEnd={(ev) => onDragEnd(ev, activeDragRef)}
+          onDragCancel={() => setters.set({ dragData: null })}
+          collisionDetection={pointerWithin}
+          measuring={measuringConfig}
+          sensors={sensors}
+          autoScroll={false}
         >
-          <DragOverlay
-            dropAnimation={null}
-            className='backdrop-blur opacity-50'
-            style={{
-              width:
-                activeDrag?.dragType === 'due'
-                  ? undefined
-                  : `calc((100% - 48px) / ${trueChildWidth})`,
-            }}
-          >
-            {getDragElement()}
-          </DragOverlay>
-
-          <Buttons
-            {...{
-              times,
-              datesShown,
-              setWeeksShown,
-              weeksShownState,
-              setupStore: reload,
-              showingPastDates,
-            }}
-          />
-
           <div
-            className={`flex h-full w-full snap-mandatory rounded-icon text-base child:flex-none child:snap-start ${childClass} !overflow-x-auto overflow-y-clip child:h-full snap-x`}
-            id='time-ruler-times'
-            data-auto-scroll={calendarMode ? 'y' : 'x'}
-            ref={scroller}
-            onScroll={updateScroll}
+            style={{
+              height: '100%',
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              backgroundColor: 'var(--background-secondary)',
+            }}
+            className={`time-ruler time-ruler-container sidebar-color`}
+            id='time-ruler'
           >
-            {times.map((time, i) => {
-              const isShowing = i >= scrollViews[0] && i <= scrollViews[1]
-              return (
-                <Fragment key={time.startISO + '::' + time.type}>
-                  <div
-                    id={`time-ruler-${getStartDate(
-                      DateTime.fromISO(time.startISO)
-                    )}`}
-                    className={frameClass}
-                  >
-                    {isShowing && <Day {...time} />}
-                  </div>
-                  {calendarMode &&
-                  DateTime.fromISO(time.startISO).weekday === 7 ? (
-                    <div className='!h-0 !w-1'></div>
-                  ) : null}
-                </Fragment>
-              )
-            })}
+            <DragOverlay
+              dropAnimation={null}
+              className='backdrop-blur opacity-50'
+              style={{
+                width:
+                  activeDrag?.dragType === 'due'
+                    ? undefined
+                    : `calc((100% - 48px) / ${trueChildWidth})`,
+              }}
+            >
+              {getDragElement()}
+            </DragOverlay>
+
+            <Buttons
+              {...{
+                times,
+                datesShown,
+                setWeeksShown,
+                weeksShownState,
+                setupStore: reload,
+                showingPastDates,
+              }}
+            />
+
+            <div
+              className={`flex h-full w-full snap-mandatory rounded-icon text-base child:flex-none child:snap-start ${childClass} !overflow-x-auto overflow-y-clip child:h-full snap-x`}
+              id='time-ruler-times'
+              data-auto-scroll={calendarMode ? 'y' : 'x'}
+              ref={scroller}
+              onScroll={updateScroll}
+            >
+              {times.map((time, i) => {
+                const isShowing = i >= scrollViews[0] && i <= scrollViews[1]
+                return (
+                  <Fragment key={time.startISO + '::' + time.type}>
+                    <div
+                      id={`time-ruler-${getStartDate(
+                        DateTime.fromISO(time.startISO)
+                      )}`}
+                      className={frameClass}
+                    >
+                      {isShowing && <Day {...time} />}
+                    </div>
+                    {calendarMode &&
+                    DateTime.fromISO(time.startISO).weekday === 7 ? (
+                      <div className='!h-0 !w-1'></div>
+                    ) : null}
+                  </Fragment>
+                )
+              })}
+            </div>
+            {searchStatus && <Search />}
           </div>
-          {searchStatus && <Search />}
-        </div>
-      </DndContext>
-    </>
+        </DndContext>
+      </>
+    )
   )
 }
 

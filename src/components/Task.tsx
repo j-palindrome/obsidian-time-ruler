@@ -133,6 +133,7 @@ export default function Task({
     else if (width < 400 && isWide) setIsWide(false)
   }, [childWidth, isWide])
 
+  const app = useAppStore((state) => state.apis.obsidian?.app)
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const today = getToday()
   const now = DateTime.now().toISO()
@@ -180,10 +181,7 @@ export default function Task({
           key={match.index + '-link'}
           className='text-accent'
           onClick={(ev) => {
-            ev.stopPropagation()
-            getters
-              .get('apis')
-              .obsidian!.app.workspace.openLinkText(linkText, task.path)
+            ev.stopPropagation().workspace.openLinkText(linkText, task.path)
           }}
         >
           {linkText}
@@ -201,7 +199,7 @@ export default function Task({
     return <>{parts}</>
   }
 
-  const isMobile = useMemo(() => getters.getObsidianAPI().app.isMobile, [])
+  const isMobile = useMemo(() => getters.getApp().isMobile, [])
 
   return (
     <div

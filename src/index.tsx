@@ -56,6 +56,7 @@ export default class TimeRulerView extends ItemView {
     this.calendarLinkAPI.load()
 
     this.root = createRoot(this.containerEl.children[1])
+    
 
     this.root.render(
       <React.StrictMode>
