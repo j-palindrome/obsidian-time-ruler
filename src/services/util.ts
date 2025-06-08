@@ -308,7 +308,7 @@ export const useChildWidth = () => {
     outputSize()
   }, [recreateWindow, viewMode])
 
-  const appChildWidth = viewMode === 'hour' ? 1 : childWidthRef.current
+  const appChildWidth = childWidthRef.current
   const appChildClass = childWidthToClass[appChildWidth]
   return {
     childWidth: appChildWidth,

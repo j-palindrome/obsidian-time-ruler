@@ -42,7 +42,7 @@ type TimeRulerSettings = {
   extendBlocks: boolean
   hideTimes: boolean
   borders: boolean
-  viewMode: 'hour' | 'day' | 'week'
+  viewMode: 'day' | 'week'
   scheduledSubtasks: boolean
   openInMain: boolean
 }

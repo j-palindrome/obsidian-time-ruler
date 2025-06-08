@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import _, { filter } from 'lodash'
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
@@ -88,8 +88,7 @@ export default function Day({
         ? false
         : isDateISO(scheduled)
         ? scheduled === startDate
-        : (isNow ? scheduled > startDate : scheduled >= startISO) &&
-          scheduled < endISO
+        : scheduled >= startISO && scheduled < endISO
 
       const dueToday =
         !showingPastDates &&
@@ -146,7 +145,10 @@ export default function Day({
     return [allDay, blocksByTime, pastTasks, upcoming]
   }, shallow)
 
-  let blocks = _.map(_.sortBy(_.entries(blocksByTime), 0), 1)
+  let blocks = _.map(
+    _.sortBy(_.entries(blocksByTime), (x) => x[0] > startISO, 0),
+    1
+  )
 
   const viewMode = useAppStore((state) => state.settings.viewMode)
   const calendarMode = viewMode === 'week'
@@ -181,17 +183,12 @@ export default function Day({
 
   const wide = useAppStore((state) => state.childWidth > 1)
 
-  const TR_NOW = 'TR::NOW'
-  const focus = useAppStore((state) => isNow && state.collapsed[TR_NOW])
-
-  if (focus) {
-    endISO =
-      blocks.find(({ startISO }) => startISO && startISO > now)?.endISO ?? now
-    blocks = blocks.filter(({ startISO }) => startISO && startISO <= now)
-  }
-
   return (
-    <div className={`flex flex-col overflow-hidden relative`}>
+    <div
+      className={`flex flex-col overflow-hidden h-full relative ${
+        { day: 'flex flex-col' }[viewMode]
+      }`}
+    >
       <div className='flex items-center group relative z-10'>
         <Droppable
           data={{ scheduled: startDate }}
@@ -233,14 +230,10 @@ export default function Day({
           </div>
         </Droppable>
       </div>
-      {isNow && <Timer />}
       <div
         className={`rounded-icon ${
           {
-            hour: wide
-              ? 'h-0 grow flex space-x-2 child:h-full child:flex-1 child:w-full justify-center child:max-w-xl'
-              : 'h-0 grow flex flex-col',
-            day: 'overflow-y-auto',
+            day: 'overflow-hidden h-full flex flex-col',
             week: 'overflow-y-auto',
           }[viewMode]
         }`}
@@ -254,10 +247,7 @@ export default function Day({
           <div
             className={`relative w-full child:mb-1 overflow-x-hidden rounded-icon mt-1 ${
               {
-                hour: wide
-                  ? '!h-full'
-                  : 'max-h-[50%] flex-none overflow-y-auto resize-y',
-                day: 'h-fit',
+                day: 'h-fit flex-none flex flex-col max-h-[50%] overflow-y-auto',
                 week: 'h-fit',
               }[viewMode]
             } ${collapsed ? 'hidden' : 'block'}`}
@@ -317,65 +307,29 @@ export default function Day({
           </div>
         )}
         <div
-          className={`flex flex-col ${
+          className={`flex flex-col h-full flex-1 ${
             {
-              hour: 'h-0 grow overflow-y-auto',
-              day: 'h-fit',
+              day: 'overflow-y-auto',
               week: 'h-fit',
             }[viewMode]
-          } ${
-            isNow && focus
-              ? 'border border-solid border-accent rounded-lg px-1'
-              : ''
           }`}
+          data-auto-scroll={calendarMode ? undefined : 'y'}
         >
-          {isNow && (
-            <div className='w-full flex flex-none h-6 mt-1 items-center'>
-              <Droppable
-                id={`${dragContainer}::now`}
-                data={{
-                  scheduled: now,
-                }}
-              >
-                <div className='h-full grow flex font-menu items-center space-x-2 pl-indent'>
-                  <span className='text-xs text-accent'>Now</span>
-                  <hr className='w-full border-selection'></hr>
-                </div>
-              </Droppable>
-              <Button
-                className={`ml-1 ${isNow && focus ? 'bg-accent' : ''}`}
-                src={focus ? 'minimize-2' : 'maximize-2'}
-                title='focus on now'
-                onClick={() => {
-                  if (!focus) {
-                    // also collapse today's tasks
-                    setters.patchCollapsed([id], true)
-                  }
-                  setters.patchCollapsed([TR_NOW], !focus)
-                }}
-              />
-            </div>
-          )}
-          <div
-            className={`overflow-x-hidden rounded-icon mt-1 h-full`}
-            data-auto-scroll={calendarMode ? undefined : 'y'}
+          <Hours
+            {...{
+              startISO,
+              endISO,
+              type,
+              blocks,
+              dragContainer,
+            }}
+          />
+          <Droppable
+            data={{ scheduled: startISO }}
+            id={`${dragContainer}::${startISO}::timeline::end`}
           >
-            <Hours
-              {...{
-                startISO,
-                endISO,
-                type,
-                blocks,
-                dragContainer,
-              }}
-            />
-            <Droppable
-              data={{ scheduled: startISO }}
-              id={`${dragContainer}::${startISO}::timeline::end`}
-            >
-              <div className='h-0 grow'></div>
-            </Droppable>
-          </div>
+            <div className='h-0 grow'></div>
+          </Droppable>
         </div>
       </div>
     </div>

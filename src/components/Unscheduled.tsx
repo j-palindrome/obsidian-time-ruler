@@ -25,9 +25,7 @@ function _Unscheduled() {
     )
   )
   const childWidth = useAppStore((state) =>
-    (state.settings.viewMode === 'week' ||
-      state.settings.viewMode === 'hour') &&
-    state.childWidth > 1
+    state.settings.viewMode === 'week' && state.childWidth > 1
       ? state.childWidth
       : 1
   )

@@ -46,6 +46,7 @@ import NewTask from './NewTask'
 import Search from './Search'
 import Task from './Task'
 import { isCallChain } from 'typescript'
+import Now from './Now'
 
 type TimesType = Parameters<typeof Day>[0][]
 
@@ -58,7 +59,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     invariant(dv, 'please install Dataview to use Time Ruler.')
     if (!dv.index.initialized) {
       // @ts-ignore
-      getters.getApp().metadataCache.on('dataview:index-ready', () => {
+      window.app.metadataCache.on('dataview:index-ready', () => {
         reload()
       })
       return
@@ -302,8 +303,15 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const sensors = useSensors(
     ...(Platform.isMobile
-      ? [useSensor(PointerSensor), useSensor(TouchSensor)]
-      : [useSensor(PointerSensor), useSensor(MouseSensor)])
+      ? [
+          useSensor(TouchSensor, {
+            activationConstraint: {
+              delay: 250,
+              tolerance: 10,
+            },
+          }),
+        ]
+      : [useSensor(MouseSensor)])
   )
 
   useEffect(() => {
@@ -316,7 +324,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }, [])
 
   const borders = useAppStore((state) => state.settings.borders)
-  const frameClass = `p-0.5 child:p-1 child:bg-primary child:rounded-icon child:h-full child:w-full ${
+  const frameClass = `p-0.5 child:p-1 child:bg-primary child:rounded-icon h-full ${
     borders ? 'child:border-solid child:border-divider child:border-[1px]' : ''
   }`
 
@@ -378,8 +386,11 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
               ref={scroller}
               onScroll={updateScroll}
             >
+              <div id={`time-ruler-now`} className={frameClass}>
+                <Now />
+              </div>
               {times.map((time, i) => {
-                const isShowing = i >= scrollViews[0] && i <= scrollViews[1]
+                const isShowing = i + 1 >= scrollViews[0] && i <= scrollViews[1]
                 return (
                   <Fragment key={time.startISO + '::' + time.type}>
                     <div
@@ -390,10 +401,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                     >
                       {isShowing && <Day {...time} />}
                     </div>
-                    {calendarMode &&
-                    DateTime.fromISO(time.startISO).weekday === 7 ? (
-                      <div className='!h-0 !w-1'></div>
-                    ) : null}
                   </Fragment>
                 )
               })}
@@ -419,7 +426,7 @@ const Buttons = ({
   setupStore: () => void
   showingPastDates: boolean
 }) => {
-  const now = DateTime.now()
+  const now = toISO(roundMinutes(DateTime.now()))
   const viewMode = useAppStore((state) => state.settings.viewMode)
   const calendarMode = viewMode === 'week'
 
@@ -474,7 +481,11 @@ const Buttons = ({
           scheduled: start,
         }}
       >
-        <Button className='h-[28px]' onClick={() => scrollToSection(start!)}>
+        <Button
+          className='h-[28px]'
+          onClick={() => scrollToSection(start!)}
+          data-date-button={start}
+        >
           {thisDate!.toFormat('EEE MMM d')}
         </Button>
       </Droppable>
@@ -582,7 +593,6 @@ const Buttons = ({
                   <div className='text-muted my-1 w-fit'>Layout</div>
                   <div className='flex w-fit'>
                     {[
-                      ['hour', 'Hours', 'square'],
                       ['day', 'Days', 'gallery-horizontal'],
                       ['week', 'Weeks', 'layout-grid'],
                     ].map(
@@ -634,6 +644,21 @@ const Buttons = ({
           }`}
           data-auto-scroll={calendarMode ? 'y' : 'x'}
         >
+          <Droppable
+            id={'now' + '::button'}
+            data={{
+              scheduled: now,
+            }}
+          >
+            <Button
+              className='h-[28px]'
+              onClick={() => scrollToSection('now')}
+              data-date-button
+            >
+              Now
+            </Button>
+          </Droppable>
+
           {times.map((time, i) => {
             return renderButton(time, i)
           })}
