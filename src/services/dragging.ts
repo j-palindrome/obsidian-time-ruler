@@ -109,6 +109,10 @@ export const onDragEnd = async (
           break
       }
     }
+  } else if (dragData && dragData.dragType === 'new_button') {
+    setters.set({
+      newTask: { task: { scheduled: undefined }, type: 'new' },
+    })
   }
 
   setters.set({ dragData: null })

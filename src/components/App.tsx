@@ -430,10 +430,6 @@ const Buttons = ({
   const viewMode = useAppStore((state) => state.settings.viewMode)
   const calendarMode = viewMode === 'week'
 
-  useEffect(() => {
-    $(`#time-ruler-${getToday()}`)[0]?.scrollIntoView()
-  }, [viewMode, showingPastDates])
-
   const nextButton = (
     <div className='flex'>
       <Button

@@ -14,6 +14,13 @@ export const useAutoScroll = () => {
   const WAIT_TIME = 500
 
   const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+
+  const clearTimeout = () => {
+    if (timeout.current) window.clearTimeout(timeout.current)
+    timeout.current = null
+    savedTimeoutObject.current = null
+  }
+
   useEffect(() => {
     const scrollToDate = (dateButton: HTMLElement) => {
       scrolling.current = true
@@ -21,15 +28,9 @@ export const useAutoScroll = () => {
 
       scrollToSection(dateButton.getAttr('data-date-button')!)
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         scrolling.current = false
       }, 750)
-    }
-
-    const clearTimeout = () => {
-      if (timeout.current) window.clearTimeout(timeout.current)
-      timeout.current = null
-      savedTimeoutObject.current = null
     }
 
     // Update position from the event
@@ -42,14 +43,14 @@ export const useAutoScroll = () => {
         posRef.current.y = ev.clientY
       }
     }
-
-    // Use requestAnimationFrame for the actual scrolling logic
-    let animationFrameId = requestAnimationFrame(function checkScroll() {
+    function checkScroll() {
       if (dragging) {
         autoScroll()
-        requestAnimationFrame(checkScroll)
+        animationFrameId = requestAnimationFrame(checkScroll)
       }
-    })
+    }
+    // Use requestAnimationFrame for the actual scrolling logic
+    let animationFrameId = requestAnimationFrame(checkScroll)
 
     // Clean up the animation frame on unmount
 
@@ -155,6 +156,7 @@ export const useAutoScroll = () => {
         updatePosition
       )
       cancelAnimationFrame(animationFrameId)
+      clearTimeout()
     }
   }, [dragging])
 }

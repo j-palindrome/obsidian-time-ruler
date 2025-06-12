@@ -536,7 +536,9 @@ export default class ObsidianAPI extends Component {
     }
 
     await this.saveTask(defaultTask, true)
-    openTask(defaultTask)
+    if (!this.app.isMobile) {
+      openTask(defaultTask)
+    }
     setters.set({ newTask: undefined })
   }
 

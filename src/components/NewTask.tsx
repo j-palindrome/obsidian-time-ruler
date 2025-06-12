@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import _ from 'lodash'
-import { useEffect, useRef, useState } from 'react'
+import { act, useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
 import { AppState, getters, setters, useAppStore } from '../app/store'
@@ -19,10 +19,16 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   const data: DragData = {
     dragType: 'new_button',
   }
-  const { attributes, listeners, setNodeRef } = useDraggable({
+  const { attributes, listeners, setNodeRef, activatorEvent } = useDraggable({
     id: `new_task_button::${dragContainer}`,
     data,
   })
+
+  useEffect(() => {
+    if (activatorEvent) {
+      console.log('activated', activatorEvent)
+    }
+  }, [activatorEvent])
 
   const newTaskData = useAppStore((state) => state.newTask)
   const newTask = newTaskData ? newTaskData.task : false
@@ -40,6 +46,11 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
       setters.set({ newTask: null })
     }
   }
+
+  const dragData = useAppStore((state) => state.dragData)
+  useEffect(() => {
+    console.log('drag data', dragData)
+  }, [dragData])
 
   useEffect(() => {
     window.removeEventListener('mousedown', checkShowing)
@@ -79,13 +90,6 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
       : undefined
   )
 
-  const checkForClick = () => {
-    if (!getters.get('dragData') && !getters.get('newTask')) {
-      setters.set({ newTask: { task: { scheduled: undefined }, type: 'new' } })
-    }
-    window.removeEventListener('mouseup', checkForClick)
-  }
-
   const calendarMode = useAppStore(
     (state) => state.settings.viewMode === 'week'
   )
@@ -105,7 +109,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
             <Button
               src='calendar-x'
               className={`!rounded-full ${
-                calendarMode ? 'h-6 w-6 mb-2' : 'h-6 w-6 mr-2'
+                calendarMode ? 'h-8 w-8 mb-2' : 'h-6 w-6 mr-2'
               } bg-red-900 flex-none`}
             />
           </Droppable>
@@ -113,7 +117,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
             <Button
               src='x'
               className={`!rounded-full ${
-                calendarMode ? 'h-6 w-6 mb-2' : 'h-6 w-6 mr-2'
+                calendarMode ? 'h-8 w-8 mb-2' : 'h-6 w-6 mr-2'
               } bg-red-900 flex-none`}
             />
           </Droppable>
@@ -122,27 +126,29 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
               <Button
                 src='move-right'
                 className={`!rounded-full ${
-                  calendarMode ? 'h-6 w-6' : 'h-6 w-6'
+                  calendarMode ? 'h-8 w-8' : 'h-6 w-6'
                 } bg-blue-900 flex-none`}
               />
             </Droppable>
           )}
         </>
       ) : (
-        <>
-          <Button
-            {...attributes}
-            {...listeners}
-            onMouseDown={() => {
-              window.addEventListener('mouseup', checkForClick)
-            }}
-            ref={setNodeRef}
-            className={`relative flex-none cursor-grab !rounded-full bg-accent child:invert ${
-              calendarMode ? 'h-8 w-8' : 'h-10 w-10'
-            }`}
-            src='plus'
-          />
-        </>
+        <Droppable data={{ scheduled: '' }} id='newtask:unscheduled-droppable'>
+          <div>
+            <Button
+              {...attributes}
+              {...listeners}
+              // onMouseDown={() => {
+              //   window.addEventListener('mouseup', checkForClick)
+              // }}
+              ref={setNodeRef}
+              className={`relative flex-none cursor-grab !rounded-full bg-accent child:invert ${
+                calendarMode ? 'h-8 w-8' : 'h-10 w-10'
+              }`}
+              src='plus'
+            />
+          </div>
+        </Droppable>
       )}
 
       {newTaskData && newTask && newTaskMode && (
