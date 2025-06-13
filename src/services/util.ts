@@ -308,7 +308,7 @@ export const useChildWidth = () => {
     outputSize()
   }, [recreateWindow, viewMode])
 
-  const appChildWidth = childWidthRef.current
+  const appChildWidth = viewMode === 'one' ? 1 : childWidthRef.current
   const appChildClass = childWidthToClass[appChildWidth]
   return {
     childWidth: appChildWidth,

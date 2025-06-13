@@ -184,11 +184,7 @@ export default function Day({
   const wide = useAppStore((state) => state.childWidth > 1)
 
   return (
-    <div
-      className={`flex flex-col overflow-hidden h-full relative ${
-        { day: 'flex flex-col' }[viewMode]
-      }`}
-    >
+    <div className={`flex flex-col overflow-hidden h-full relative`}>
       <div className='flex items-center group relative z-10'>
         <Droppable
           data={{ scheduled: startDate }}
@@ -233,6 +229,7 @@ export default function Day({
       <div
         className={`rounded-icon ${
           {
+            one: 'overflow-hidden h-full flex flex-col',
             day: 'overflow-hidden h-full flex flex-col',
             week: 'overflow-y-auto',
           }[viewMode]
@@ -247,6 +244,7 @@ export default function Day({
           <div
             className={`relative w-full child:mb-1 overflow-x-hidden rounded-icon mt-1 ${
               {
+                one: 'h-fit flex-none flex flex-col max-h-[50%] overflow-y-auto',
                 day: 'h-fit flex-none flex flex-col max-h-[50%] overflow-y-auto',
                 week: 'h-fit',
               }[viewMode]
@@ -309,6 +307,7 @@ export default function Day({
         <div
           className={`flex flex-col h-full flex-1 ${
             {
+              one: 'overflow-y-auto',
               day: 'overflow-y-auto',
               week: 'h-fit',
             }[viewMode]

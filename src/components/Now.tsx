@@ -4,6 +4,7 @@ import { isDateISO, roundMinutes, toISO } from 'src/services/util'
 import { filter, groupBy, sortBy } from 'lodash'
 import { DateTime } from 'luxon'
 import Block from './Block'
+import { useState } from 'react'
 
 export default function Now() {
   const now = toISO(roundMinutes(DateTime.now()))

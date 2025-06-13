@@ -589,8 +589,9 @@ const Buttons = ({
                   <div className='text-muted my-1 w-fit'>Layout</div>
                   <div className='flex w-fit'>
                     {[
-                      ['day', 'Days', 'gallery-horizontal'],
-                      ['week', 'Weeks', 'layout-grid'],
+                      ['one', 'Day', 'square'],
+                      ['day', 'Week', 'gallery-horizontal'],
+                      ['week', 'Month', 'layout-grid'],
                     ].map(
                       ([viewMode, title, src]: [
                         AppState['settings']['viewMode'],
