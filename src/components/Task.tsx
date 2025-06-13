@@ -43,30 +43,24 @@ export default function Task({
 
   subtasks = useAppStore((state) => {
     const taskDate = parseTaskDate(task, state.tasks)
-    let newSubtasks = _.flatMap(
-      subtasks ??
-        task.children
-          .concat(task.queryChildren ?? [])
-          .map((id) => state.tasks[id]),
-      (subtask) => {
-        if (!subtask) return []
-        // show in unscheduled
-        if (!startISO) return subtask
-        if (
-          !subtask.scheduled &&
-          !subtask.due &&
-          !state.settings.scheduledSubtasks
-        )
-          return []
-        if (subtask.due && !task.scheduled) return []
+    let newSubtasks = _.flatMap(subtasks, (subtask) => {
+      if (!subtask) return []
+      // show in unscheduled
+      if (!startISO) return subtask
+      if (
+        !subtask.scheduled &&
+        !subtask.due &&
+        !state.settings.scheduledSubtasks
+      )
+        return []
+      if (subtask.due && !task.scheduled) return []
 
-        if (!nestedScheduled(taskDate, parseTaskDate(subtask, state.tasks))) {
-          return []
-        }
-        if (subtask.completed !== state.showingPastDates) return []
-        return subtask
+      if (!nestedScheduled(taskDate, parseTaskDate(subtask, state.tasks))) {
+        return []
       }
-    )
+      if (subtask.completed !== state.showingPastDates) return []
+      return subtask
+    })
 
     if (!state.settings.scheduledSubtasks && task.scheduled)
       newSubtasks = newSubtasks.filter((task) => task.scheduled)

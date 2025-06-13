@@ -66,6 +66,27 @@ export default function Search() {
     }
   }, [display])
 
+  type Filter = {
+    scheduled: {
+      type: 'equals'
+      value: string | undefined
+    }
+  }
+  const [filter, setFilter] = useState({
+    scheduled: { type: 'equals', value: undefined },
+  })
+  const filteredTasks = useMemo(() => {
+    if (filter.scheduled.value) {
+      return foundTasks.filter((task) => {
+        if (filter.scheduled.type === 'equals') {
+          return task.scheduled === filter.scheduled.value
+        }
+        return true
+      })
+    }
+    return foundTasks
+  }, [foundTasks, filter])
+
   return (
     <div className='!fixed top-0 left-0 w-full h-full !z-50 px-1'>
       <div
@@ -92,7 +113,7 @@ export default function Search() {
         <div className='prompt-results'>
           <Block
             type='all-day'
-            tasks={foundTasks}
+            tasks={filteredTasks}
             events={[]}
             blocks={[]}
             dragContainer='search'

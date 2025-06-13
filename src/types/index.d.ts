@@ -58,6 +58,9 @@ declare global {
     due?: string
     completion?: string
     repeat?: string
+
+    // for inserting subtasks
+    subtasks?: TaskProps[]
   }
 
   type GoogleEvent = {

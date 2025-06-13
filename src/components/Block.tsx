@@ -55,9 +55,16 @@ export default function Block({
   blocks,
   title,
 }: BlockComponentProps) {
+  // collect all tasks AND children in this block
   let showingTasks = useAppStore((state) => {
     const children = _.flatMap(tasks, (task) => getChildren(task, state.tasks))
     // filter out tasks which are children of other tasks
+    for (let task of tasks.filter((task) => children.includes(task.id))) {
+      console.log('task with parent:', task.parent)
+      const parentTask = tasks.find((x) => x.id === task.parent)!
+      if (!parentTask.subtasks) parentTask.subtasks = []
+      parentTask.subtasks.push(task)
+    }
     return tasks.filter((task) => !children.includes(task.id))
   }, shallow)
 
