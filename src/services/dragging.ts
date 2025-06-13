@@ -65,11 +65,6 @@ export const onDragEnd = async (
       }
     } else {
       switch (dragData.dragType) {
-        case 'new_button':
-          setters.set({
-            newTask: { task: { scheduled: dropData.scheduled }, type: 'new' },
-          })
-          break
         case 'time':
         case 'task-length':
           if (!dropData.scheduled) return
@@ -109,10 +104,6 @@ export const onDragEnd = async (
           break
       }
     }
-  } else if (dragData && dragData.dragType === 'new_button') {
-    setters.set({
-      newTask: { task: { scheduled: undefined }, type: 'new' },
-    })
   }
 
   setters.set({ dragData: null })

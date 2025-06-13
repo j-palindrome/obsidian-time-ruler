@@ -8,11 +8,12 @@ import { useState } from 'react'
 
 export default function Now() {
   const now = toISO(roundMinutes(DateTime.now()))
+  const today = toISO(roundMinutes(DateTime.now()), true)
   const nowTasks = useAppStore((state) =>
     filter(
       state.tasks,
       (task) =>
-        !!task.scheduled && !isDateISO(task.scheduled) && task.scheduled <= now
+        !!task.scheduled && task.scheduled !== today && task.scheduled <= now
     )
   )
   const scheduledTimes = groupBy(nowTasks, 'scheduled')

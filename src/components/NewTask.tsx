@@ -16,20 +16,6 @@ import Droppable from './Droppable'
 import { TaskActions } from 'src/types/enums'
 
 export default function NewTask({ dragContainer }: { dragContainer: string }) {
-  const data: DragData = {
-    dragType: 'new_button',
-  }
-  const { attributes, listeners, setNodeRef, activatorEvent } = useDraggable({
-    id: `new_task_button::${dragContainer}`,
-    data,
-  })
-
-  useEffect(() => {
-    if (activatorEvent) {
-      console.log('activated', activatorEvent)
-    }
-  }, [activatorEvent])
-
   const newTaskData = useAppStore((state) => state.newTask)
   const newTask = newTaskData ? newTaskData.task : false
 
@@ -133,99 +119,14 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
           )}
         </>
       ) : (
-        <Droppable data={{ scheduled: '' }} id='newtask:unscheduled-droppable'>
-          <div>
-            <Button
-              {...attributes}
-              {...listeners}
-              // onMouseDown={() => {
-              //   window.addEventListener('mouseup', checkForClick)
-              // }}
-              ref={setNodeRef}
-              className={`relative flex-none cursor-grab !rounded-full bg-accent child:invert ${
-                calendarMode ? 'h-8 w-8' : 'h-10 w-10'
-              }`}
-              src='plus'
-            />
-          </div>
-        </Droppable>
-      )}
-
-      {newTaskData && newTask && newTaskMode && (
-        <div className='fixed left-0 top-0 z-40 !mx-0 flex h-full w-full items-center justify-center p-8 space-y-2 '>
-          <div
-            className='flex h-full max-h-[50vh] w-full flex-col space-y-1 overflow-y-auto overflow-x-hidden rounded-icon border border-solid border-faint bg-code p-2 max-w-2xl backdrop-blur'
-            ref={frame}
-          >
-            <div className='flex items-center'>
-              <div className='pl-2 font-menu text-lg font-bold mr-2'>
-                {newTaskMode === 'new' ? 'New Task' : 'Move Task'}
-              </div>
-              <div className='text-sm text-faint'>
-                {newTask.scheduled ?? 'Unscheduled'}
-              </div>
-              <div className='grow' />
-              <Button
-                src='check'
-                onClick={() =>
-                  getters
-                    .getObsidianAPI()
-                    .createNewTask(newTask, null, dailyNoteInfo)
-                }
-              />
-            </div>
-
-            <input
-              ref={inputFrame}
-              className='w-full rounded-icon border border-solid border-faint bg-transparent font-menu font-light backdrop-blur !text-base px-1 py-2'
-              value={newTask.originalTitle ?? ''}
-              placeholder='title...'
-              onChange={(ev) =>
-                setters.set({
-                  newTask: {
-                    task: { ...newTask, originalTitle: ev.target.value },
-                    type: newTaskMode!,
-                  },
-                })
-              }
-              onKeyDownCapture={(ev) => {
-                if (ev.key === 'Tab') {
-                  console.log(ev, 'capture')
-                  ev.stopPropagation()
-                }
-              }}
-              onKeyDown={(ev) => {
-                if (ev.key === 'Enter')
-                  getters
-                    .getObsidianAPI()
-                    .createNewTask(newTask, null, dailyNoteInfo)
-              }}
-            ></input>
-
-            <input
-              placeholder='search files...'
-              className='w-full rounded-icon border border-solid border-faint bg-transparent p-1 font-menu backdrop-blur'
-              value={search}
-              ref={inputRef}
-              onChange={(ev) => setSearch(ev.target.value)}
-              onKeyDown={(ev) => {
-                if (ev.key === 'Enter') {
-                  getters
-                    .getObsidianAPI()
-                    .createNewTask(newTask, filteredHeadings[0], dailyNoteInfo)
-                }
-              }}
-            ></input>
-            <div className='h-0 w-full grow space-y-1 overflow-y-auto text-sm'>
-              {filteredHeadings.map((path) => (
-                <NewTaskHeading
-                  key={path}
-                  headingPath={path}
-                  newTaskData={newTaskData}
-                />
-              ))}
-            </div>
-          </div>
+        <div>
+          <Button
+            onClick={() => setters.set({ searchStatus: true })}
+            className={`relative flex-none cursor-grab !rounded-full bg-accent child:invert ${
+              calendarMode ? 'h-8 w-8' : 'h-10 w-10'
+            }`}
+            src='search'
+          />
         </div>
       )}
     </div>

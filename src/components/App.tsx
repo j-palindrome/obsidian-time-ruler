@@ -254,8 +254,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return <Group {...activeDrag} />
       case 'block':
         return <Block {...activeDrag} dragging />
-      case 'new_button':
-        return <NewTask dragContainer='activeDrag' />
       case 'due':
         return <div className='h-line p-2 text-accent'>due</div>
     }
@@ -622,12 +620,6 @@ const Buttons = ({
               </div>
             )}
           </div>
-
-          <Button
-            src='search'
-            className={`${calendarMode ? 'mb-2' : ''}`}
-            onClick={() => setters.set({ searchStatus: true })}
-          />
           {calendarMode && <NewTask dragContainer='buttons' />}
         </div>
 

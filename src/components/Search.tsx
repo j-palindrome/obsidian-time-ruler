@@ -54,27 +54,6 @@ export default function Search() {
     )
     .map((x) => x[1])
 
-  // _.sortBy(
-  // allTasks.filter(([strings]) =>
-  //   strings.find((string) => !search || (string && searchExp.test(string)))
-  // ),
-  // ([_matches, task]) => {
-  //   let total = 0
-  //   let index = 0
-  //   const title = task.title.toLowerCase()
-  //   let notFound = 0
-  //   for (let char of splitSearch) {
-  //     const newIndex = title.indexOf(char, index)
-  //     if (newIndex !== -1) {
-  //       total += newIndex
-  //       index = newIndex
-  //     } else notFound += 1
-  //   }
-
-  //   return notFound * 25 + total
-  // }
-  // )
-
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => input.current?.focus(), [])
 

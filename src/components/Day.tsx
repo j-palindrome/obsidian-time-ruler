@@ -44,15 +44,8 @@ export default function Day({
   /**
    * find the nearest scheduled date in parents (include ALL tasks which will be in this block). Day -> Hours -> Block all take a single flat list of scheduled tasks, which they use to calculate total length of the block. Blocks group them by parent -> filepath/heading, calculating queries and unscheduled parents.
    */
-  const [allDay, blocksByTime, pastTasks, upcoming] = useAppStore((state) => {
+  const [allDay, blocksByTime, upcoming] = useAppStore((state) => {
     const allDay: BlockProps = {
-      startISO: startDate,
-      endISO: startDate,
-      blocks: [],
-      tasks: [],
-      events: [],
-    }
-    const pastTasks: BlockProps = {
       startISO: startDate,
       endISO: startDate,
       blocks: [],
@@ -77,13 +70,6 @@ export default function Day({
           task.completed === showingPastDates)
       if (!isShown) return
 
-      const scheduledPast =
-        !isNow || !scheduled
-          ? false
-          : showingPastDates
-          ? scheduled >= endDate
-          : scheduled < startDate
-
       const scheduledForToday = !scheduled
         ? false
         : isDateISO(scheduled)
@@ -95,10 +81,7 @@ export default function Day({
         (!task.due ? false : isNow || task.due >= startDate) &&
         (!task.scheduled || task.scheduled < startDate)
 
-      if (scheduledPast) {
-        invariant(scheduled)
-        pastTasks.tasks.push(task)
-      } else if (scheduledForToday) {
+      if (scheduledForToday) {
         invariant(scheduled)
         if (
           isDateISO(scheduled) ||
@@ -142,7 +125,7 @@ export default function Day({
           blocks: [],
         }
     }
-    return [allDay, blocksByTime, pastTasks, upcoming]
+    return [allDay, blocksByTime, upcoming]
   }, shallow)
 
   let blocks = _.map(
@@ -236,10 +219,7 @@ export default function Day({
         }`}
         data-auto-scroll={calendarMode ? 'y' : undefined}
       >
-        {allDay.tasks.length +
-          allDay.events.length +
-          pastTasks.tasks.length +
-          upcoming.tasks.length >
+        {allDay.tasks.length + allDay.events.length + upcoming.tasks.length >
           0 && (
           <div
             className={`relative w-full child:mb-1 overflow-x-hidden rounded-icon mt-1 ${
@@ -252,18 +232,6 @@ export default function Day({
             data-auto-scroll={calendarMode ? undefined : 'y'}
             ref={allDayFrame}
           >
-            {pastTasks.tasks.length > 0 && (
-              <Block
-                type='all-day'
-                title='past'
-                events={[]}
-                tasks={pastTasks.tasks}
-                startISO={startDate}
-                endISO={startDate}
-                dragContainer={dragContainer + '-past'}
-                blocks={[]}
-              />
-            )}
             {allDay.events.map((event) => (
               <Block
                 type='event'
