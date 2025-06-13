@@ -226,9 +226,9 @@ export default class SettingsTab extends PluginSettingTab {
       .setDesc('Show subtasks without a set scheduled date.')
       .addToggle((toggle) =>
         toggle
-          .setValue(this.plugin.settings.scheduledSubtasks)
+          .setValue(this.plugin.settings.unScheduledSubtasks)
           .onChange((value) => {
-            this.plugin.settings.scheduledSubtasks = value
+            this.plugin.settings.unScheduledSubtasks = value
             this.plugin.saveSettings()
           })
       )

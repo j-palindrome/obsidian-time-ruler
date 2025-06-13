@@ -47,7 +47,7 @@ export type AppState = {
     | 'borders'
     | 'viewMode'
     | 'timerEvent'
-    | 'scheduledSubtasks'
+    | 'unScheduledSubtasks'
   >
   collapsed: Record<string, boolean>
   showingPastDates: boolean
@@ -90,7 +90,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     hideTimes: false,
     borders: false,
     viewMode: 'day',
-    scheduledSubtasks: false,
+    unScheduledSubtasks: false,
   },
   showingPastDates: false,
   searchWithinWeeks: [-1, 1],

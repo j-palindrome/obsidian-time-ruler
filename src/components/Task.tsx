@@ -1,14 +1,12 @@
 import { useDraggable } from '@dnd-kit/core'
-import _ from 'lodash'
 import { DateTime } from 'luxon'
+import { useEffect, useMemo, useState } from 'react'
 import { getters, setters, useAppStore } from '../app/store'
 import { openTask } from '../services/obsidianApi'
 import {
   getHeading,
   getToday,
   isDateISO,
-  nestedScheduled,
-  parseTaskDate,
   roundMinutes,
   toISO,
 } from '../services/util'
@@ -16,12 +14,8 @@ import { TaskPriorities, priorityNumberToSimplePriority } from '../types/enums'
 import Block from './Block'
 import Button from './Button'
 import Logo from './Logo'
-import invariant from 'tiny-invariant'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRect } from '@dnd-kit/core/dist/hooks/utilities'
 
 export type TaskComponentProps = TaskProps & {
-  subtasks?: TaskProps[]
   dragContainer: string
   startISO?: string
   renderType?: 'deadline'
@@ -40,32 +34,6 @@ export default function Task({
       completed: true,
     })
   }
-
-  subtasks = useAppStore((state) => {
-    const taskDate = parseTaskDate(task, state.tasks)
-    let newSubtasks = _.flatMap(subtasks, (subtask) => {
-      if (!subtask) return []
-      // show in unscheduled
-      if (!startISO) return subtask
-      if (
-        !subtask.scheduled &&
-        !subtask.due &&
-        !state.settings.scheduledSubtasks
-      )
-        return []
-      if (subtask.due && !task.scheduled) return []
-
-      if (!nestedScheduled(taskDate, parseTaskDate(subtask, state.tasks))) {
-        return []
-      }
-      if (subtask.completed !== state.showingPastDates) return []
-      return subtask
-    })
-
-    if (!state.settings.scheduledSubtasks && task.scheduled)
-      newSubtasks = newSubtasks.filter((task) => task.scheduled)
-    return newSubtasks
-  })
 
   const dragData: DragData = {
     dragType: 'task',

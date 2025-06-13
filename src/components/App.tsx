@@ -80,7 +80,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       borders: apis.obsidian.getSetting('borders'),
       viewMode: apis.obsidian.getSetting('viewMode'),
       timerEvent: apis.obsidian.getSetting('timerEvent'),
-      scheduledSubtasks: apis.obsidian.getSetting('scheduledSubtasks'),
+      unScheduledSubtasks: apis.obsidian.getSetting('scheduledSubtasks'),
     }
 
     setters.set({

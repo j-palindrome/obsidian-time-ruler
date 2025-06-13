@@ -59,7 +59,6 @@ declare global {
     completion?: string
     repeat?: string
 
-    // for inserting subtasks
     subtasks?: TaskProps[]
   }
 

@@ -43,7 +43,7 @@ type TimeRulerSettings = {
   hideTimes: boolean
   borders: boolean
   viewMode: 'day' | 'week' | 'one'
-  scheduledSubtasks: boolean
+  unScheduledSubtasks: boolean
   openInMain: boolean
 }
 
@@ -70,7 +70,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   hideTimes: false,
   borders: true,
   viewMode: 'day',
-  scheduledSubtasks: true,
+  unScheduledSubtasks: true,
   openInMain: false,
 }
 

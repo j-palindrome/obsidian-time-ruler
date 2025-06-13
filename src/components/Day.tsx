@@ -1,4 +1,4 @@
-import _, { filter } from 'lodash'
+import _, { add, filter, groupBy, omit } from 'lodash'
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
@@ -6,6 +6,7 @@ import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
 import {
+  getChildren,
   getStartDate,
   isDateISO,
   parsePathFromDate,
@@ -19,6 +20,7 @@ import Droppable from './Droppable'
 import Hours from './Hours'
 import { TimeSpanTypes } from './Minutes'
 import { Timer } from './Timer'
+import { nestTasks } from 'src/services/nestTasks'
 
 export default function Day({
   startISO,
@@ -45,13 +47,6 @@ export default function Day({
    * find the nearest scheduled date in parents (include ALL tasks which will be in this block). Day -> Hours -> Block all take a single flat list of scheduled tasks, which they use to calculate total length of the block. Blocks group them by parent -> filepath/heading, calculating queries and unscheduled parents.
    */
   const [allDay, blocksByTime, upcoming] = useAppStore((state) => {
-    const allDay: BlockProps = {
-      startISO: startDate,
-      endISO: startDate,
-      blocks: [],
-      tasks: [],
-      events: [],
-    }
     const upcoming: BlockProps = {
       startISO: startDate,
       endISO: startDate,
@@ -59,51 +54,122 @@ export default function Day({
       tasks: [],
       events: [],
     }
-    const blocksByTime: Record<string, BlockProps> = {}
-    _.forEach(state.tasks, (task) => {
-      const scheduled = parseTaskDate(task, state.tasks)
+    const blocksByTime: Record<string, BlockProps> = {
+      [startDate]: {
+        startISO: startDate,
+        tasks: [],
+        events: [],
+        blocks: [],
+      },
+    }
 
-      const isShown =
-        (task.due || scheduled) &&
-        !task.queryParent &&
-        ((showCompleted && scheduled === startDate) ||
-          task.completed === showingPastDates)
-      if (!isShown) return
-
-      const scheduledForToday = !scheduled
-        ? false
-        : isDateISO(scheduled)
-        ? scheduled === startDate
-        : scheduled >= startISO && scheduled < endISO
-
-      const dueToday =
-        !showingPastDates &&
-        (!task.due ? false : isNow || task.due >= startDate) &&
-        (!task.scheduled || task.scheduled < startDate)
-
-      if (scheduledForToday) {
-        invariant(scheduled)
-        if (
-          isDateISO(scheduled) ||
-          scheduled < startDate ||
-          scheduled > endISO
-        ) {
-          allDay.tasks.push(task)
-        } else {
-          if (blocksByTime[scheduled]) blocksByTime[scheduled].tasks.push(task)
-          else
-            blocksByTime[scheduled] = {
-              startISO: scheduled,
-              endISO: scheduled,
-              tasks: [task],
-              events: [],
-              blocks: [],
+    useAppStore((state) => {
+      const allTasksScheduledForToday = _.filter(
+        state.tasks,
+        (task) =>
+          !!task.scheduled &&
+          !task.completed &&
+          ((isDateISO(task.scheduled) && task.scheduled === startDate) ||
+            (!isDateISO(task.scheduled) &&
+              task.scheduled >= startISO &&
+              task.scheduled < endISO))
+      )
+      const addToBlocks = (task: TaskProps, childList: TaskProps[]) => {
+        if (blocksByTime[task.scheduled!])
+          blocksByTime[task.scheduled!].tasks.push({
+            ...task,
+            subtasks: nestTasks(childList),
+          })
+        else
+          blocksByTime[task.scheduled!] = {
+            startISO: task.scheduled!,
+            tasks: [{ ...task, subtasks: nestTasks(childList) }],
+            events: [],
+            blocks: [],
+          }
+      }
+      const addChildren = (task: TaskProps, toList: TaskProps[]) => {
+        ;(task.children ?? [])
+          .concat(task.queryChildren ?? [])
+          .forEach((childId) => {
+            const childTask = state.tasks[childId]
+            if (!childTask) return
+            if (!state.settings.unScheduledSubtasks && !childTask.scheduled)
+              return
+            if (
+              childTask.scheduled &&
+              (isDateISO(childTask.scheduled)
+                ? childTask.scheduled !== startDate
+                : childTask.scheduled >= endISO ||
+                  childTask.scheduled < startISO)
+            )
+              return
+            if (
+              childTask.scheduled &&
+              !isDateISO(childTask.scheduled) &&
+              childTask.scheduled !== task.scheduled
+            ) {
+              // special case where children are scheduled for a different time than the parent (in the same day)
+              const grandChildren: TaskProps[] = []
+              addChildren(childTask, grandChildren)
+              addToBlocks(childTask, grandChildren)
+            } else {
+              toList.push(childTask)
+              addChildren(childTask, toList)
             }
-        }
-      } else if (dueToday) {
-        upcoming.tasks.push(task)
+          })
+      }
+
+      for (let task of allTasksScheduledForToday) {
+        const children: TaskProps[] = []
+        addChildren(task, children)
+        addToBlocks(task, children)
       }
     })
+    // _.forEach(state.tasks, (task) => {
+    //   const scheduled = parseTaskDate(task, state.tasks)
+
+    //   const isShown =
+    //     (task.due || scheduled) &&
+    //     !task.queryParent &&
+    //     ((showCompleted && scheduled === startDate) ||
+    //       task.completed === showingPastDates)
+    //   if (!isShown) return
+
+    //   const scheduledForToday = !scheduled
+    //     ? false
+    //     : isDateISO(scheduled)
+    //     ? scheduled === startDate
+    //     : scheduled >= startISO && scheduled < endISO
+
+    //   const dueToday =
+    //     !showingPastDates &&
+    //     (!task.due ? false : isNow || task.due >= startDate) &&
+    //     (!task.scheduled || task.scheduled < startDate)
+
+    //   if (scheduledForToday) {
+    //     invariant(scheduled)
+    //     if (
+    //       isDateISO(scheduled) ||
+    //       scheduled < startDate ||
+    //       scheduled > endISO
+    //     ) {
+    //       allDay.tasks.push(task)
+    //     } else {
+    //       if (blocksByTime[scheduled]) blocksByTime[scheduled].tasks.push(task)
+    //       else
+    //         blocksByTime[scheduled] = {
+    //           startISO: scheduled,
+    //           endISO: scheduled,
+    //           tasks: [task],
+    //           events: [],
+    //           blocks: [],
+    //         }
+    //     }
+    //   } else if (dueToday) {
+    //     upcoming.tasks.push(task)
+    //   }
+    // })
 
     for (let event of _.filter(state.events, (event) => {
       const shouldInclude = isDateISO(event.startISO)
@@ -113,8 +179,7 @@ export default function Day({
           (showingPastDates ? event.startISO <= now : event.endISO >= now)
       return shouldInclude
     })) {
-      if (isDateISO(event.startISO)) allDay.events.push(event)
-      else if (blocksByTime[event.startISO])
+      if (blocksByTime[event.startISO])
         blocksByTime[event.startISO].events.push(event)
       else
         blocksByTime[event.startISO] = {
@@ -125,6 +190,8 @@ export default function Day({
           blocks: [],
         }
     }
+    const allDay = blocksByTime[startDate]!
+    delete blocksByTime[startDate]
     return [allDay, blocksByTime, upcoming]
   }, shallow)
 
