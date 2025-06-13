@@ -20,7 +20,6 @@ import Droppable from './Droppable'
 import Group from './Group'
 import Hours from './Hours'
 import Minutes from './Minutes'
-import { COLLAPSE_UNSCHEDULED } from './Unscheduled'
 
 export type BlockComponentProps = BlockProps & {
   hidePaths?: string[]
@@ -32,12 +31,7 @@ export type BlockComponentProps = BlockProps & {
 }
 
 export const UNGROUPED = '__ungrouped'
-export type BlockType =
-  | 'event'
-  | 'unscheduled'
-  | 'child'
-  | 'all-day'
-  | 'upcoming'
+export type BlockType = 'event' | 'child' | 'all-day' | 'upcoming'
 export type BlockProps = {
   startISO?: string
   endISO?: string
@@ -139,17 +133,6 @@ export default function Block({
       ? startISO
       : _.max([startISO, toISO(roundMinutes(DateTime.now()))])
 
-  const [unscheduledPortal, setUnscheduledPortal] =
-    useState<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (type === 'unscheduled') {
-      setUnscheduledPortal(
-        document.getElementById(COLLAPSE_UNSCHEDULED) as HTMLDivElement
-      )
-    }
-  }, [])
-
   const collapsed = useAppStore((state) => {
     if (sortedGroups.length === 0) return false
     for (let heading of sortedGroups) {
@@ -160,19 +143,6 @@ export default function Block({
 
   return (
     <>
-      {type === 'unscheduled' &&
-        unscheduledPortal &&
-        createPortal(
-          <Button
-            className='flex-none w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300'
-            src={collapsed ? 'chevron-right' : 'chevron-down'}
-            onClick={() => {
-              setters.patchCollapsed(_.map(sortedGroups, 0), !collapsed)
-              return false
-            }}
-          />,
-          unscheduledPortal
-        )}
       <div
         id={id}
         data-role='block'

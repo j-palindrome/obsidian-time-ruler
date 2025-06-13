@@ -50,6 +50,8 @@ export default function Task({
           .map((id) => state.tasks[id]),
       (subtask) => {
         if (!subtask) return []
+        // show in unscheduled
+        if (!startISO) return subtask
         if (
           !subtask.scheduled &&
           !subtask.due &&
@@ -85,8 +87,6 @@ export default function Task({
   const isLink = renderType && ['parent', 'deadline'].includes(renderType)
   const isCalendar = useAppStore((state) => state.settings.viewMode === 'week')
   const smallText = isLink || isCalendar
-
-  if (!startISO) startISO = task.scheduled
 
   const collapsed = useAppStore((state) => state.collapsed[task.id] ?? false)
 
@@ -181,7 +181,9 @@ export default function Task({
           key={match.index + '-link'}
           className='text-accent'
           onClick={(ev) => {
-            ev.stopPropagation().workspace.openLinkText(linkText, task.path)
+            ev.preventDefault()
+            ev.stopPropagation()
+            getters.getApp().workspace.openLinkText(linkText, task.path)
           }}
         >
           {linkText}
