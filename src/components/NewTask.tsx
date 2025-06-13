@@ -34,9 +34,6 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   }
 
   const dragData = useAppStore((state) => state.dragData)
-  useEffect(() => {
-    console.log('drag data', dragData)
-  }, [dragData])
 
   useEffect(() => {
     window.removeEventListener('mousedown', checkShowing)

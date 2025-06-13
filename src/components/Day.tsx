@@ -64,26 +64,28 @@ export default function Day({
     }
 
     useAppStore((state) => {
+      const testTask = (task: TaskProps) => {
+        return (
+          !task.completed &&
+          (task.scheduled
+            ? (isDateISO(task.scheduled) && task.scheduled === startDate) ||
+              (!isDateISO(task.scheduled) &&
+                task.scheduled >= startISO &&
+                task.scheduled < endISO)
+            : true)
+        )
+      }
       const allTasksScheduledForToday = _.filter(
         state.tasks,
-        (task) =>
-          !!task.scheduled &&
-          !task.completed &&
-          ((isDateISO(task.scheduled) && task.scheduled === startDate) ||
-            (!isDateISO(task.scheduled) &&
-              task.scheduled >= startISO &&
-              task.scheduled < endISO))
+        (task) => !!task.scheduled && testTask(task)
       )
       const addToBlocks = (task: TaskProps, childList: TaskProps[]) => {
         if (blocksByTime[task.scheduled!])
-          blocksByTime[task.scheduled!].tasks.push({
-            ...task,
-            subtasks: nestTasks(childList),
-          })
+          blocksByTime[task.scheduled!].tasks.push(task, ...childList)
         else
           blocksByTime[task.scheduled!] = {
             startISO: task.scheduled!,
-            tasks: [{ ...task, subtasks: nestTasks(childList) }],
+            tasks: [task, ...childList],
             events: [],
             blocks: [],
           }
@@ -96,27 +98,13 @@ export default function Day({
             if (!childTask) return
             if (!state.settings.unScheduledSubtasks && !childTask.scheduled)
               return
-            if (
-              childTask.scheduled &&
-              (isDateISO(childTask.scheduled)
-                ? childTask.scheduled !== startDate
-                : childTask.scheduled >= endISO ||
-                  childTask.scheduled < startISO)
-            )
+            if (childTask.scheduled && childTask.scheduled !== task.scheduled) {
+              // not scheduled at the same time
               return
-            if (
-              childTask.scheduled &&
-              !isDateISO(childTask.scheduled) &&
-              childTask.scheduled !== task.scheduled
-            ) {
               // special case where children are scheduled for a different time than the parent (in the same day)
-              const grandChildren: TaskProps[] = []
-              addChildren(childTask, grandChildren)
-              addToBlocks(childTask, grandChildren)
-            } else {
-              toList.push(childTask)
-              addChildren(childTask, toList)
             }
+            toList.push(childTask)
+            addChildren(childTask, toList)
           })
       }
 
@@ -126,50 +114,6 @@ export default function Day({
         addToBlocks(task, children)
       }
     })
-    // _.forEach(state.tasks, (task) => {
-    //   const scheduled = parseTaskDate(task, state.tasks)
-
-    //   const isShown =
-    //     (task.due || scheduled) &&
-    //     !task.queryParent &&
-    //     ((showCompleted && scheduled === startDate) ||
-    //       task.completed === showingPastDates)
-    //   if (!isShown) return
-
-    //   const scheduledForToday = !scheduled
-    //     ? false
-    //     : isDateISO(scheduled)
-    //     ? scheduled === startDate
-    //     : scheduled >= startISO && scheduled < endISO
-
-    //   const dueToday =
-    //     !showingPastDates &&
-    //     (!task.due ? false : isNow || task.due >= startDate) &&
-    //     (!task.scheduled || task.scheduled < startDate)
-
-    //   if (scheduledForToday) {
-    //     invariant(scheduled)
-    //     if (
-    //       isDateISO(scheduled) ||
-    //       scheduled < startDate ||
-    //       scheduled > endISO
-    //     ) {
-    //       allDay.tasks.push(task)
-    //     } else {
-    //       if (blocksByTime[scheduled]) blocksByTime[scheduled].tasks.push(task)
-    //       else
-    //         blocksByTime[scheduled] = {
-    //           startISO: scheduled,
-    //           endISO: scheduled,
-    //           tasks: [task],
-    //           events: [],
-    //           blocks: [],
-    //         }
-    //     }
-    //   } else if (dueToday) {
-    //     upcoming.tasks.push(task)
-    //   }
-    // })
 
     for (let event of _.filter(state.events, (event) => {
       const shouldInclude = isDateISO(event.startISO)
@@ -190,6 +134,10 @@ export default function Day({
           blocks: [],
         }
     }
+    Object.keys(blocksByTime).forEach((key) => {
+      const block = blocksByTime[key]
+      block.tasks = nestTasks(block.tasks, state.tasks)
+    })
     const allDay = blocksByTime[startDate]!
     delete blocksByTime[startDate]
     return [allDay, blocksByTime, upcoming]

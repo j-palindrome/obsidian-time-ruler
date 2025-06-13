@@ -28,6 +28,7 @@ export default function Now() {
         {blocksByTime.map((tasks, index) => {
           return (
             <Block
+              key={tasks[0].scheduled}
               dragContainer={`now-${tasks[0].scheduled}`}
               startISO={tasks[0].scheduled!}
               tasks={tasks}
