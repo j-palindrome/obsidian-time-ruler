@@ -73,9 +73,9 @@ export default function Search() {
   const allHeadings = useAppStore((state) => {
     return [
       ...new Set(
-        Object.values(state.tasks).map((task) =>
-          getHeading(task, state.dailyNoteInfo, 'path')
-        )
+        Object.values(state.tasks)
+          .filter((task) => !task.page)
+          .map((task) => getHeading(task, state.dailyNoteInfo, 'path'))
       ),
     ]
   }, shallow)
@@ -117,11 +117,15 @@ export default function Search() {
       }
     )
   }, [headingFilterText])
+  console.log(filteredHeadings)
 
   const data: DragData = {
     dragType: 'new-task',
     title: search || 'Untitled',
-    path: headingFilterText || '',
+    path:
+      headingFilterText && filteredHeadings.length > 0
+        ? filteredHeadings[0]
+        : '',
   }
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: 'search-input',
