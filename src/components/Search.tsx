@@ -1,9 +1,15 @@
-import _, { filter, isUndefined, set } from 'lodash'
+import _, { filter, isUndefined, set, sortBy } from 'lodash'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { setters, useAppStore, useAppStoreRef } from 'src/app/store'
 import { openTaskInRuler } from 'src/services/obsidianApi'
-import { convertSearchToRegExp, toISO } from 'src/services/util'
+import {
+  convertSearchToRegExp,
+  getHeading,
+  parseFileFromPath,
+  splitHeading,
+  toISO,
+} from 'src/services/util'
 import { parseFolderFromPath } from '../services/util'
 import { priorityNumberToKey } from '../types/enums'
 import Task from './Task'
@@ -18,12 +24,14 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  useDraggable,
 } from '@dnd-kit/core'
 import { onDragEnd, onDragStart } from 'src/services/dragging'
 import { Platform } from 'obsidian'
 import { nestTasks } from 'src/services/nestTasks'
 import Button from './Button'
 import { DateTime } from 'luxon'
+import { shallow } from 'zustand/shallow'
 
 export default function Search() {
   const tasks = useAppStore((state) => state.tasks)
@@ -60,15 +68,65 @@ export default function Search() {
             .flatMap((x) => gatherChildren(tasks[x])),
         ]
   }
+
+  const [headingFilterText, setHeadingFilterText] = useState('')
+  const allHeadings = useAppStore((state) => {
+    return [
+      ...new Set(
+        Object.values(state.tasks).map((task) =>
+          getHeading(task, state.dailyNoteInfo, 'path')
+        )
+      ),
+    ]
+  }, shallow)
+
   let foundTasks = allTasks
-    .filter(([strings]) =>
-      strings.find((string) => !search || (string && searchExp.test(string)))
+    .filter(
+      ([strings]) =>
+        strings.find(
+          (string) => !search || (string && searchExp.test(string))
+        ) &&
+        strings.find(
+          (string) =>
+            !headingFilterText || (string && string.includes(headingFilterText))
+        )
     )
     .map((x) => x[1])
     .flatMap((task) => gatherChildren(task))
 
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => input.current?.focus(), [])
+
+  const filteredHeadings = useMemo(() => {
+    const exp = convertSearchToRegExp(headingFilterText)
+    return sortBy(
+      allHeadings.filter((x) => exp.test(x)),
+      (heading) => {
+        if (!headingFilterText) return heading
+        let match = 0
+        let score = 0
+        for (let letter of heading) {
+          if (letter === headingFilterText[match]) {
+            match++
+            if (match >= headingFilterText.length) break
+          } else {
+            score++
+          }
+        }
+        return score
+      }
+    )
+  }, [headingFilterText])
+
+  const data: DragData = {
+    dragType: 'new-task',
+    title: search || 'Untitled',
+    path: headingFilterText || '',
+  }
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'search-input',
+    data,
+  })
 
   const display = useAppStore((state) => !state.dragData)
   useEffect(() => {
@@ -116,28 +174,71 @@ export default function Search() {
   foundTasks = nestTasks(foundTasks, tasks)
 
   return (
-    <div className='!fixed top-0 left-0 w-full h-full !z-50 px-1'>
+    <div className='!fixed top-0 left-2 w-[calc(100%-64px)] h-full !z-50 px-1'>
       <div
         className='absolute top-0 left-0 w-full h-full'
         onClick={() => setters.set({ searchStatus: false })}
       ></div>
       <div className='prompt !w-full text-base'>
-        <div className='prompt-input-container'>
+        <div className='prompt-input-container px-1'>
           <input
-            className='prompt-input'
+            className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
             style={{ fontFamily: 'var(--font-interface)' }}
             value={search}
             onChange={(ev) => setSearch(ev.target.value)}
             onKeyDown={(ev) => {
               if (ev.key === 'Escape') setters.set({ searchStatus: false })
               else if (ev.key === 'Enter') {
-                if (foundTasks[0]) openTaskInRuler(foundTasks[0][1].id)
+                if (foundTasks[0]) openTaskInRuler(foundTasks[0].id)
                 setters.set({ searchStatus: false })
               }
             }}
+            placeholder='task'
             ref={input}
           />
+          <Button
+            className='w-8 h-8 bg-grey-500/50 !cursor-grab rounded-full flex-none'
+            ref={setNodeRef}
+            {...attributes}
+            {...listeners}
+            src={'plus'}
+          ></Button>
         </div>
+        <div className='prompt-input-container px-1 group'>
+          <input
+            placeholder='heading'
+            className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
+            style={{ fontFamily: 'var(--font-interface)' }}
+            value={headingFilterText}
+            onChange={(ev) => setHeadingFilterText(ev.target.value)}
+          />
+          <div className='hidden group-hover:block absolute top-9 bg-black/20 backdrop-blur-lg rounded-lg z-50 w-[calc(100%-24px)] px-4 h-[100px] overflow-y-auto'>
+            {filteredHeadings.map((heading) => {
+              const [container, headingText] = splitHeading(heading)
+              return (
+                <div
+                  key={heading}
+                  className={`selectable flex rounded-icon font-menu text-xs group w-full mb-2`}
+                >
+                  <div
+                    className={`w-full flex items-center`}
+                    onClick={() => {
+                      setHeadingFilterText(headingText)
+                    }}
+                  >
+                    <div
+                      className={`w-fit flex-none max-w-[50%] text-normal truncate`}
+                    >
+                      {headingText}
+                    </div>
+                    <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
         <div className='flex w-full px-4 space-x-2'>
           <Button
             className={`${

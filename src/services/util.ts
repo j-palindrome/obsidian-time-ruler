@@ -192,23 +192,6 @@ export const getHeading = (
   return heading
 }
 
-export const getTasksByHeading = (
-  tasks: AppState['tasks'],
-  dailyNoteInfo: AppState['dailyNoteInfo'],
-  fileOrder: string[],
-  groupBy: AppState['settings']['groupBy']
-): [string, TaskProps[]][] => {
-  return _.sortBy(
-    _.entries(
-      _.groupBy(
-        _.filter(tasks, (task) => !task.completed),
-        (task) => getHeading(task, dailyNoteInfo, groupBy)
-      )
-    ),
-    ([heading, _tasks]) => fileOrder.indexOf(parseFileFromPath(heading))
-  )
-}
-
 export const convertSearchToRegExp = (search: string) =>
   new RegExp(
     search

@@ -13,6 +13,7 @@ import {
 } from './util'
 import invariant from 'tiny-invariant'
 import { parseFileFromPath } from './util'
+import { getDailyNoteInfo } from './obsidianApi'
 
 export const onDragEnd = async (
   ev: DragEndEvent,
@@ -65,6 +66,20 @@ export const onDragEnd = async (
       }
     } else {
       switch (dragData.dragType) {
+        case 'new-task':
+          const obsidianApi = getters.getObsidianAPI()
+
+          // Use the dropped time as the scheduled time
+          obsidianApi.createNewTask(
+            {
+              originalTitle: dragData.title,
+              scheduled: dropData.scheduled,
+            },
+            dragData.path || null,
+            getters.get('dailyNoteInfo')
+          )
+
+          break
         case 'time':
         case 'task-length':
           if (!dropData.scheduled) return

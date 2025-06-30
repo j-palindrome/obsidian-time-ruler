@@ -47,6 +47,7 @@ import Search from './Search'
 import Task from './Task'
 import { isCallChain } from 'typescript'
 import Now from './Now'
+import { priorityKeyToNumber } from 'src/types/enums'
 
 type TimesType = Parameters<typeof Day>[0][]
 
@@ -80,7 +81,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       borders: apis.obsidian.getSetting('borders'),
       viewMode: apis.obsidian.getSetting('viewMode'),
       timerEvent: apis.obsidian.getSetting('timerEvent'),
-      unScheduledSubtasks: apis.obsidian.getSetting('scheduledSubtasks'),
+      unScheduledSubtasks: apis.obsidian.getSetting('unScheduledSubtasks'),
     }
 
     setters.set({
@@ -245,6 +246,29 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
     if (!activeDrag) return <></>
 
     switch (activeDrag.dragType) {
+      case 'new-task':
+        return (
+          <Task
+            id='new-task'
+            subtasks={[]}
+            type='task'
+            page={false}
+            originalText=''
+            originalTitle=''
+            tags={[]}
+            children={[]}
+            position={''}
+            path=''
+            status=''
+            fieldFormat='simple'
+            completed={false}
+            links={[]}
+            priority={priorityKeyToNumber['default']}
+            dragContainer='new-task'
+            title={activeDrag.title}
+            dragging
+          />
+        )
       case 'task':
         return <Task {...activeDrag} dragging />
       case 'task-length':
