@@ -25,7 +25,7 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
   const inputRef = useRef<HTMLInputElement>(null!)
 
   const checkShowing = (ev: MouseEvent) => {
-    invariant(frame.current)
+    if (!frame.current) return
     const els = document.elementsFromPoint(ev.clientX, ev.clientY)
 
     if (!els.includes(frame.current)) {
@@ -126,45 +126,6 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
           />
         </div>
       )}
-    </div>
-  )
-}
-
-function NewTaskHeading({
-  headingPath,
-  newTaskData,
-}: {
-  headingPath: string
-  newTaskData: NonNullable<AppState['newTask']>
-}) {
-  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const [myContainer, title] = splitHeading(headingPath)
-  const newTask = newTaskData.task
-  const newTaskType = newTaskData.type
-
-  return (
-    <div
-      key={headingPath}
-      onMouseDown={async () => {
-        const api = getters.getObsidianAPI()
-        if (newTaskType === 'move') {
-          await api.moveTask(newTask as TaskProps, headingPath)
-        } else {
-          api.createNewTask(newTask, headingPath, dailyNoteInfo)
-        }
-        setTimeout(() => setters.set({ newTask: null }))
-      }}
-      className={`flex items-center w-full selectable cursor-pointer rounded-icon px-2 hover:underline ${
-        headingPath.includes('#') ? 'text-muted' : 'font-bold text-accent'
-      }`}
-    >
-      <div className='grow mr-2 whitespace-nowrap'>
-        {title.slice(0, 30) + (title.length > 30 ? '...' : '')}
-      </div>
-      <div className='text-faint text-xs whitespace-nowrap text-right'>
-        {(myContainer.length > 30 ? '...' : '') +
-          myContainer.slice(Math.max(0, myContainer.length - 30))}
-      </div>
     </div>
   )
 }

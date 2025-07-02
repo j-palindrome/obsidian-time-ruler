@@ -28,6 +28,8 @@ export const onDragEnd = async (
   }
 
   if (dragData?.dragType === 'task' && dropData?.type === 'move') {
+    console.log('moving task', dragData, dropData)
+
     setters.set({ newTask: { task: dragData, type: 'move' } })
   } else if (dropData && dragData) {
     if (!isTaskProps(dropData)) {

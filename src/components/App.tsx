@@ -42,12 +42,12 @@ import Droppable from './Droppable'
 import Group from './Group'
 import Logo from './Logo'
 import { TimeSpanTypes } from './Minutes'
-import NewTask from './NewTask'
 import Search from './Search'
 import Task from './Task'
 import { isCallChain } from 'typescript'
 import Now from './Now'
 import { priorityKeyToNumber } from 'src/types/enums'
+import NewTask from './NewTask'
 
 type TimesType = Parameters<typeof Day>[0][]
 
@@ -351,6 +351,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
   }`
 
   const searchStatus = useAppStore((state) => state.searchStatus)
+  const movingTask = useAppStore((state) => state.newTask?.type === 'move')
+  console.log('moving task', movingTask)
 
   const apisLoaded = useAppStore((state) => state.apis.obsidian)
   return (
@@ -427,7 +429,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
                 )
               })}
             </div>
-            {searchStatus && <Search />}
+            {(searchStatus || movingTask) && <Search />}
           </div>
         </DndContext>
       </>

@@ -1,7 +1,7 @@
 import _, { filter, isUndefined, set, sortBy } from 'lodash'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { setters, useAppStore, useAppStoreRef } from 'src/app/store'
+import { getters, setters, useAppStore, useAppStoreRef } from 'src/app/store'
 import { openTaskInRuler } from 'src/services/obsidianApi'
 import {
   convertSearchToRegExp,
@@ -136,7 +136,7 @@ export default function Search() {
   useEffect(() => {
     if (!display) {
       setTimeout(() => {
-        setters.set({ searchStatus: false })
+        setters.set({ searchStatus: false, newTask: null })
       }, 500)
     }
   }, [display])
@@ -177,38 +177,51 @@ export default function Search() {
 
   foundTasks = nestTasks(foundTasks, tasks)
 
+  const movingTask = useAppStore((state) =>
+    state.newTask?.type === 'move' ? state.newTask.task : false
+  )
+  console.log('movingTask search', movingTask)
+
   return (
-    <div className='!fixed top-0 left-2 w-[calc(100%-64px)] h-full !z-50 px-1'>
+    <div className='!fixed top-0 left-0 w-full h-full !z-50 px-1'>
       <div
         className='absolute top-0 left-0 w-full h-full'
-        onClick={() => setters.set({ searchStatus: false })}
+        onClick={() => setters.set({ searchStatus: false, newTask: null })}
       ></div>
       <div className='prompt !w-full text-base'>
-        <div className='prompt-input-container px-1'>
-          <input
-            className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
-            style={{ fontFamily: 'var(--font-interface)' }}
-            value={search}
-            onChange={(ev) => setSearch(ev.target.value)}
-            onKeyDown={(ev) => {
-              if (ev.key === 'Escape') setters.set({ searchStatus: false })
-              else if (ev.key === 'Enter') {
-                if (foundTasks[0]) openTaskInRuler(foundTasks[0].id)
-                setters.set({ searchStatus: false })
-              }
-            }}
-            placeholder='task'
-            ref={input}
-          />
-          <Button
-            className='w-8 h-8 bg-grey-500/50 !cursor-grab rounded-full flex-none'
-            ref={setNodeRef}
-            {...attributes}
-            {...listeners}
-            src={'plus'}
-          ></Button>
-        </div>
-        <div className='prompt-input-container px-1 group'>
+        {!movingTask ? (
+          <>
+            <div className='prompt-input-container px-1'>
+              <input
+                className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
+                style={{ fontFamily: 'var(--font-interface)' }}
+                value={search}
+                onChange={(ev) => setSearch(ev.target.value)}
+                onKeyDown={(ev) => {
+                  if (ev.key === 'Escape')
+                    setters.set({ searchStatus: false, newTask: null })
+                  else if (ev.key === 'Enter') {
+                    if (foundTasks[0]) openTaskInRuler(foundTasks[0].id)
+                    setters.set({ searchStatus: false, newTask: null })
+                  }
+                }}
+                placeholder='task'
+                ref={input}
+              />
+              <Button
+                className='w-8 h-8 bg-grey-500/50 !cursor-grab rounded-full flex-none'
+                ref={setNodeRef}
+                {...attributes}
+                {...listeners}
+                src={'plus'}
+              ></Button>
+            </div>
+          </>
+        ) : (
+          <div className='font-bold text-lg px-2 py-1'>{movingTask?.title}</div>
+        )}
+
+        <div className='prompt-input-container px-1 group !flex !flex-col relative'>
           <input
             placeholder='heading'
             className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
@@ -216,7 +229,13 @@ export default function Search() {
             value={headingFilterText}
             onChange={(ev) => setHeadingFilterText(ev.target.value)}
           />
-          <div className='hidden group-hover:block absolute top-9 bg-black/20 backdrop-blur-lg rounded-lg z-50 w-[calc(100%-24px)] px-4 h-[100px] overflow-y-auto'>
+          <div
+            className={`${
+              movingTask
+                ? 'block h-[300px]'
+                : `hidden group-hover:block absolute top-9 h-[100px]`
+            }bg-black/20 backdrop-blur-lg rounded-lg z-50 w-[calc(100%-24px)] px-4 overflow-y-auto`}
+          >
             {filteredHeadings.map((heading) => {
               const [container, headingText] = splitHeading(heading)
               return (
@@ -226,8 +245,17 @@ export default function Search() {
                 >
                   <div
                     className={`w-full flex items-center`}
-                    onClick={() => {
-                      setHeadingFilterText(headingText)
+                    onClick={async () => {
+                      if (movingTask) {
+                        const obsidianApi = getters.getObsidianAPI()
+                        await obsidianApi.moveTask(
+                          movingTask as TaskProps,
+                          heading
+                        )
+                        setters.set({ newTask: null, searchStatus: false })
+                      } else {
+                        setHeadingFilterText(headingText)
+                      }
                     }}
                   >
                     <div
@@ -243,71 +271,80 @@ export default function Search() {
           </div>
         </div>
 
-        <div className='flex w-full px-4 space-x-2'>
-          <Button
-            className={`${
-              filter.scheduled.type === undefined
-                ? '!bg-accent !text-primary'
-                : ''
-            }`}
-            onClick={(ev) => {
-              setFilter({
-                due: { type: undefined, value: undefined },
-                scheduled: { type: undefined, value: undefined },
-              })
-            }}
-          >
-            All
-          </Button>
-          <Button
-            className={`${
-              filter.scheduled.type === '!' ? '!bg-accent !text-primary' : ''
-            }`}
-            onClick={(ev) => {
-              setFilter({
-                ...filter,
-                scheduled: { type: '!', value: undefined },
-              })
-            }}
-          >
-            Unscheduled
-          </Button>
-          <Button
-            className={`${
-              filter.scheduled.type === '!!' ? '!bg-accent !text-primary' : ''
-            }`}
-            onClick={(ev) => {
-              setFilter({
-                ...filter,
-                scheduled: { type: '!!', value: undefined },
-              })
-            }}
-          >
-            Scheduled
-          </Button>
-          <Button
-            className={`${
-              filter.due.type === '!!' ? '!bg-accent !text-primary' : ''
-            }`}
-            onClick={(ev) => {
-              setFilter({
-                ...filter,
-                due: { type: '!!', value: undefined },
-              })
-            }}
-          >
-            Upcoming
-          </Button>
-        </div>
-        <div className='prompt-results'>
-          <Block
-            type='all-day'
-            tasks={foundTasks}
-            events={[]}
-            blocks={[]}
-            dragContainer='search'
-          />
-        </div>
+        {!movingTask && (
+          <>
+            <div className='flex w-full px-4 space-x-2'>
+              <Button
+                className={`${
+                  filter.scheduled.type === undefined
+                    ? '!bg-accent !text-primary'
+                    : ''
+                }`}
+                onClick={(ev) => {
+                  setFilter({
+                    due: { type: undefined, value: undefined },
+                    scheduled: { type: undefined, value: undefined },
+                  })
+                }}
+              >
+                All
+              </Button>
+              <Button
+                className={`${
+                  filter.scheduled.type === '!'
+                    ? '!bg-accent !text-primary'
+                    : ''
+                }`}
+                onClick={(ev) => {
+                  setFilter({
+                    ...filter,
+                    scheduled: { type: '!', value: undefined },
+                  })
+                }}
+              >
+                Unscheduled
+              </Button>
+              <Button
+                className={`${
+                  filter.scheduled.type === '!!'
+                    ? '!bg-accent !text-primary'
+                    : ''
+                }`}
+                onClick={(ev) => {
+                  setFilter({
+                    ...filter,
+                    scheduled: { type: '!!', value: undefined },
+                  })
+                }}
+              >
+                Scheduled
+              </Button>
+              <Button
+                className={`${
+                  filter.due.type === '!!' ? '!bg-accent !text-primary' : ''
+                }`}
+                onClick={(ev) => {
+                  setFilter({
+                    ...filter,
+                    due: { type: '!!', value: undefined },
+                  })
+                }}
+              >
+                Upcoming
+              </Button>
+            </div>
+            <div className='prompt-results'>
+              <Block
+                type='all-day'
+                tasks={foundTasks}
+                events={[]}
+                blocks={[]}
+                dragContainer='search'
+              />
+            </div>
+          </>
+        )}
+
         <div className='prompt-instructions'></div>
       </div>
     </div>
