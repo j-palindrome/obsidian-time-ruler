@@ -5,6 +5,7 @@ import { filter, groupBy, sortBy } from 'lodash'
 import { DateTime } from 'luxon'
 import Block from './Block'
 import { useState } from 'react'
+import Starred from './Starred'
 
 export default function Now() {
   const now = toISO(roundMinutes(DateTime.now()))
@@ -25,6 +26,7 @@ export default function Now() {
     <div className={`flex flex-col h-full w-full overflow-hidden relative`}>
       <Timer />
       <div className='overflow-auto grow'>
+        <Starred />
         {blocksByTime.map((tasks, index) => {
           return (
             <Block

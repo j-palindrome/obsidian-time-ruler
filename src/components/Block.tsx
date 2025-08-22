@@ -31,7 +31,7 @@ export type BlockComponentProps = BlockProps & {
 }
 
 export const UNGROUPED = '__ungrouped'
-export type BlockType = 'event' | 'child' | 'all-day' | 'upcoming'
+export type BlockType = 'event' | 'child' | 'all-day' | 'upcoming' | 'starred'
 export type BlockProps = {
   startISO?: string
   endISO?: string

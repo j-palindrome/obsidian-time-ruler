@@ -63,6 +63,8 @@ export default function Day({
       },
     }
 
+    const starredIds = useAppStore((state) => state.starred ?? [])
+
     useAppStore((state) => {
       const testTask = (task: TaskProps) => {
         return (
@@ -77,7 +79,8 @@ export default function Day({
       }
       const allTasksScheduledForToday = _.filter(
         state.tasks,
-        (task) => !!task.scheduled && testTask(task)
+        (task) =>
+          !!task.scheduled && testTask(task) && !starredIds.includes(task.id) // filter out starred tasks
       )
       const addToBlocks = (task: TaskProps, childList: TaskProps[]) => {
         if (blocksByTime[task.scheduled!])

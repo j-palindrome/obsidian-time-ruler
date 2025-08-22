@@ -21,7 +21,7 @@ export const onDragEnd = async (
 ) => {
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
-
+  debugger
   if (ev.active.id === ev.over?.id) {
     setters.set({ dragData: null })
     return
@@ -34,6 +34,9 @@ export const onDragEnd = async (
   } else if (dropData && dragData) {
     if (!isTaskProps(dropData)) {
       switch (dropData.type) {
+        case 'starred':
+          console.log('starred')
+          break
         case 'heading':
           if (dragData.dragType !== 'group') break
           setters.updateFileOrder(

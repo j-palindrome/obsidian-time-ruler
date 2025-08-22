@@ -45,6 +45,7 @@ type TimeRulerSettings = {
   viewMode: 'day' | 'week' | 'one'
   unScheduledSubtasks: boolean
   openInMain: boolean
+  starred: string[]
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
@@ -72,6 +73,7 @@ export const DEFAULT_SETTINGS: TimeRulerSettings = {
   viewMode: 'day',
   unScheduledSubtasks: true,
   openInMain: false,
+  starred: [],
 }
 
 export default class TimeRulerPlugin extends Plugin {

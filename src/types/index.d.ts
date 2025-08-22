@@ -105,6 +105,7 @@ declare global {
     | { type: 'delete' }
     | { type: 'move' }
     | { type: 'unschedule' }
+    | { type: 'starred' }
 }
 
 declare module 'obsidian' {

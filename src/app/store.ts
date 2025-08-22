@@ -48,11 +48,13 @@ export type AppState = {
     | 'viewMode'
     | 'timerEvent'
     | 'unScheduledSubtasks'
+    | 'starred'
   >
   collapsed: Record<string, boolean>
   showingPastDates: boolean
   searchWithinWeeks: [number, number]
   childWidth: number
+  starred: string[] // IDs of the starred tasks
   timer: {
     negative: boolean
     maxSeconds: number | null
@@ -91,6 +93,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     borders: false,
     viewMode: 'day',
     unScheduledSubtasks: false,
+    starred: [],
   },
   showingPastDates: false,
   searchWithinWeeks: [-1, 1],
@@ -102,6 +105,7 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
     playing: false,
   },
   recreateWindow: 0,
+  starred: [],
 }))
 
 export const useAppStoreRef = <T>(callback: (state: AppState) => T) => {

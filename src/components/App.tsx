@@ -48,6 +48,7 @@ import { isCallChain } from 'typescript'
 import Now from './Now'
 import { priorityKeyToNumber } from 'src/types/enums'
 import NewTask from './NewTask'
+import Starred from './Starred'
 
 type TimesType = Parameters<typeof Day>[0][]
 
@@ -82,6 +83,7 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
       viewMode: apis.obsidian.getSetting('viewMode'),
       timerEvent: apis.obsidian.getSetting('timerEvent'),
       unScheduledSubtasks: apis.obsidian.getSetting('unScheduledSubtasks'),
+      starred: apis.obsidian.getSetting('starred'),
     }
 
     setters.set({

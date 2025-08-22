@@ -85,6 +85,15 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
     >
       {draggingTask ? (
         <>
+          <Droppable id='starred' data={{ type: 'starred' }}>
+            <Button
+              src='star'
+              className={`!rounded-full ${
+                calendarMode ? 'h-8 w-8 mb-2' : 'h-6 w-6 mr-2'
+              } bg-yellow-900 flex-none`}
+              title='Starred'
+            ></Button>
+          </Droppable>
           <Droppable
             id={`unschedule-task`}
             data={{ scheduled: TaskActions.DELETE }}
