@@ -79,5 +79,5 @@ if (MODE === 'production') {
   await context.rebuild()
   process.exit(0)
 } else {
-  await context.watch()
+  await context.watch({})
 }

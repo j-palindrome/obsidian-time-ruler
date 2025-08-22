@@ -10,11 +10,15 @@ import Starred from './Starred'
 export default function Now() {
   const now = toISO(roundMinutes(DateTime.now()))
   const today = toISO(roundMinutes(DateTime.now()), true)
+  const starred = useAppStore((state) => state.starred)
   const nowTasks = useAppStore((state) =>
     filter(
       state.tasks,
       (task) =>
-        !!task.scheduled && task.scheduled !== today && task.scheduled <= now
+        !!task.scheduled &&
+        task.scheduled !== today &&
+        task.scheduled <= now &&
+        !starred.includes(task.id)
     )
   )
   const scheduledTimes = groupBy(nowTasks, 'scheduled')

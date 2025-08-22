@@ -113,4 +113,4 @@ export const RESERVED_FIELDS = dataViewKeys.concat(
 )
 
 export const isTaskProps = (data: DropData): data is Partial<TaskProps> =>
-  !data.type || !['heading', 'delete'].includes(data.type)
+  !data.type || !['heading', 'delete', 'starred'].includes(data.type)

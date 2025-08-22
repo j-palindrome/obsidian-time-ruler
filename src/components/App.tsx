@@ -354,7 +354,6 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
 
   const searchStatus = useAppStore((state) => state.searchStatus)
   const movingTask = useAppStore((state) => state.newTask?.type === 'move')
-  console.log('moving task', movingTask)
 
   const apisLoaded = useAppStore((state) => state.apis.obsidian)
   return (

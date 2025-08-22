@@ -21,21 +21,26 @@ export const onDragEnd = async (
 ) => {
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
-  debugger
   if (ev.active.id === ev.over?.id) {
     setters.set({ dragData: null })
     return
   }
 
   if (dragData?.dragType === 'task' && dropData?.type === 'move') {
-    console.log('moving task', dragData, dropData)
-
     setters.set({ newTask: { task: dragData, type: 'move' } })
   } else if (dropData && dragData) {
     if (!isTaskProps(dropData)) {
       switch (dropData.type) {
         case 'starred':
-          console.log('starred')
+          // Add to starred list and persist in settings
+          const obsidianAPI = getters.getObsidianAPI()
+          const starred = Array.isArray(getters.get('starred'))
+            ? [...getters.get('starred')]
+            : []
+          if (dragData.dragType === 'task' && !starred.includes(dragData.id)) {
+            starred.push(dragData.id)
+            setters.setStarred(starred)
+          }
           break
         case 'heading':
           if (dragData.dragType !== 'group') break

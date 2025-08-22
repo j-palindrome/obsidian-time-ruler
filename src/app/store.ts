@@ -132,6 +132,16 @@ export const setters = {
     }
     if (task.completion) obsidianAPI.playComplete()
   },
+  setStarred: (starred: string[]) => {
+    // 1. Update app state
+    modify((state) => {
+      state.starred = starred
+      state.settings.starred = starred
+    })
+    // 2. Propagate to ObsidianAPI and persist
+    const obsidianAPI = getters.getObsidianAPI()
+    obsidianAPI.setSetting({ starred })
+  },
   patchCollapsed: async (ids: string[], collapsed: boolean) => {
     modify((state) => {
       for (let id of ids) {
