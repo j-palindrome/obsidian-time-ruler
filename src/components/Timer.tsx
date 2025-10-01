@@ -83,9 +83,9 @@ export function Timer() {
           // @ts-ignore
           Capacitor.registerPlugin('LocalNotifications')
           // @ts-ignore
-          const { LocalNotifications } = Capacitor.Plugins.localNotifications
+          const localNotifications = Capacitor.Plugins.localNotifications
           // LocalNotifications.unscheduled()
-          LocalNotifications.schedule({
+          localNotifications.schedule({
             notifications: [
               {
                 title: 'Timer complete',
