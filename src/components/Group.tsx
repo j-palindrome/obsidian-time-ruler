@@ -27,6 +27,7 @@ export type GroupComponentProps = {
   type: BlockType
   dragContainer: string
   startISO?: string
+  isOnly?: boolean
 }
 
 export default function Group({
@@ -36,6 +37,7 @@ export default function Group({
   hidePaths,
   dragContainer,
   startISO,
+  isOnly,
 }: GroupComponentProps) {
   const dragData: DragData = {
     dragType: 'group',
@@ -53,12 +55,12 @@ export default function Group({
     })
 
   const [myContainer, heading] = splitHeading(headingPath)
-  let formattedContainer = myContainer.slice(
-    myContainer.includes('/') ? myContainer.lastIndexOf('/') + 1 : 0
-  )
-  if (formattedContainer.length > 25)
-    formattedContainer = formattedContainer.slice(0, 25) + '...'
-  formattedContainer = formattedContainer.replace('.md', '')
+  // let formattedContainer = myContainer.slice(
+  //   myContainer.includes('/') ? myContainer.lastIndexOf('/') + 1 : 0
+  // )
+  // if (formattedContainer.length > 25)
+  //   formattedContainer = formattedContainer.slice(0, 25) + '...'
+  // formattedContainer = formattedContainer.replace('.md', '')
 
   const collapsed = useAppStore(
     (state) => state.collapsed[headingPath] ?? false
@@ -73,11 +75,18 @@ export default function Group({
         parseFileFromPath(headingPath)
   )
 
-  const groupBySetting = useAppStore((state) => state.settings.groupBy)
-  const groupedTasks = _.groupBy(tasks, (task) => {
-    if (type === 'upcoming') return UNGROUPED
-    return getSubHeading(task, groupBySetting, hidePaths)
-  })
+  const groupedTasks = useAppStore((state) =>
+    _.groupBy(tasks, (task) => {
+      if (type === 'upcoming') return UNGROUPED
+      return getHeading(
+        task,
+        state.dailyNoteInfo,
+        state.settings.groupBy,
+        hidePaths,
+        false
+      )
+    })
+  )
 
   const sortedTasks = _.sortBy(Object.entries(groupedTasks), 0).map(
     ([heading, tasks]) =>
@@ -136,24 +145,21 @@ export default function Group({
               </div>
 
               <div
-                className={`w-full flex items-center ${
+                className={`w-full flex items-center pr-2 ${
                   !isPriority ? 'cursor-grab' : ''
                 }`}
                 {...(!isPriority
                   ? { ...attributes, ...listeners, ref: setActivatorNodeRef }
                   : undefined)}
               >
+                <hr className='border-t border-t-faint opacity-50 mr-2 h-0 my-0 w-full'></hr>
                 <div
-                  className={`w-fit flex-none max-w-[50%] text-normal truncate`}
+                  className={`w-fit flex-none max-w-[50%] ${
+                    headingPath.includes('#') ? 'text-normal' : 'text-accent'
+                  } truncate`}
                 >
                   {heading}
                 </div>
-                <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
-                {myContainer && !hidePaths.includes(myContainer) && (
-                  <div className='w-fit flex-none text-right pr-2'>
-                    {formattedContainer}
-                  </div>
-                )}
               </div>
             </div>
           </>

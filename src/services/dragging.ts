@@ -3,7 +3,7 @@ import { getters, setters } from 'src/app/store'
 import { isTaskProps, TaskActions } from 'src/types/enums'
 import { DateTime, Duration } from 'luxon'
 import { useAppStoreRef } from '../app/store'
-import _ from 'lodash'
+import _, { remove } from 'lodash'
 import {
   roundMinutes,
   toISO,
@@ -33,12 +33,27 @@ export const onDragEnd = async (
       switch (dropData.type) {
         case 'starred':
           // Add to starred list and persist in settings
-          const obsidianAPI = getters.getObsidianAPI()
           const starred = Array.isArray(getters.get('starred'))
             ? [...getters.get('starred')]
             : []
-          if (dragData.dragType === 'task' && !starred.includes(dragData.id)) {
-            starred.push(dragData.id)
+          if (dragData.dragType === 'task') {
+            if (!starred.includes(dragData.id)) {
+              starred.push(dragData.id)
+            } else {
+              remove(starred, (x) => x == dragData.id)
+            }
+            setters.setStarred(starred)
+          } else if (
+            dragData.dragType === 'block' ||
+            dragData.dragType === 'group'
+          ) {
+            dragData.tasks.forEach((task) => {
+              if (!starred.includes(task.id)) {
+                starred.push(task.id)
+              } else {
+                remove(starred, (x) => x == task.id)
+              }
+            })
             setters.setStarred(starred)
           }
           break
@@ -83,7 +98,10 @@ export const onDragEnd = async (
           obsidianApi.createNewTask(
             {
               originalTitle: dragData.title,
-              scheduled: dropData.scheduled,
+              scheduled:
+                dropData.scheduled === TaskActions.DELETE
+                  ? undefined
+                  : dropData.scheduled,
             },
             dragData.path || null,
             getters.get('dailyNoteInfo')

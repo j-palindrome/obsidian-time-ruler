@@ -62,7 +62,8 @@ export default function Block({
         task,
         state.dailyNoteInfo,
         type === 'upcoming' ? false : state.settings.groupBy,
-        hidePaths
+        hidePaths,
+        true
       )
     )
   })
@@ -219,6 +220,7 @@ export default function Block({
               return (
                 <Group
                   key={path}
+                  isOnly={sortedGroups.length === 1}
                   {...{
                     headingPath: path,
                     tasks,

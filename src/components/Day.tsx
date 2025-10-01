@@ -39,8 +39,6 @@ export default function Day({
   const now = toISO(roundMinutes(DateTime.now()))
 
   const startDate = getStartDate(DateTime.fromISO(startISO))
-  const endDate = getStartDate(DateTime.fromISO(startISO).plus({ day: 1 }))
-  const showCompleted = useAppStore((state) => state.settings.showCompleted)
 
   const id = startDate
   /**
@@ -70,7 +68,7 @@ export default function Day({
         return (
           !task.completed &&
           (task.scheduled
-            ? (isDateISO(task.scheduled) && task.scheduled === startDate) ||
+            ? (isDateISO(task.scheduled) && task.scheduled <= startDate) ||
               (!isDateISO(task.scheduled) &&
                 task.scheduled >= startISO &&
                 task.scheduled < endISO)
@@ -83,11 +81,13 @@ export default function Day({
           !!task.scheduled && testTask(task) && !starredIds.includes(task.id) // filter out starred tasks
       )
       const addToBlocks = (task: TaskProps, childList: TaskProps[]) => {
-        if (blocksByTime[task.scheduled!])
-          blocksByTime[task.scheduled!].tasks.push(task, ...childList)
+        const scheduled =
+          task.scheduled! < startDate ? startDate : task.scheduled
+        if (blocksByTime[scheduled!])
+          blocksByTime[scheduled!].tasks.push(task, ...childList)
         else
-          blocksByTime[task.scheduled!] = {
-            startISO: task.scheduled!,
+          blocksByTime[scheduled!] = {
+            startISO: scheduled!,
             tasks: [task, ...childList],
             events: [],
             blocks: [],

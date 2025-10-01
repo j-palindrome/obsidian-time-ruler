@@ -6,6 +6,7 @@ import { DateTime } from 'luxon'
 import Block from './Block'
 import { useState } from 'react'
 import Starred from './Starred'
+import Droppable from './Droppable'
 
 export default function Now() {
   const now = toISO(roundMinutes(DateTime.now()))
@@ -16,7 +17,7 @@ export default function Now() {
       state.tasks,
       (task) =>
         !!task.scheduled &&
-        task.scheduled !== today &&
+        !isDateISO(task.scheduled) &&
         task.scheduled <= now &&
         !starred.includes(task.id)
     )
@@ -31,6 +32,9 @@ export default function Now() {
       <Timer />
       <div className='overflow-auto grow'>
         <Starred />
+        <Droppable id='now-heading' data={{ scheduled: now }}>
+          <div className='font-bold text-accent mb-1 w-full'>Now</div>
+        </Droppable>
         {blocksByTime.map((tasks, index) => {
           return (
             <Block

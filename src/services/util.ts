@@ -162,7 +162,8 @@ export const getHeading = (
   }: Pick<TaskProps, 'path' | 'page' | 'priority' | 'tags'>,
   dailyNoteInfo: AppState['dailyNoteInfo'],
   groupBy: AppState['settings']['groupBy'],
-  hidePaths: string[] = []
+  hidePaths: string[] = [],
+  fileNameOnly = false
 ): string => {
   path = path.replace('.md', '')
   let heading = path
@@ -182,9 +183,13 @@ export const getHeading = (
     } else {
       // replace daily note
       const file = parseFileFromPath(heading)
+      const storedHeading = heading.match(/#.+$/)?.[0] ?? ''
       const date = parseDateFromPath(file, dailyNoteInfo)
-      if (date) heading = 'Daily' + (heading.match(/#.+$/)?.[0] ?? '')
+      if (date) heading = 'Daily'
+      // + (heading.match(/#.+$/)?.[0] ?? '')
+      // else heading = heading.replace('.md', '')
       else heading = file.replace('.md', '')
+      if (!fileNameOnly) heading += storedHeading
     }
   } else heading = UNGROUPED
 

@@ -117,7 +117,6 @@ export default function Search() {
       }
     )
   }, [headingFilterText])
-  console.log(filteredHeadings)
 
   const data: DragData = {
     dragType: 'new-task',
@@ -180,7 +179,6 @@ export default function Search() {
   const movingTask = useAppStore((state) =>
     state.newTask?.type === 'move' ? state.newTask.task : false
   )
-  console.log('movingTask search', movingTask)
 
   return (
     <div className='!fixed top-0 left-0 w-full h-full !z-50 px-1'>
@@ -188,7 +186,7 @@ export default function Search() {
         className='absolute top-0 left-0 w-full h-full'
         onClick={() => setters.set({ searchStatus: false, newTask: null })}
       ></div>
-      <div className='prompt !w-full text-base'>
+      <div className='prompt !w-[calc(100%-theme(space.4))] text-base !px-1 !py-2'>
         {!movingTask ? (
           <>
             <div className='prompt-input-container px-1'>
@@ -234,7 +232,7 @@ export default function Search() {
               movingTask
                 ? 'block h-[300px]'
                 : `hidden group-hover:block absolute top-9 h-[100px]`
-            }bg-black/20 backdrop-blur-lg rounded-lg z-50 w-[calc(100%-24px)] px-4 overflow-y-auto`}
+            } bg-black/20 backdrop-blur-lg rounded-lg z-50 w-[calc(100%-24px)] px-4 overflow-y-auto`}
           >
             {filteredHeadings.map((heading) => {
               const [container, headingText] = splitHeading(heading)
@@ -259,7 +257,9 @@ export default function Search() {
                     }}
                   >
                     <div
-                      className={`w-fit flex-none max-w-[50%] text-normal truncate`}
+                      className={`w-fit flex-none max-w-[50%] text-normal truncate ${
+                        !heading.includes('#') ? '!text-accent' : 'indent-4'
+                      }`}
                     >
                       {headingText}
                     </div>

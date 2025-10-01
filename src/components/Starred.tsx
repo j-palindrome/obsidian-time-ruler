@@ -9,20 +9,20 @@ export default function Starred() {
   )
 
   return (
-    <Droppable id='starred' data={{ type: 'starred' }}>
-      <div className='mb-2'>
-        <div className='font-bold text-accent mb-1'>Starred</div>
-        {tasks.length > 0 && (
-          <Block
-            dragContainer='starred'
-            startISO=''
-            tasks={tasks}
-            events={[]}
-            type='starred'
-            blocks={[]}
-          />
-        )}
-      </div>
-    </Droppable>
+    <div className='mb-2'>
+      <Droppable id='starred-button' data={{ type: 'starred' }}>
+        <div className='font-bold text-accent mb-1 w-full'>Starred</div>
+      </Droppable>
+      {tasks.length > 0 && (
+        <Block
+          dragContainer='starred'
+          startISO=''
+          tasks={tasks}
+          events={[]}
+          type='starred'
+          blocks={[]}
+        />
+      )}
+    </div>
   )
 }

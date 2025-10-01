@@ -46,22 +46,6 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
 
   const [search, setSearch] = useState('')
 
-  const dailyNoteInfo = useAppStore((state) => state.dailyNoteInfo)
-  const allHeadings: string[] = useAppStore((state) => {
-    if (!newTask) return []
-    return _.uniq(
-      _.flatMap(state.tasks, (task) => {
-        if (task.completed || task.page) return []
-        return task.path.replace('.md', '')
-      }).concat(['Daily'])
-    ).sort()
-  }, shallow)
-
-  const searchExp = convertSearchToRegExp(search)
-  const filteredHeadings = allHeadings.filter((heading) =>
-    searchExp.test(heading)
-  )
-
   useEffect(() => {
     setSearch('')
   }, [newTask])
@@ -83,7 +67,21 @@ export default function NewTask({ dragContainer }: { dragContainer: string }) {
         calendarMode ? '' : 'flex pl-2 h-10 items-center'
       }`}
     >
-      {draggingTask ? (
+      {dragData?.dragType === 'new-task' ? (
+        <>
+          <Droppable
+            id={`unschedule-task`}
+            data={{ scheduled: TaskActions.DELETE }}
+          >
+            <Button
+              src='calendar-x'
+              className={`!rounded-full ${
+                calendarMode ? 'h-8 w-8' : 'h-10 w-10'
+              } bg-accent flex-none child:invert`}
+            />
+          </Droppable>
+        </>
+      ) : draggingTask ? (
         <>
           <Droppable id='starred' data={{ type: 'starred' }}>
             <Button

@@ -123,19 +123,14 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
           negative: true,
           playing: true,
         })
-        if (getters.getApp().isMobile) {
-          sounds.timer.play()
-          new Notice('Timer complete')
-        } else {
-          switch (getters.get('settings').timerEvent) {
-            case 'notification':
-              new Notification('Timer complete')
-              break
-            case 'sound':
-              sounds.timer.play()
-              new Notice('Timer complete')
-              break
-          }
+        switch (getters.get('settings').timerEvent) {
+          case 'notification':
+            new Notification('Timer complete')
+            break
+          case 'sound':
+            sounds.timer.play()
+            new Notice('Timer complete')
+            break
         }
       }
     }

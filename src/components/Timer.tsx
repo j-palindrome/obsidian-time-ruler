@@ -1,9 +1,10 @@
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import { useStopwatch, useTimer } from 'react-timer-hook'
-import { setters, useAppStore } from '../app/store'
+import { getters, setters, useAppStore } from '../app/store'
 import { sounds } from '../assets/assets'
 import Button from './Button'
+import { CapacitorAdapter, Notice } from 'obsidian'
 
 export function Timer() {
   const pauseExpiration = useRef(true)
@@ -76,6 +77,29 @@ export function Timer() {
         maxSeconds: minutes * 60 + hours * 60 * 60,
         startISO: endDate.toISOString(),
       })
+
+      if (getters.getApp().isMobile) {
+        try {
+          // @ts-ignore
+          Capacitor.registerPlugin('LocalNotifications')
+          // @ts-ignore
+          const { LocalNotifications } = Capacitor.Plugins.localNotifications
+          // LocalNotifications.unscheduled()
+          LocalNotifications.schedule({
+            notifications: [
+              {
+                title: 'Timer complete',
+                id: 1,
+                schedule: {
+                  at: endDate,
+                },
+              },
+            ],
+          })
+        } catch (error) {
+          new Notice(error.message)
+        }
+      }
     }
     playSound()
   }

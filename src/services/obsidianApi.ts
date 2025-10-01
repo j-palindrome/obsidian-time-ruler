@@ -534,7 +534,6 @@ export default class ObsidianAPI extends Component {
       links: [],
       ...dropData,
     }
-    console.log('dropData', dropData, 'task', defaultTask)
 
     await this.saveTask(defaultTask, true)
     if (!this.app.isMobile) {
