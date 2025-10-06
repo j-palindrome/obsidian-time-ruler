@@ -6,6 +6,8 @@ import { shallow } from 'zustand/shallow'
 import { getters, setters, useAppStore } from '../app/store'
 import { openTaskInRuler } from '../services/obsidianApi'
 import {
+  addChildren,
+  addToBlocks,
   getChildren,
   getStartDate,
   isDateISO,
@@ -80,41 +82,11 @@ export default function Day({
         (task) =>
           !!task.scheduled && testTask(task) && !starredIds.includes(task.id) // filter out starred tasks
       )
-      const addToBlocks = (task: TaskProps, childList: TaskProps[]) => {
-        const scheduled =
-          task.scheduled! < startDate ? startDate : task.scheduled
-        if (blocksByTime[scheduled!])
-          blocksByTime[scheduled!].tasks.push(task, ...childList)
-        else
-          blocksByTime[scheduled!] = {
-            startISO: scheduled!,
-            tasks: [task, ...childList],
-            events: [],
-            blocks: [],
-          }
-      }
-      const addChildren = (task: TaskProps, toList: TaskProps[]) => {
-        ;(task.children ?? [])
-          .concat(task.queryChildren ?? [])
-          .forEach((childId) => {
-            const childTask = state.tasks[childId]
-            if (!childTask) return
-            if (!state.settings.unScheduledSubtasks && !childTask.scheduled)
-              return
-            if (childTask.scheduled && childTask.scheduled !== task.scheduled) {
-              // not scheduled at the same time
-              return
-              // special case where children are scheduled for a different time than the parent (in the same day)
-            }
-            toList.push(childTask)
-            addChildren(childTask, toList)
-          })
-      }
 
       for (let task of allTasksScheduledForToday) {
         const children: TaskProps[] = []
-        addChildren(task, children)
-        addToBlocks(task, children)
+        addChildren(state, task, children)
+        addToBlocks(startDate, blocksByTime, task, children)
       }
     })
 

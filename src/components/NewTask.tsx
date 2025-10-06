@@ -4,13 +4,6 @@ import { act, useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { shallow } from 'zustand/shallow'
 import { AppState, getters, setters, useAppStore } from '../app/store'
-import {
-  convertSearchToRegExp,
-  getHeading,
-  parseFileFromPath,
-  parseFolderFromPath,
-  splitHeading,
-} from '../services/util'
 import Button from './Button'
 import Droppable from './Droppable'
 import { TaskActions } from 'src/types/enums'

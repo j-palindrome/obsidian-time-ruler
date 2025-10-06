@@ -496,3 +496,40 @@ export const getStartDate = (time: DateTime) => {
 
 export const hasPriority = (task: TaskProps) =>
   task.priority !== undefined && task.priority !== TaskPriorities.DEFAULT
+
+export const addChildren = (
+  state: AppState,
+  task: TaskProps,
+  toList: TaskProps[]
+) => {
+  ;(task.children ?? []).concat(task.queryChildren ?? []).forEach((childId) => {
+    const childTask = state.tasks[childId]
+    if (!childTask) return
+    if (!state.settings.unScheduledSubtasks && !childTask.scheduled) return
+    if (childTask.scheduled && childTask.scheduled !== task.scheduled) {
+      // not scheduled at the same time
+      return
+      // special case where children are scheduled for a different time than the parent (in the same day)
+    }
+    toList.push(childTask)
+    addChildren(state, childTask, toList)
+  })
+}
+
+export const addToBlocks = (
+  startDate,
+  blocksByTime,
+  task: TaskProps,
+  childList: TaskProps[]
+) => {
+  const scheduled = task.scheduled! < startDate ? startDate : task.scheduled
+  if (blocksByTime[scheduled!])
+    blocksByTime[scheduled!].tasks.push(task, ...childList)
+  else
+    blocksByTime[scheduled!] = {
+      startISO: scheduled!,
+      tasks: [task, ...childList],
+      events: [],
+      blocks: [],
+    }
+}

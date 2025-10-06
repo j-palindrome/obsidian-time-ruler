@@ -1,19 +1,27 @@
 import { useAppStore } from 'src/app/store'
 import { Timer } from './Timer'
-import { isDateISO, roundMinutes, toISO } from 'src/services/util'
+import {
+  addChildren,
+  addToBlocks,
+  isDateISO,
+  roundMinutes,
+  toISO,
+} from 'src/services/util'
 import { filter, groupBy, sortBy } from 'lodash'
 import { DateTime } from 'luxon'
-import Block from './Block'
+import Block, { BlockProps } from './Block'
 import { useState } from 'react'
 import Starred from './Starred'
 import Droppable from './Droppable'
+import { nestTasks } from 'src/services/nestTasks'
 
 export default function Now() {
   const now = toISO(roundMinutes(DateTime.now()))
   const today = toISO(roundMinutes(DateTime.now()), true)
   const starred = useAppStore((state) => state.starred)
-  const nowTasks = useAppStore((state) =>
-    filter(
+  const blocksByTime: Record<string, BlockProps> = useAppStore((state) => {
+    const blocksByTime: Record<string, BlockProps> = {}
+    const nowTasks = filter(
       state.tasks,
       (task) =>
         !!task.scheduled &&
@@ -21,11 +29,16 @@ export default function Now() {
         task.scheduled <= now &&
         !starred.includes(task.id)
     )
-  )
-  const scheduledTimes = groupBy(nowTasks, 'scheduled')
-  const blocksByTime = sortBy(Object.entries(scheduledTimes), 0).map(
-    (x) => x[1]
-  )
+    const children = [] as any[]
+    nowTasks.forEach((task) => {
+      addChildren(state, task, children)
+      addToBlocks(today, blocksByTime, task, children)
+    })
+    for (let key in blocksByTime) {
+      blocksByTime[key].tasks = nestTasks(blocksByTime[key].tasks, state.tasks)
+    }
+    return blocksByTime
+  })
 
   return (
     <div className={`flex flex-col h-full w-full overflow-hidden relative`}>
@@ -35,13 +48,13 @@ export default function Now() {
         <Droppable id='now-heading' data={{ scheduled: now }}>
           <div className='font-bold text-accent mb-1 w-full'>Now</div>
         </Droppable>
-        {blocksByTime.map((tasks, index) => {
+        {Object.entries(blocksByTime).map(([key, tasks]) => {
           return (
             <Block
-              key={tasks[0].scheduled}
-              dragContainer={`now-${tasks[0].scheduled}`}
-              startISO={tasks[0].scheduled!}
-              tasks={tasks}
+              key={key}
+              dragContainer={`now-${key}`}
+              startISO={key}
+              tasks={tasks.tasks}
               events={[]}
               type='event'
               blocks={[]}

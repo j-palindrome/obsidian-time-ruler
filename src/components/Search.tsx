@@ -75,7 +75,13 @@ export default function Search() {
       ...new Set(
         Object.values(state.tasks)
           .filter((task) => !task.page)
-          .map((task) => getHeading(task, state.dailyNoteInfo, 'path'))
+          .flatMap((task) => {
+            const heading = getHeading(task, state.dailyNoteInfo, 'path')
+            if (heading.includes('#')) {
+              return [heading, heading.replace(/#.+$/, '')]
+            }
+            return [heading]
+          })
       ),
     ]
   }, shallow)

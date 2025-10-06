@@ -81,21 +81,28 @@ export function Timer() {
       if (getters.getApp().isMobile) {
         try {
           // @ts-ignore
-          Capacitor.registerPlugin('LocalNotifications')
-          // @ts-ignore
-          const localNotifications = Capacitor.Plugins.localNotifications
+          const Capacitor = window.Capacitor
+          if (!Capacitor.Plugins.LocalNotifications) {
+            Capacitor.registerPlugin('LocalNotifications')
+          }
+          const localNotifications = Capacitor.Plugins.LocalNotifications
           // LocalNotifications.unscheduled()
+          new Notice(`scheduled ${endDate.toLocaleString()}`)
           localNotifications.schedule({
             notifications: [
               {
                 title: 'Timer complete',
                 id: 1,
                 schedule: {
-                  at: endDate,
+                  at: new Date(endDate.toLocaleString()),
                 },
+                allowWhileIdle: true,
               },
             ],
           })
+          new Notice(
+            `finished scheduling ${new Date(endDate.toLocaleString())}`
+          )
         } catch (error) {
           new Notice(error.message)
         }
