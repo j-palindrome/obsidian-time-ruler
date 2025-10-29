@@ -1,4 +1,4 @@
-import _, { add, filter, groupBy, omit } from 'lodash'
+import _, { add, filter, groupBy, isDate, omit } from 'lodash'
 import { DateTime } from 'luxon'
 import { useEffect, useRef, useState } from 'react'
 import invariant from 'tiny-invariant'
@@ -70,7 +70,10 @@ export default function Day({
         return (
           !task.completed &&
           (task.scheduled
-            ? (isDateISO(task.scheduled) && task.scheduled <= startDate) ||
+            ? (isDateISO(task.scheduled) &&
+                (!isNow
+                  ? task.scheduled === startDate
+                  : task.scheduled <= startDate)) ||
               (!isDateISO(task.scheduled) &&
                 task.scheduled >= startISO &&
                 task.scheduled < endISO)
@@ -98,7 +101,9 @@ export default function Day({
           (showingPastDates ? event.startISO <= now : event.endISO >= now)
       return shouldInclude
     })) {
-      if (blocksByTime[event.startISO])
+      if (isDateISO(event.startISO)) {
+        blocksByTime[startDate].events.push(event)
+      } else if (blocksByTime[event.startISO])
         blocksByTime[event.startISO].events.push(event)
       else
         blocksByTime[event.startISO] = {
