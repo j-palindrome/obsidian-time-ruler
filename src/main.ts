@@ -21,6 +21,18 @@ import { roundMinutes, toISO } from './services/util'
 // import './tests/parser.test'
 
 type TimeRulerSettings = {
+  google: Record<
+    string,
+    {
+      accessToken?: string
+      refreshToken?: string
+      expiresIn?: number
+      calendarIds: Record<
+        string,
+        { show: boolean; calendar: { summary: string } }
+      >
+    }
+  >
   calendars: string[]
   fieldFormat: FieldFormat['main']
   muted: boolean
@@ -49,6 +61,7 @@ type TimeRulerSettings = {
 }
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
+  google: {},
   calendars: [],
   fieldFormat: 'dataview',
   muted: false,
@@ -89,6 +102,26 @@ export default class TimeRulerPlugin extends Plugin {
     this.addSettingTab(new SettingsTab(this, this.app))
 
     this.registerView(TIME_RULER_VIEW, (leaf) => new TimeRulerView(leaf, this))
+
+    // Register deeplink handler for Google OAuth tokens
+    this.registerObsidianProtocolHandler(
+      'time-ruler-google-auth',
+      async (params) => {
+        const { accessToken, refreshToken, expiresIn, email } = params
+        if (!accessToken) {
+          new Notice('Missing access token')
+          return
+        }
+        this.settings.google[email] = {
+          accessToken,
+          refreshToken,
+          expiresIn: expiresIn ? parseInt(expiresIn) : undefined,
+          calendarIds: this.settings.google[email]?.calendarIds || {},
+        }
+        await this.saveSettings()
+        new Notice('Google Calendar tokens saved successfully')
+      }
+    )
 
     this.addCommand({
       icon: 'ruler',

@@ -2,7 +2,7 @@ import { STask } from 'obsidian-dataview'
 import { GroupComponentProps } from '../components/Group'
 import { TaskComponentProps } from '../components/Task'
 import { BlockComponentProps } from 'src/components/Block'
-
+/// <reference types="vite/client" />
 declare global {
   type FieldFormat = {
     main: 'dataview' | 'full-calendar' | 'tasks' | 'simple' | 'kanban'
@@ -21,6 +21,7 @@ declare global {
     notes?: string
     location?: string
     type: 'event'
+    editable?: false | string
   }
 
   type TaskProps = {

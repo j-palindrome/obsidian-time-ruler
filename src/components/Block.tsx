@@ -118,7 +118,6 @@ export default function Block({
   const hideTimes = useAppStore(
     (state) => state.settings.hideTimes || state.settings.viewMode === 'week'
   )
-  const draggable = tasks.length > 0
 
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const firstEndISO = blocks[0]?.startISO || endISO
@@ -143,7 +142,7 @@ export default function Block({
         className={`relative w-full rounded-icon ${
           type !== 'child' ? 'bg-code pb-2' : ''
         } ${type === 'event' ? 'mt-1' : ''}`}
-        ref={draggable ? setNodeRef : undefined}
+        ref={setNodeRef}
       >
         {!['child', 'unscheduled'].includes(type) && (
           <Droppable

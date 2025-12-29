@@ -47,16 +47,18 @@ export default class TimeRulerView extends ItemView {
       },
       this.app
     )
-    this.calendarLinkAPI = new CalendarAPI(this.plugin.settings, (calendar) => {
-      _.pull(this.plugin.settings.calendars, calendar)
-      this.plugin.saveSettings()
-    })
-
+    this.calendarLinkAPI = new CalendarAPI(
+      this.plugin.settings,
+      this.plugin,
+      (calendar) => {
+        _.pull(this.plugin.settings.calendars, calendar)
+        this.plugin.saveSettings()
+      }
+    )
     this.obsidianAPI.load()
     this.calendarLinkAPI.load()
 
     this.root = createRoot(this.containerEl.children[1])
-    
 
     this.root.render(
       <React.StrictMode>

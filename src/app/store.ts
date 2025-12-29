@@ -7,7 +7,6 @@ import { TaskActions } from '../types/enums'
 import TimeRulerPlugin, { DEFAULT_SETTINGS } from '../main'
 import { DateTime } from 'luxon'
 import _ from 'lodash'
-import { parseFileFromPath } from '../services/util'
 
 export type ViewMode =
   | 'all'
@@ -156,6 +155,18 @@ export const setters = {
   patchTimer: (timer: Partial<AppState['timer']>) => {
     modify((state) => {
       state.timer = { ...state.timer, ...timer }
+    })
+  },
+  patchEvents: (events: Record<string, Partial<EventProps>>) => {
+    modify((state) => {
+      for (let id in events) {
+        state.events[id] = { ...state.events[id], ...events[id] }
+      }
+    })
+  },
+  deleteEvent: (event: string) => {
+    modify((state) => {
+      delete state.events[event]
     })
   },
 }

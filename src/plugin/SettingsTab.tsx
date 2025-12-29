@@ -8,11 +8,13 @@ import {
   TextComponent,
   ValueComponent,
   request,
+  requestUrl,
   setIcon,
 } from 'obsidian'
 import { useEffect, useRef } from 'react'
 import { Root, createRoot } from 'react-dom/client'
 import TimeRulerPlugin from '../main'
+import { log } from 'console'
 
 const WEBCAL = 'webcal'
 
@@ -333,6 +335,60 @@ export default class SettingsTab extends PluginSettingTab {
           this.plugin.saveSettings()
         })
       )
+
+    new Setting(containerEl)
+      .setName('Google API Token')
+      .setDesc(
+        'Paste your Google API token to enable Google Calendar integration.'
+      )
+      .addButton((button) => {
+        button.setButtonText('Sign In with Google')
+        button.onClick(() => {
+          window.open('http://localhost:3000/auth/google', '_blank')
+        })
+      })
+
+    // Google Calendars section
+    const googleCalendarsContainer = containerEl.appendChild(createEl('div'))
+    googleCalendarsContainer.style.marginTop = '20px'
+    googleCalendarsContainer.appendChild(
+      createEl('h3', { text: 'Google Calendars' })
+    )
+
+    const calendarsListContainer = googleCalendarsContainer.appendChild(
+      createEl('div')
+    )
+    calendarsListContainer.style.paddingLeft = '10px'
+    Object.entries(this.plugin.settings.google).forEach(
+      ([id, { calendarIds }]) => {
+        Object.entries(calendarIds).forEach(
+          ([calendarId, { show, calendar }]) => {
+            new Setting(calendarsListContainer)
+              .setName(calendar.summary)
+              .addToggle((toggle) =>
+                toggle.setValue(show).onChange((value) => {
+                  this.plugin.settings.google = {
+                    ...this.plugin.settings.google,
+                    [id]: {
+                      ...this.plugin.settings.google[id],
+                      calendarIds: {
+                        ...this.plugin.settings.google[id].calendarIds,
+                        [calendarId]: {
+                          ...this.plugin.settings.google[id].calendarIds[
+                            calendarId
+                          ],
+                          show: value,
+                        },
+                      },
+                    },
+                  }
+                  this.plugin.saveSettings()
+                })
+              )
+          }
+        )
+      }
+    )
 
     let newCalendarLink: TextComponent
     new Setting(containerEl)

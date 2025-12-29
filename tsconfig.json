@@ -15,7 +15,8 @@
     "jsx": "react-jsx",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "jsxImportSource": "react"
+    "jsxImportSource": "react",
+    "types": ["vite/client"]
   },
-  "include": ["src", "packages"]
+  "include": ["src", "packages", "server", "server"]
 }

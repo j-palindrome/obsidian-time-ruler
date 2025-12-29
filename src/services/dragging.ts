@@ -86,6 +86,16 @@ export const onDragEnd = async (
             if (!confirm(`Delete ${children.length} tasks and children?`)) break
           }
 
+          if (dragData.dragType === 'block') {
+            dragData.events.forEach((event) => {
+              if (event.editable) {
+                getters
+                  .getCalendarAPI()
+                  .deleteEvent(event.calendarId, event.id, event.editable)
+              }
+            })
+          }
+
           await getters.getObsidianAPI().deleteTasks(children.reverse())
           break
       }
@@ -134,6 +144,23 @@ export const onDragEnd = async (
 
         case 'block':
         case 'group':
+          if (dragData.dragType === 'block') {
+            if (dragData.events[0]?.editable && dropData.scheduled) {
+              const event = dragData.events[0]
+              const eventDuration = DateTime.fromISO(event.endISO).diff(
+                DateTime.fromISO(event.startISO)
+              )
+              const newEndTime = DateTime.fromISO(dropData.scheduled)
+                .plus(eventDuration)
+                .toISO()!
+              getters.getCalendarAPI().modifyEvent({
+                ...event,
+                startISO: dropData.scheduled,
+                endISO: newEndTime,
+              })
+            }
+          }
+
           setters.patchTasks(
             dragData.tasks.map((x) => x.id),
             dropData
