@@ -14,6 +14,7 @@ import {
 import invariant from 'tiny-invariant'
 import { parseFileFromPath } from './util'
 import { getDailyNoteInfo } from './obsidianApi'
+import { Notice } from 'obsidian'
 
 export const onDragEnd = async (
   ev: DragEndEvent,
@@ -105,17 +106,49 @@ export const onDragEnd = async (
           const obsidianApi = getters.getObsidianAPI()
 
           // Use the dropped time as the scheduled time
-          obsidianApi.createNewTask(
-            {
-              originalTitle: dragData.title,
-              scheduled:
-                dropData.scheduled === TaskActions.DELETE
-                  ? undefined
-                  : dropData.scheduled,
-            },
-            dragData.path || null,
-            getters.get('dailyNoteInfo')
-          )
+          if (dragData.calendar) {
+            if (!dropData.scheduled) return
+            const eventDuration = { hour: 1, minute: 0 }
+            const startTime = DateTime.fromISO(dropData.scheduled)
+            const endTime = startTime
+              .plus({
+                hours: eventDuration.hour,
+                minutes: eventDuration.minute,
+              })
+              .toISO()!
+
+            const calendarResponse = await getters.getCalendarAPI().createEvent(
+              {
+                title: dragData.title,
+                startISO: dropData.scheduled,
+                endISO: endTime,
+                calendarId: dragData.calendar.id,
+              },
+              dragData.calendar.email
+            )
+            setters.patchEvents({
+              [calendarResponse.id]: {
+                editable: dragData.calendar.email,
+                startISO: dropData.scheduled,
+                endISO: endTime,
+                title: dragData.title,
+                calendarId: dragData.calendar.id,
+                id: calendarResponse.id,
+              },
+            })
+          } else {
+            obsidianApi.createNewTask(
+              {
+                originalTitle: dragData.title,
+                scheduled:
+                  dropData.scheduled === TaskActions.DELETE
+                    ? undefined
+                    : dropData.scheduled,
+              },
+              dragData.path || null,
+              getters.get('dailyNoteInfo')
+            )
+          }
 
           break
         case 'time':

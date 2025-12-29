@@ -98,7 +98,11 @@ declare global {
       })
     | ({ dragType: 'time' } & { start: string; end?: string })
     | ({ dragType: 'due' } & { task: TaskProps })
-    | ({ dragType: 'new-task' } & { title: string; path?: string })
+    | ({ dragType: 'new-task' } & {
+        title: string
+        path?: string
+        calendar?: { email: string; id: string }
+      })
 
   type DropData =
     | Partial<TaskProps>

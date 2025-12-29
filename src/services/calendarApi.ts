@@ -440,4 +440,30 @@ export default class CalendarAPI extends Component {
     )
     setters.deleteEvent(eventId)
   }
+
+  async createEvent(eventData: Partial<EventProps>, email: string) {
+    if (!this.plugin.settings.google[email].accessToken) {
+      throw new Error('Google API token not configured in settings')
+    }
+
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
+      eventData.calendarId!
+    )}/events?key=${encodeURIComponent(GOOGLE_API_KEY || '')}`
+
+    const response = await this.request(
+      {
+        url,
+        method: 'POST',
+        body: JSON.stringify({
+          summary: eventData.title,
+          start: { dateTime: DateTime.fromISO(eventData.startISO!).toISO() },
+          end: { dateTime: DateTime.fromISO(eventData.endISO!).toISO() },
+        }),
+      },
+      email
+    )
+
+    const json = await response.json
+    return json
+  }
 }

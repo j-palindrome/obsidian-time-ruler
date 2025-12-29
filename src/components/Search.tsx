@@ -124,6 +124,24 @@ export default function Search() {
     )
   }, [headingFilterText])
 
+  const [addEvent, setAddEvent] = useState<{
+    email: string
+    id: string
+  } | null>(null)
+  const [showCalendarSelector, setShowCalendarSelector] = useState(false)
+  const availableCalendars = useMemo(() => {
+    const cals = getters.getObsidianAPI().getSetting('google')
+    let calIds = {}
+    for (let name in cals) {
+      calIds[name] = sortBy(
+        Object.entries(cals[name].calendarIds)
+          .filter((x) => x[1].show)
+          .map((x) => ({ name: x[1].calendar.summary, id: x[0], email: name })),
+        'name'
+      )
+    }
+    return calIds
+  }, [])
   const data: DragData = {
     dragType: 'new-task',
     title: search || 'Untitled',
@@ -131,6 +149,7 @@ export default function Search() {
       headingFilterText && filteredHeadings.length > 0
         ? filteredHeadings[0]
         : '',
+    calendar: addEvent ? { email: addEvent.email, id: addEvent.id } : undefined,
   }
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: 'search-input',
@@ -212,6 +231,20 @@ export default function Search() {
                 placeholder='task'
                 ref={input}
               />
+
+              <Button
+                className={`w-8 h-8 bg-grey-500/50 !cursor-pointer rounded-full flex-none ${
+                  showCalendarSelector ? '!bg-accent' : ''
+                }`}
+                onClick={() => {
+                  if (showCalendarSelector && addEvent) {
+                    setAddEvent(null)
+                  }
+                  setShowCalendarSelector(!showCalendarSelector)
+                }}
+                src={'calendar'}
+              ></Button>
+
               <Button
                 className='w-8 h-8 bg-grey-500/50 !cursor-grab rounded-full flex-none'
                 ref={setNodeRef}
@@ -223,6 +256,29 @@ export default function Search() {
           </>
         ) : (
           <div className='font-bold text-lg px-2 py-1'>{movingTask?.title}</div>
+        )}
+        {showCalendarSelector && (
+          <div className='w-full bg-black/20 backdrop-blur-lg rounded-lg z-50 p-2 overflow-x-auto h-fit flex-none'>
+            <div className='flex gap-2 whitespace-nowrap'>
+              {Object.entries(availableCalendars).flatMap(([email, cals]) =>
+                cals.map((cal) => (
+                  <Button
+                    key={`${email}-${cal.id}`}
+                    className={`flex-none px-2 py-1 rounded-lg text-xs whitespace-nowrap ${
+                      addEvent?.email === email && addEvent?.id === cal.id
+                        ? '!bg-accent !text-primary'
+                        : 'bg-grey-500/50'
+                    }`}
+                    onClick={() => {
+                      setAddEvent({ email, id: cal.id })
+                    }}
+                  >
+                    {cal.name}
+                  </Button>
+                ))
+              )}
+            </div>
+          </div>
         )}
 
         <div className='prompt-input-container px-1 group !flex !flex-col relative'>
