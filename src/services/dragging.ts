@@ -240,4 +240,7 @@ export const onDragStart = (ev: DragStartEvent) => {
   setters.set({
     dragData: ev.active.data.current as DragData,
   })
+  if (ev.active.data.current?.dragType === 'new-task') {
+    setters.setSearch('')
+  }
 }

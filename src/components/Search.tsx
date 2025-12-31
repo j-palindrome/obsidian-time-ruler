@@ -327,11 +327,11 @@ export default function Search() {
           </div>
         )}
         {pathSegments.length > 0 && (
-          <div className='flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 '>
+          <div className='relative flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 '>
             <Button
               className={`${
                 !filter.pathSegment ? '!bg-accent !text-primary' : ''
-              } flex-none`}
+              } flex-none rounded-full sticky left-0  backdrop-blur`}
               onClick={() => {
                 setFilter({ ...filter, pathSegment: undefined })
               }}
@@ -345,7 +345,7 @@ export default function Search() {
                   filter.pathSegment === segment
                     ? '!bg-accent !text-primary'
                     : ''
-                } flex-none`}
+                } flex-none rounded-full`}
                 onClick={() => {
                   setFilter({ ...filter, pathSegment: segment })
                 }}
@@ -356,11 +356,11 @@ export default function Search() {
           </div>
         )}
 
-        <div className='flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1'>
+        <div className='flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 relative'>
           <Button
             className={`${
               !headingFilterText ? '!bg-accent !text-primary' : ''
-            } flex-none`}
+            } flex-none rounded-full sticky left-0 backdrop-blur`}
             onClick={() => {
               setters.setHeadingFilterText('')
             }}
@@ -376,7 +376,7 @@ export default function Search() {
                   headingFilterText === headingText
                     ? '!bg-accent !text-primary'
                     : ''
-                } flex-none`}
+                } flex-none rounded-full`}
                 onClick={async () => {
                   if (movingTask) {
                     const obsidianApi = getters.getObsidianAPI()
@@ -402,7 +402,7 @@ export default function Search() {
                   filter.scheduled.type === undefined
                     ? '!bg-accent !text-primary'
                     : ''
-                }`}
+                } flex-none rounded-full`}
                 onClick={(ev) => {
                   setFilter({
                     due: { type: undefined, value: undefined },
@@ -418,7 +418,7 @@ export default function Search() {
                   filter.scheduled.type === '!'
                     ? '!bg-accent !text-primary'
                     : ''
-                }`}
+                } flex-none rounded-full`}
                 onClick={(ev) => {
                   setFilter({
                     ...filter,
@@ -433,7 +433,7 @@ export default function Search() {
                   filter.scheduled.type === '!!'
                     ? '!bg-accent !text-primary'
                     : ''
-                }`}
+                } flex-none rounded-full`}
                 onClick={(ev) => {
                   setFilter({
                     ...filter,
@@ -446,7 +446,7 @@ export default function Search() {
               <Button
                 className={`${
                   filter.due.type === '!!' ? '!bg-accent !text-primary' : ''
-                }`}
+                } flex-none rounded-full`}
                 onClick={(ev) => {
                   setFilter({
                     ...filter,
