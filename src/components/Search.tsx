@@ -326,65 +326,77 @@ export default function Search() {
             </div>
           </div>
         )}
-
-        <div className='prompt-input-container px-1 group !flex !flex-col relative'>
-          <input
-            placeholder='heading'
-            className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
-            style={{ fontFamily: 'var(--font-interface)' }}
-            value={headingFilterText}
-            onChange={(ev) => setters.setHeadingFilterText(ev.target.value)}
-            onFocus={() => setHeadingInputFocused(true)}
-            onBlur={() => setHeadingInputFocused(false)}
-          />
-          {headingFilterText && (
+        {pathSegments.length > 0 && (
+          <div className='flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 '>
             <Button
-              className='w-8 h-8 bg-grey-500/50 !cursor-pointer rounded-full flex-none absolute right-1'
-              onClick={() => setters.setHeadingFilterText('')}
-              src={'circle-x'}
-            ></Button>
-          )}
-            {filteredHeadings.map((heading) => {
-              const [container, headingText] = splitHeading(heading)
-              return (
-                <div
-                  key={heading}
-                  className={`selectable flex rounded-icon font-menu text-xs group w-full py-1 px-2`}
-                >
-                  <div
-                    className={`w-full flex items-center`}
-                    onClick={async () => {
-                      if (movingTask) {
-                        const obsidianApi = getters.getObsidianAPI()
-                        await obsidianApi.moveTask(
-                          movingTask as TaskProps,
-                          heading
-                        )
-                        setters.set({ newTask: null, searchStatus: false })
-                      } else {
-                        setters.setHeadingFilterText(headingText)
-                      }
-                      setHeadingInputFocused(false)
-                    }}
-                  >
-                    <div
-                      className={`w-fit flex-none max-w-[50%] text-normal truncate ${
-                        !heading.includes('#') ? '!text-accent' : 'indent-4'
-                      }`}
-                    >
-                      {headingText}
-                    </div>
-                    <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
-                  </div>
-                </div>
-              )
-            })}
+              className={`${
+                !filter.pathSegment ? '!bg-accent !text-primary' : ''
+              } flex-none`}
+              onClick={() => {
+                setFilter({ ...filter, pathSegment: undefined })
+              }}
+            >
+              All Paths
+            </Button>
+            {pathSegments.map((segment) => (
+              <Button
+                key={segment}
+                className={`${
+                  filter.pathSegment === segment
+                    ? '!bg-accent !text-primary'
+                    : ''
+                } flex-none`}
+                onClick={() => {
+                  setFilter({ ...filter, pathSegment: segment })
+                }}
+              >
+                {segment}
+              </Button>
+            ))}
           </div>
+        )}
+
+        <div className='flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1'>
+          <Button
+            className={`${
+              !headingFilterText ? '!bg-accent !text-primary' : ''
+            } flex-none`}
+            onClick={() => {
+              setters.setHeadingFilterText('')
+            }}
+          >
+            All Headings
+          </Button>
+          {filteredHeadings.map((heading) => {
+            const [container, headingText] = splitHeading(heading)
+            return (
+              <Button
+                key={heading}
+                className={`${
+                  headingFilterText === headingText
+                    ? '!bg-accent !text-primary'
+                    : ''
+                } flex-none`}
+                onClick={async () => {
+                  if (movingTask) {
+                    const obsidianApi = getters.getObsidianAPI()
+                    await obsidianApi.moveTask(movingTask as TaskProps, heading)
+                    setters.set({ newTask: null, searchStatus: false })
+                  } else {
+                    setters.setHeadingFilterText(headingText)
+                  }
+                  setHeadingInputFocused(false)
+                }}
+              >
+                {headingText}
+              </Button>
+            )
+          })}
         </div>
 
         {!movingTask && (
           <>
-            <div className='flex w-full px-4 space-x-2'>
+            <div className='flex w-full px-2 space-x-2 mt-1'>
               <Button
                 className={`${
                   filter.scheduled.type === undefined
@@ -445,35 +457,7 @@ export default function Search() {
                 Upcoming
               </Button>
             </div>
-            {pathSegments.length > 0 && (
-              <div className='flex w-full px-4 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 '>
-                <Button
-                  className={`${
-                    !filter.pathSegment ? '!bg-accent !text-primary' : ''
-                  } flex-none`}
-                  onClick={() => {
-                    setFilter({ ...filter, pathSegment: undefined })
-                  }}
-                >
-                  All Paths
-                </Button>
-                {pathSegments.map((segment) => (
-                  <Button
-                    key={segment}
-                    className={`${
-                      filter.pathSegment === segment
-                        ? '!bg-accent !text-primary'
-                        : ''
-                    } flex-none`}
-                    onClick={() => {
-                      setFilter({ ...filter, pathSegment: segment })
-                    }}
-                  >
-                    {segment}
-                  </Button>
-                ))}
-              </div>
-            )}
+
             <div className='prompt-results'>
               <Block
                 type='all-day'
