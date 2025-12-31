@@ -22,6 +22,7 @@ export const onDragEnd = async (
 ) => {
   const dropData = ev.over?.data.current as DropData | undefined
   const dragData = activeDragRef.current
+
   if (ev.active.id === ev.over?.id) {
     setters.set({ dragData: null })
     return
@@ -101,6 +102,8 @@ export const onDragEnd = async (
           break
       }
     } else {
+      console.log('dragging things')
+
       switch (dragData.dragType) {
         case 'new-task':
           const obsidianApi = getters.getObsidianAPI()
@@ -174,7 +177,28 @@ export const onDragEnd = async (
             })
           }
           break
+        case 'event-length':
+          console.log('dropped event')
 
+          invariant(dragData.events.length > 0, 'No events to modify')
+          const event = dragData.events[0]
+          if (!event.editable) {
+            new Notice('This event is not editable.')
+            break
+          }
+          const startTime = DateTime.fromISO(event.startISO)
+          const newEndTime = DateTime.fromISO(dropData.scheduled!)
+          if (newEndTime <= startTime) {
+            new Notice('End time must be after start time.')
+            break
+          }
+          console.log('modifying', event)
+
+          getters.getCalendarAPI().modifyEvent({
+            ...event,
+            endISO: dropData.scheduled,
+          })
+          break
         case 'block':
         case 'group':
           if (dragData.dragType === 'block') {

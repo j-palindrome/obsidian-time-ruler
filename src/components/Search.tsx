@@ -37,6 +37,8 @@ export default function Search() {
   const tasks = useAppStore((state) => state.tasks)
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
+  const search = useAppStore((state) => state.search)
+  const headingFilterText = useAppStore((state) => state.headingFilterText)
   const allTasks: [string[], TaskProps][] = useMemo(
     () =>
       _.sortBy(
@@ -44,19 +46,35 @@ export default function Search() {
           (task) => showCompleted || task.completed === showingPastDates
         ),
         'id'
-      ).map((task) => [
-        [
-          (task.page ? parseFolderFromPath(task.path) : task.path) + task.title,
-          task.tags.map((x) => '#' + x).join(' '),
-          task.notes ?? '',
-          priorityNumberToKey[task.priority],
-          task.status,
-        ],
-        task,
-      ]),
+      ).map((task) => {
+        if (task.path.includes('AMS Work')) {
+          console.log(
+            (task.page ? parseFolderFromPath(task.path) : task.path).replace(
+              '.md',
+              ''
+            ) +
+              '/' +
+              task.title
+          )
+        }
+        return [
+          [
+            (task.page ? parseFolderFromPath(task.path) : task.path).replace(
+              '.md',
+              ''
+            ) +
+              '/' +
+              task.title,
+            task.tags.map((x) => '#' + x).join(' '),
+            task.notes ?? '',
+            priorityNumberToKey[task.priority],
+            task.status,
+          ],
+          task,
+        ]
+      }),
     [tasks]
   )
-  const [search, setSearch] = useState('')
   const searchExp = convertSearchToRegExp(search)
   const gatherChildren = (task: TaskProps): TaskProps[] => {
     return !task
@@ -68,23 +86,6 @@ export default function Search() {
             .flatMap((x) => gatherChildren(tasks[x])),
         ]
   }
-
-  const [headingFilterText, setHeadingFilterText] = useState('')
-  const allHeadings = useAppStore((state) => {
-    return [
-      ...new Set(
-        Object.values(state.tasks)
-          .filter((task) => !task.page)
-          .flatMap((task) => {
-            const heading = getHeading(task, state.dailyNoteInfo, 'path')
-            if (heading.includes('#')) {
-              return [heading, heading.replace(/#.+$/, '')]
-            }
-            return [heading]
-          })
-      ),
-    ]
-  }, shallow)
 
   let foundTasks = allTasks
     .filter(
@@ -100,35 +101,106 @@ export default function Search() {
     .map((x) => x[1])
     .flatMap((task) => gatherChildren(task))
 
+  // Extract unique first path segments
+  const pathSegments = useMemo(() => {
+    const segments = new Set<string>()
+    foundTasks.forEach((task) => {
+      const path = task.page ? parseFolderFromPath(task.path) : task.path
+      if (path) {
+        const firstSegment = path.split('/')[0]
+        if (firstSegment) segments.add(firstSegment)
+      }
+    })
+    return Array.from(segments).sort()
+  }, [foundTasks])
+
+  type Filter = {
+    type: '!!' | '!' | '=' | undefined
+    value: string | undefined
+  }
+  const [filter, setFilter] = useState<{
+    scheduled: Filter
+    due: Filter
+    pathSegment?: string
+  }>({
+    scheduled: { type: undefined, value: undefined },
+    due: { type: undefined, value: undefined },
+    pathSegment: undefined,
+  })
+
+  foundTasks = foundTasks.filter((task) => {
+    if (!isUndefined(filter.scheduled.type)) {
+      switch (filter.scheduled.type) {
+        case '!!':
+          if (!task.scheduled) return false
+          break
+        case '!':
+          if (task.scheduled) return false
+          break
+      }
+    }
+    if (!isUndefined(filter.due.type)) {
+      switch (filter.due.type) {
+        case '!!':
+          if (!task.due) return false
+          break
+        case '!':
+          if (task.due) return false
+          break
+      }
+    }
+    if (filter.pathSegment) {
+      const path = task.path
+      const segments = path.split('/')
+      if (!segments.some((x) => x === filter.pathSegment)) return false
+    }
+    return true
+  })
+
+  const allHeadings = useAppStore((state) => {
+    return [
+      ...new Set(
+        Object.values(foundTasks)
+          .filter((task) => !task.page)
+          .map((task) => {
+            const heading = getHeading(task, state.dailyNoteInfo, 'path')
+            if (heading.includes('#')) {
+              return heading.replace(/#.+$/, '')
+            }
+            return heading
+          })
+      ),
+    ]
+  }, shallow)
+
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => input.current?.focus(), [])
 
-  const filteredHeadings = useMemo(() => {
-    const exp = convertSearchToRegExp(headingFilterText)
-    return sortBy(
-      allHeadings.filter((x) => exp.test(x)),
-      (heading) => {
-        if (!headingFilterText) return heading
-        let match = 0
-        let score = 0
-        for (let letter of heading) {
-          if (letter === headingFilterText[match]) {
-            match++
-            if (match >= headingFilterText.length) break
-          } else {
-            score++
-          }
+  const exp = convertSearchToRegExp(headingFilterText)
+  const filteredHeadings = sortBy(
+    allHeadings.filter((x) => exp.test(x)),
+    (heading) => {
+      if (!headingFilterText) return heading
+      let match = 0
+      let score = 0
+      for (let letter of heading) {
+        if (letter === headingFilterText[match]) {
+          match++
+          if (match >= headingFilterText.length) break
+        } else {
+          score++
         }
-        return score
       }
-    )
-  }, [headingFilterText])
+      return score
+    }
+  )
 
   const [addEvent, setAddEvent] = useState<{
     email: string
     id: string
   } | null>(null)
   const [showCalendarSelector, setShowCalendarSelector] = useState(false)
+  const [headingInputFocused, setHeadingInputFocused] = useState(false)
   const availableCalendars = useMemo(() => {
     const cals = getters.getObsidianAPI().getSetting('google')
     let calIds = {}
@@ -165,40 +237,6 @@ export default function Search() {
     }
   }, [display])
 
-  type Filter = {
-    type: '!!' | '!' | '=' | undefined
-    value: string | undefined
-  }
-  const [filter, setFilter] = useState<{ scheduled: Filter; due: Filter }>({
-    scheduled: { type: undefined, value: undefined },
-    due: { type: undefined, value: undefined },
-  })
-  useMemo(() => {
-    foundTasks = foundTasks.filter((task) => {
-      if (!isUndefined(filter.scheduled.type)) {
-        switch (filter.scheduled.type) {
-          case '!!':
-            if (!task.scheduled) return false
-            break
-          case '!':
-            if (task.scheduled) return false
-            break
-        }
-      }
-      if (!isUndefined(filter.due.type)) {
-        switch (filter.due.type) {
-          case '!!':
-            if (!task.due) return false
-            break
-          case '!':
-            if (task.due) return false
-            break
-        }
-      }
-      return true
-    })
-  }, [foundTasks, filter])
-
   foundTasks = nestTasks(foundTasks, tasks)
 
   const movingTask = useAppStore((state) =>
@@ -219,7 +257,7 @@ export default function Search() {
                 className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
                 style={{ fontFamily: 'var(--font-interface)' }}
                 value={search}
-                onChange={(ev) => setSearch(ev.target.value)}
+                onChange={(ev) => setters.setSearch(ev.target.value)}
                 onKeyDown={(ev) => {
                   if (ev.key === 'Escape')
                     setters.set({ searchStatus: false, newTask: null })
@@ -231,6 +269,14 @@ export default function Search() {
                 placeholder='task'
                 ref={input}
               />
+
+              {search && (
+                <Button
+                  className='w-8 h-8 bg-grey-500/50 !cursor-pointer rounded-full flex-none'
+                  onClick={() => setters.setSearch('')}
+                  src={'circle-x'}
+                ></Button>
+              )}
 
               <Button
                 className={`w-8 h-8 bg-grey-500/50 !cursor-pointer rounded-full flex-none ${
@@ -261,7 +307,7 @@ export default function Search() {
           <div className='w-full bg-black/20 backdrop-blur-lg rounded-lg z-50 p-2 overflow-x-auto h-fit flex-none'>
             <div className='flex gap-2 whitespace-nowrap'>
               {Object.entries(availableCalendars).flatMap(([email, cals]) =>
-                cals.map((cal) => (
+                (cals as any).map((cal) => (
                   <Button
                     key={`${email}-${cal.id}`}
                     className={`flex-none px-2 py-1 rounded-lg text-xs whitespace-nowrap ${
@@ -287,21 +333,23 @@ export default function Search() {
             className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
             style={{ fontFamily: 'var(--font-interface)' }}
             value={headingFilterText}
-            onChange={(ev) => setHeadingFilterText(ev.target.value)}
+            onChange={(ev) => setters.setHeadingFilterText(ev.target.value)}
+            onFocus={() => setHeadingInputFocused(true)}
+            onBlur={() => setHeadingInputFocused(false)}
           />
-          <div
-            className={`${
-              movingTask
-                ? 'block h-[300px]'
-                : `hidden group-hover:block absolute top-9 h-[100px]`
-            } bg-black/20 backdrop-blur-lg rounded-lg z-50 w-[calc(100%-24px)] px-4 overflow-y-auto`}
-          >
+          {headingFilterText && (
+            <Button
+              className='w-8 h-8 bg-grey-500/50 !cursor-pointer rounded-full flex-none absolute right-1'
+              onClick={() => setters.setHeadingFilterText('')}
+              src={'circle-x'}
+            ></Button>
+          )}
             {filteredHeadings.map((heading) => {
               const [container, headingText] = splitHeading(heading)
               return (
                 <div
                   key={heading}
-                  className={`selectable flex rounded-icon font-menu text-xs group w-full mb-2`}
+                  className={`selectable flex rounded-icon font-menu text-xs group w-full py-1 px-2`}
                 >
                   <div
                     className={`w-full flex items-center`}
@@ -314,8 +362,9 @@ export default function Search() {
                         )
                         setters.set({ newTask: null, searchStatus: false })
                       } else {
-                        setHeadingFilterText(headingText)
+                        setters.setHeadingFilterText(headingText)
                       }
+                      setHeadingInputFocused(false)
                     }}
                   >
                     <div
@@ -346,6 +395,7 @@ export default function Search() {
                   setFilter({
                     due: { type: undefined, value: undefined },
                     scheduled: { type: undefined, value: undefined },
+                    pathSegment: undefined,
                   })
                 }}
               >
@@ -395,6 +445,35 @@ export default function Search() {
                 Upcoming
               </Button>
             </div>
+            {pathSegments.length > 0 && (
+              <div className='flex w-full px-4 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 '>
+                <Button
+                  className={`${
+                    !filter.pathSegment ? '!bg-accent !text-primary' : ''
+                  } flex-none`}
+                  onClick={() => {
+                    setFilter({ ...filter, pathSegment: undefined })
+                  }}
+                >
+                  All Paths
+                </Button>
+                {pathSegments.map((segment) => (
+                  <Button
+                    key={segment}
+                    className={`${
+                      filter.pathSegment === segment
+                        ? '!bg-accent !text-primary'
+                        : ''
+                    } flex-none`}
+                    onClick={() => {
+                      setFilter({ ...filter, pathSegment: segment })
+                    }}
+                  >
+                    {segment}
+                  </Button>
+                ))}
+              </div>
+            )}
             <div className='prompt-results'>
               <Block
                 type='all-day'

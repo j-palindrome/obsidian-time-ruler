@@ -26,6 +26,8 @@ export type AppState = {
   findingTask: string | null
   inScroll: number
   searchStatus: boolean
+  search: string
+  headingFilterText: string
 
   dailyNoteInfo: {
     format: string
@@ -71,6 +73,8 @@ export const useAppStore = createWithEqualityFn<AppState>(() => ({
   findingTask: null,
   inScroll: 0,
   searchStatus: false,
+  search: '',
+  headingFilterText: '',
   viewMode: 'day',
   fileOrder: [],
   dailyNoteInfo: {
@@ -122,6 +126,16 @@ const modify = (modifier: (state: AppState) => void) =>
 
 export const setters = {
   set: (newState: Partial<AppState>) => modify(() => newState),
+  setSearch: (search: string) => {
+    modify((state) => {
+      state.search = search
+    })
+  },
+  setHeadingFilterText: (headingFilterText: string) => {
+    modify((state) => {
+      state.headingFilterText = headingFilterText
+    })
+  },
   patchTasks: async (ids: string[], task: Partial<TaskProps>) => {
     const obsidianAPI = getters.getObsidianAPI()
     for (let id of ids) {

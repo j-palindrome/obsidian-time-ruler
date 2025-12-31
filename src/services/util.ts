@@ -207,7 +207,7 @@ export const convertSearchToRegExp = (search: string) =>
   )
 
 export const isLengthType = (type?: DragData['dragType']) =>
-  (type && type === 'task-length') || type === 'time'
+  type === 'task-length' || type === 'event-length' || type === 'time'
 
 export const removeNestedChildren = (id: string, taskList: TaskProps[]) => {
   for (let child of taskList) {

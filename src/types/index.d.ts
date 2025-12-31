@@ -103,6 +103,9 @@ declare global {
         path?: string
         calendar?: { email: string; id: string }
       })
+    | ({ dragType: 'event-length' } & {
+        events: EventProps[]
+      })
 
   type DropData =
     | Partial<TaskProps>

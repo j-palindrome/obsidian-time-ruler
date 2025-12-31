@@ -277,6 +277,8 @@ export default function App({ apis }: { apis: Required<AppState['apis']> }) {
         return <Block {...activeDrag} dragging />
       case 'due':
         return <div className='h-line p-2 text-accent'>due</div>
+      case 'event-length':
+        return <div className='h-1 w-full bg-accent rounded-full'></div>
     }
   }
 

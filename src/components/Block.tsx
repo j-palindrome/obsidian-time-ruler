@@ -104,6 +104,18 @@ export default function Block({
       data: dragData,
     })
 
+  const {
+    setNodeRef: setLengthBarRef,
+    attributes: lengthBarAttributes,
+    listeners: lengthBarListeners,
+  } = useDraggable({
+    id: `${id}::${startISO}::${type}::${dragContainer}::event-length::`,
+    data: {
+      dragType: 'event-length',
+      events,
+    } as DragData,
+  })
+
   const twentyFourHourFormat = useAppStore(
     (state) => state.settings.twentyFourHourFormat
   )
@@ -140,7 +152,7 @@ export default function Block({
         id={id}
         data-role='block'
         className={`relative w-full rounded-icon ${
-          type !== 'child' ? 'bg-code pb-2' : ''
+          type !== 'child' ? 'bg-code' : ''
         } ${type === 'event' ? 'mt-1' : ''}`}
         ref={setNodeRef}
       >
@@ -256,6 +268,14 @@ export default function Block({
 
         {blocks.length > 0 && blocks[0].startISO && endISO && (
           <Hours {...{ endISO, blocks }} startISO={blocks[0].startISO} />
+        )}
+        {events[0] && endISO && !isDateISO(endISO) && (
+          <div
+            className='h-2 hover:bg-accent/50 cursor-ns-resize transition-colors w-full rounded-b-icon'
+            {...lengthBarListeners}
+            {...lengthBarAttributes}
+            ref={setLengthBarRef}
+          />
         )}
       </div>
     </>

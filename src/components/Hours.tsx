@@ -31,6 +31,8 @@ export default function Hours({
     const thisEndISO = getEndISO(thisBlock)
 
     while (blocks[i + 1] && (blocks[i + 1].startISO as string) < thisEndISO) {
+      // console.log(blocks[i + 1].startISO, thisEndISO)
+
       nestedBlocks.push(blocks[i + 1])
       i++
     }

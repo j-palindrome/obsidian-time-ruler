@@ -249,9 +249,6 @@ export default class CalendarAPI extends Component {
           } while (pageToken)
 
           for (let event of allEvents) {
-            // console.log('event', event)
-            // if (event.status === 'cancelled') continue
-
             events[event.id] = {
               id: event.id,
               title: event.summary ?? '',
@@ -276,7 +273,6 @@ export default class CalendarAPI extends Component {
     }
 
     await Promise.all(calendarLoads)
-    console.log(events)
 
     setters.set({ events })
   }
@@ -350,7 +346,6 @@ export default class CalendarAPI extends Component {
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
       calendarId
     )}/events?${params.toString()}`
-    console.log(url)
 
     const response = await this.request(
       {

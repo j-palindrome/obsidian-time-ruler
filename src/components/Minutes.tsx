@@ -89,31 +89,14 @@ function Time({ time, type, dragContainer }: TimeProps) {
     data: { scheduled: iso } as DropData,
   })
 
-  const dragData: DragData = {
-    dragType: 'time',
-    start: iso,
-  }
-
-  const {
-    setNodeRef: setDragNodeRef,
-    attributes,
-    listeners,
-  } = useDraggable({
-    id: `${time}::time::${dragContainer}`,
-    data: dragData,
-  })
-
-  const isDraggingTime = useAppStore((state) =>
-    isLengthType(state.dragData?.dragType)
-  )
-
-  useEffect(() => {
-    if (isDraggingTime && isOver) {
-      setters.set({
-        dragData: { ...getters.get('dragData'), end: iso } as DragData,
-      })
-    }
-  }, [isOver, isDraggingTime])
+  // const {
+  //   setNodeRef: setDragNodeRef,
+  //   attributes,
+  //   listeners,
+  // } = useDraggable({
+  //   id: `${time}::time::${dragContainer}`,
+  //   data: dragData,
+  // })
 
   const selectedClassName = useAppStore((state) => {
     if (
@@ -145,11 +128,11 @@ function Time({ time, type, dragContainer }: TimeProps) {
       </div>
       <div
         className={`w-10 h-full flex flex-none items-center justify-end ${selectedClassName}`}
-        {...attributes}
-        {...listeners}
+        // {...attributes}
+        // {...listeners}
         ref={(node) => {
           setNodeRef(node)
-          setDragNodeRef(node)
+          // setDragNodeRef(node)
         }}
       >
         <hr
