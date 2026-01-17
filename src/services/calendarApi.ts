@@ -380,7 +380,16 @@ export default class CalendarAPI extends Component {
     })
 
     const data = JSON.parse(response)
-    this.plugin.settings.google[email].accessToken = data.access_token
+    this.plugin.settings = {
+      ...this.plugin.settings,
+      google: {
+        ...this.plugin.settings.google,
+        [email]: {
+          ...this.plugin.settings.google[email],
+          accessToken: data.access_token,
+        },
+      },
+    }
     await this.plugin.saveSettings()
   }
 

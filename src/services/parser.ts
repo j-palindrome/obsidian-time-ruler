@@ -90,6 +90,7 @@ export function textToTask(
     ? item.text.match(/\n((.|\n)*$)/)?.[1]
     : undefined
   if (notes) notes = notes.replace(LINK_SEARCH, '[$1]')
+  const budget = item['budget'] as string | undefined
 
   const extraFields = _.mapValues(_.omit(item, RESERVED_FIELDS), (x) =>
     x.toString()
@@ -358,6 +359,7 @@ export function textToTask(
     completed: item.completed,
     query,
     links,
+    budget,
   }
 }
 
@@ -588,6 +590,7 @@ export function taskToText(
           task.duration.hour ? `${task.duration.hour}h` : ''
         }${task.duration.minute ? `${task.duration.minute}m` : ''}]`
       }
+      if (task.budget) draft += `  [budget:: ${task.budget}]`
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
       if (task.created) draft += `  [created:: ${task.created}]`
@@ -629,6 +632,7 @@ export function taskToText(
           task.duration.hour ? `${task.duration.hour}h` : ''
         }${task.duration.minute ? `${task.duration.minute}m` : ''}]`
       }
+      if (task.budget) draft += `  [budget:: ${task.budget}]`
       if (task.repeat) draft += `  [repeat:: ${task.repeat}]`
       if (task.start) draft += `  [start:: ${task.start}]`
       if (task.created) draft += `  [created:: ${task.created}]`
@@ -680,6 +684,7 @@ export function taskToText(
         draft += ` ${keyToTasksEmoji.scheduled} ${task.scheduled.slice(0, 10)}`
       if (task.due) draft += ` ${keyToTasksEmoji.due} ${task.due}`
       if (task.created) draft += ` ${keyToTasksEmoji.created} ${task.created}`
+      if (task.budget) draft += `  [budget:: ${task.budget}]`
       if (task.query) draft += `  [query:: ${task.query}]`
 
       if (task.completion)

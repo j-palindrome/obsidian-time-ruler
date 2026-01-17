@@ -103,7 +103,7 @@ const tasksKeys = [
   'repeat',
 ]
 
-const timeRulerKeys = ['duration', 'query']
+const timeRulerKeys = ['duration', 'query', 'budget']
 
 export const RESERVED_FIELDS = dataViewKeys.concat(
   sTaskKeys,

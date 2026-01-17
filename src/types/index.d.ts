@@ -47,6 +47,7 @@ declare global {
     queryParent?: string
     queryChildren?: string[]
     links: string[]
+    budget?: string
 
     // Obsidian Reminder
     reminder?: string

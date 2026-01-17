@@ -224,6 +224,12 @@ export default function Task({
             {...attributes}
             {...listeners}
           >
+            {task.budget && !dragging && (
+              <div className='task-budget ml-2 flex items-center whitespace-nowrap font-menu text-xs text-normal self-center'>
+                <Logo src='dollar-sign' className='mr-1' />
+                <span>{task.budget}</span>
+              </div>
+            )}
             {task.priority !== TaskPriorities.DEFAULT && (
               <div className='task-priority whitespace-nowrap rounded-full px-1 font-menu text-xs font-bold text-accent self-center'>
                 {priorityNumberToSimplePriority[task.priority]}

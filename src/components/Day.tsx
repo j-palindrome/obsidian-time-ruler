@@ -161,6 +161,59 @@ export default function Day({
 
   const wide = useAppStore((state) => state.childWidth > 1)
 
+  // Calculate total budget from all tasks in the day
+  const calculateTotalBudget = () => {
+    let totalBudgetAmount = 0
+
+    const parseBudgetToDollars = (budgetStr: string | undefined): number => {
+      if (!budgetStr) return 0
+      if (typeof budgetStr === 'number') return budgetStr
+      // Parse dollar amounts (remove $ and commas, parse as number)
+      const cleanedStr = budgetStr.replace(/[$,]/g, '')
+      const amount = parseFloat(cleanedStr)
+
+      return isNaN(amount) ? 0 : amount
+    }
+
+    // Helper function to extract all tasks recursively from a task array
+    const getAllTasksRecursively = (tasks: TaskProps[]): TaskProps[] => {
+      const allTasks: TaskProps[] = []
+      for (const task of tasks) {
+        allTasks.push(task)
+        if (task.subtasks) {
+          allTasks.push(...getAllTasksRecursively(task.subtasks))
+        }
+      }
+      return allTasks
+    }
+
+    // Sum budgets from all day tasks
+    for (const task of getAllTasksRecursively(allDay.tasks)) {
+      totalBudgetAmount += parseBudgetToDollars(task.budget)
+    }
+
+    // Sum budgets from upcoming tasks
+    for (const task of getAllTasksRecursively(upcoming.tasks)) {
+      totalBudgetAmount += parseBudgetToDollars(task.budget)
+    }
+
+    // Sum budgets from all blocks
+    for (const block of blocks) {
+      for (const task of getAllTasksRecursively(block.tasks)) {
+        totalBudgetAmount += parseBudgetToDollars(task.budget)
+      }
+    }
+
+    // Format as currency
+    if (totalBudgetAmount === 0) return ''
+    return `$${totalBudgetAmount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`
+  }
+
+  const totalBudget = calculateTotalBudget()
+
   return (
     <div className={`flex flex-col overflow-hidden h-full relative`}>
       <div className='flex items-center group relative z-10'>
@@ -200,6 +253,11 @@ export default function Day({
               }}
             >
               {title || ''}
+              {totalBudget && (
+                <span className='ml-2 text-xs text-muted font-normal'>
+                  (Budget: {totalBudget})
+                </span>
+              )}
             </div>
           </div>
         </Droppable>
