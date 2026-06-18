@@ -37,44 +37,26 @@ export default function Search() {
   const tasks = useAppStore((state) => state.tasks)
   const showingPastDates = useAppStore((state) => state.showingPastDates)
   const showCompleted = useAppStore((state) => state.settings.showCompleted)
-  const search = useAppStore((state) => state.search)
-  const headingFilterText = useAppStore((state) => state.headingFilterText)
   const allTasks: [string[], TaskProps][] = useMemo(
     () =>
       _.sortBy(
         _.values(tasks).filter(
-          (task) => showCompleted || task.completed === showingPastDates
+          (task) => showCompleted || task.completed === showingPastDates,
         ),
-        'id'
-      ).map((task) => {
-        if (task.path.includes('AMS Work')) {
-          console.log(
-            (task.page ? parseFolderFromPath(task.path) : task.path).replace(
-              '.md',
-              ''
-            ) +
-              '/' +
-              task.title
-          )
-        }
-        return [
-          [
-            (task.page ? parseFolderFromPath(task.path) : task.path).replace(
-              '.md',
-              ''
-            ) +
-              '/' +
-              task.title,
-            task.tags.map((x) => '#' + x).join(' '),
-            task.notes ?? '',
-            priorityNumberToKey[task.priority],
-            task.status,
-          ],
-          task,
-        ]
-      }),
-    [tasks]
+        'id',
+      ).map((task) => [
+        [
+          (task.page ? parseFolderFromPath(task.path) : task.path) + task.title,
+          task.tags.map((x) => '#' + x).join(' '),
+          task.notes ?? '',
+          priorityNumberToKey[task.priority],
+          task.status,
+        ],
+        task,
+      ]),
+    [tasks],
   )
+  const [search, setSearch] = useState('')
   const searchExp = convertSearchToRegExp(search)
   const gatherChildren = (task: TaskProps): TaskProps[] => {
     return !task
@@ -87,120 +69,67 @@ export default function Search() {
         ]
   }
 
-  let foundTasks = allTasks
-    .filter(
-      ([strings]) =>
-        strings.find(
-          (string) => !search || (string && searchExp.test(string))
-        ) &&
-        strings.find(
-          (string) =>
-            !headingFilterText || (string && string.includes(headingFilterText))
-        )
-    )
-    .map((x) => x[1])
-    .flatMap((task) => gatherChildren(task))
-
-  // Extract unique first path segments
-  const pathSegments = useMemo(() => {
-    const segments = new Set<string>()
-    foundTasks.forEach((task) => {
-      const path = task.page ? parseFolderFromPath(task.path) : task.path
-      if (path) {
-        const firstSegment = path.split('/')[0]
-        if (firstSegment) segments.add(firstSegment)
-      }
-    })
-    return Array.from(segments).sort()
-  }, [foundTasks])
-
-  type Filter = {
-    type: '!!' | '!' | '=' | undefined
-    value: string | undefined
-  }
-  const [filter, setFilter] = useState<{
-    scheduled: Filter
-    due: Filter
-    pathSegment?: string
-  }>({
-    scheduled: { type: undefined, value: undefined },
-    due: { type: undefined, value: undefined },
-    pathSegment: undefined,
-  })
-
-  foundTasks = foundTasks.filter((task) => {
-    if (!isUndefined(filter.scheduled.type)) {
-      switch (filter.scheduled.type) {
-        case '!!':
-          if (!task.scheduled) return false
-          break
-        case '!':
-          if (task.scheduled) return false
-          break
-      }
-    }
-    if (!isUndefined(filter.due.type)) {
-      switch (filter.due.type) {
-        case '!!':
-          if (!task.due) return false
-          break
-        case '!':
-          if (task.due) return false
-          break
-      }
-    }
-    if (filter.pathSegment) {
-      const path = task.path
-      const segments = path.split('/')
-      if (!segments.some((x) => x === filter.pathSegment)) return false
-    }
-    return true
-  })
-
+  const [headingFilterText, setHeadingFilterText] = useState('')
   const allHeadings = useAppStore((state) => {
     return [
       ...new Set(
-        Object.values(foundTasks)
+        Object.values(state.tasks)
           .filter((task) => !task.page)
-          .map((task) => {
+          .flatMap((task) => {
             const heading = getHeading(task, state.dailyNoteInfo, 'path')
             if (heading.includes('#')) {
-              return heading.replace(/#.+$/, '')
+              return [heading, heading.replace(/#.+$/, '')]
             }
-            return heading
-          })
+            return [heading]
+          }),
       ),
     ]
   }, shallow)
 
+  let foundTasks = allTasks
+    .filter(
+      ([strings]) =>
+        strings.find(
+          (string) => !search || (string && searchExp.test(string)),
+        ) &&
+        strings.find(
+          (string) =>
+            !headingFilterText ||
+            (string && string.includes(headingFilterText)),
+        ),
+    )
+    .map((x) => x[1])
+    .flatMap((task) => gatherChildren(task))
+
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => input.current?.focus(), [])
 
-  const exp = convertSearchToRegExp(headingFilterText)
-  const filteredHeadings = sortBy(
-    allHeadings.filter((x) => exp.test(x)),
-    (heading) => {
-      if (!headingFilterText) return heading
-      let match = 0
-      let score = 0
-      for (let letter of heading) {
-        if (letter === headingFilterText[match]) {
-          match++
-          if (match >= headingFilterText.length) break
-        } else {
-          score++
+  const filteredHeadings = useMemo(() => {
+    const exp = convertSearchToRegExp(headingFilterText)
+    return sortBy(
+      allHeadings.filter((x) => exp.test(x)),
+      (heading) => {
+        if (!headingFilterText) return heading
+        let match = 0
+        let score = 0
+        for (let letter of heading) {
+          if (letter === headingFilterText[match]) {
+            match++
+            if (match >= headingFilterText.length) break
+          } else {
+            score++
+          }
         }
-      }
-      return score
-    }
-  )
+        return score
+      },
+    )
+  }, [headingFilterText])
 
   const [addEvent, setAddEvent] = useState<{
     email: string
     id: string
   } | null>(null)
   const [showCalendarSelector, setShowCalendarSelector] = useState(false)
-  const [headingInputFocused, setHeadingInputFocused] = useState(false)
   const availableCalendars = useMemo(() => {
     const cals = getters.getObsidianAPI().getSetting('google')
     let calIds = {}
@@ -209,7 +138,7 @@ export default function Search() {
         Object.entries(cals[name].calendarIds)
           .filter((x) => x[1].show)
           .map((x) => ({ name: x[1].calendar.summary, id: x[0], email: name })),
-        'name'
+        'name',
       )
     }
     return calIds
@@ -237,10 +166,44 @@ export default function Search() {
     }
   }, [display])
 
+  type Filter = {
+    type: '!!' | '!' | '=' | undefined
+    value: string | undefined
+  }
+  const [filter, setFilter] = useState<{ scheduled: Filter; due: Filter }>({
+    scheduled: { type: undefined, value: undefined },
+    due: { type: undefined, value: undefined },
+  })
+  useMemo(() => {
+    foundTasks = foundTasks.filter((task) => {
+      if (!isUndefined(filter.scheduled.type)) {
+        switch (filter.scheduled.type) {
+          case '!!':
+            if (!task.scheduled) return false
+            break
+          case '!':
+            if (task.scheduled) return false
+            break
+        }
+      }
+      if (!isUndefined(filter.due.type)) {
+        switch (filter.due.type) {
+          case '!!':
+            if (!task.due) return false
+            break
+          case '!':
+            if (task.due) return false
+            break
+        }
+      }
+      return true
+    })
+  }, [foundTasks, filter])
+
   foundTasks = nestTasks(foundTasks, tasks)
 
   const movingTask = useAppStore((state) =>
-    state.newTask?.type === 'move' ? state.newTask.task : false
+    state.newTask?.type === 'move' ? state.newTask.task : false,
   )
 
   return (
@@ -257,7 +220,7 @@ export default function Search() {
                 className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
                 style={{ fontFamily: 'var(--font-interface)' }}
                 value={search}
-                onChange={(ev) => setters.setSearch(ev.target.value)}
+                onChange={(ev) => setSearch(ev.target.value)}
                 onKeyDown={(ev) => {
                   if (ev.key === 'Escape')
                     setters.set({ searchStatus: false, newTask: null })
@@ -269,14 +232,6 @@ export default function Search() {
                 placeholder='task'
                 ref={input}
               />
-
-              {search && (
-                <Button
-                  className='w-8 h-8 bg-grey-500/50 !cursor-pointer rounded-full flex-none'
-                  onClick={() => setters.setSearch('')}
-                  src={'circle-x'}
-                ></Button>
-              )}
 
               <Button
                 className={`w-8 h-8 bg-grey-500/50 !cursor-pointer rounded-full flex-none ${
@@ -321,93 +276,77 @@ export default function Search() {
                   >
                     {cal.name}
                   </Button>
-                ))
+                )),
               )}
             </div>
           </div>
         )}
-        {pathSegments.length > 0 && (
-          <div className='relative flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 '>
-            <Button
-              className={`${
-                !filter.pathSegment ? '!bg-accent !text-primary' : ''
-              } flex-none rounded-full sticky left-0  backdrop-blur`}
-              onClick={() => {
-                setFilter({ ...filter, pathSegment: undefined })
-              }}
-            >
-              All Paths
-            </Button>
-            {pathSegments.map((segment) => (
-              <Button
-                key={segment}
-                className={`${
-                  filter.pathSegment === segment
-                    ? '!bg-accent !text-primary'
-                    : ''
-                } flex-none rounded-full`}
-                onClick={() => {
-                  setFilter({ ...filter, pathSegment: segment })
-                }}
-              >
-                {segment}
-              </Button>
-            ))}
-          </div>
-        )}
 
-        <div className='flex w-full px-2 space-x-2 overflow-x-auto no-scrollbar h-6 flex-none mt-1 relative'>
-          <Button
+        <div className='prompt-input-container px-1 group !flex !flex-col relative'>
+          <input
+            placeholder='heading'
+            className='w-full h-8 !border !border-white/20 rounded-lg px-1 mb-1'
+            style={{ fontFamily: 'var(--font-interface)' }}
+            value={headingFilterText}
+            onChange={(ev) => setHeadingFilterText(ev.target.value)}
+          />
+          <div
             className={`${
-              !headingFilterText ? '!bg-accent !text-primary' : ''
-            } flex-none rounded-full sticky left-0 backdrop-blur`}
-            onClick={() => {
-              setters.setHeadingFilterText('')
-            }}
+              movingTask
+                ? 'block h-[300px]'
+                : `hidden group-hover:block absolute top-9 h-[100px]`
+            } bg-black/20 backdrop-blur-lg rounded-lg z-50 w-[calc(100%-24px)] px-4 overflow-y-auto`}
           >
-            All Headings
-          </Button>
-          {filteredHeadings.map((heading) => {
-            const [container, headingText] = splitHeading(heading)
-            return (
-              <Button
-                key={heading}
-                className={`${
-                  headingFilterText === headingText
-                    ? '!bg-accent !text-primary'
-                    : ''
-                } flex-none rounded-full`}
-                onClick={async () => {
-                  if (movingTask) {
-                    const obsidianApi = getters.getObsidianAPI()
-                    await obsidianApi.moveTask(movingTask as TaskProps, heading)
-                    setters.set({ newTask: null, searchStatus: false })
-                  } else {
-                    setters.setHeadingFilterText(headingText)
-                  }
-                  setHeadingInputFocused(false)
-                }}
-              >
-                {headingText}
-              </Button>
-            )
-          })}
+            {filteredHeadings.map((heading) => {
+              const [container, headingText] = splitHeading(heading)
+              return (
+                <div
+                  key={heading}
+                  className={`selectable flex rounded-icon font-menu text-xs group w-full mb-2`}
+                >
+                  <div
+                    className={`w-full flex items-center`}
+                    onClick={async () => {
+                      if (movingTask) {
+                        const obsidianApi = getters.getObsidianAPI()
+                        await obsidianApi.moveTask(
+                          movingTask as TaskProps,
+                          heading,
+                        )
+                        setters.set({ newTask: null, searchStatus: false })
+                      } else {
+                        setHeadingFilterText(headingText)
+                      }
+                    }}
+                  >
+                    <div
+                      className={`w-fit flex-none max-w-[50%] text-normal truncate ${
+                        !heading.includes('#') ? '!text-accent' : 'indent-4'
+                      }`}
+                    >
+                      {headingText}
+                    </div>
+                    <hr className='border-t border-t-faint opacity-50 mx-2 h-0 my-0 w-full'></hr>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         {!movingTask && (
           <>
-            <div className='flex w-full px-2 space-x-2 mt-1'>
+            <div className='flex w-full px-4 space-x-2'>
               <Button
                 className={`${
                   filter.scheduled.type === undefined
                     ? '!bg-accent !text-primary'
                     : ''
-                } flex-none rounded-full`}
+                }`}
                 onClick={(ev) => {
                   setFilter({
                     due: { type: undefined, value: undefined },
                     scheduled: { type: undefined, value: undefined },
-                    pathSegment: undefined,
                   })
                 }}
               >
@@ -418,7 +357,7 @@ export default function Search() {
                   filter.scheduled.type === '!'
                     ? '!bg-accent !text-primary'
                     : ''
-                } flex-none rounded-full`}
+                }`}
                 onClick={(ev) => {
                   setFilter({
                     ...filter,
@@ -433,7 +372,7 @@ export default function Search() {
                   filter.scheduled.type === '!!'
                     ? '!bg-accent !text-primary'
                     : ''
-                } flex-none rounded-full`}
+                }`}
                 onClick={(ev) => {
                   setFilter({
                     ...filter,
@@ -446,7 +385,7 @@ export default function Search() {
               <Button
                 className={`${
                   filter.due.type === '!!' ? '!bg-accent !text-primary' : ''
-                } flex-none rounded-full`}
+                }`}
                 onClick={(ev) => {
                   setFilter({
                     ...filter,
@@ -457,7 +396,6 @@ export default function Search() {
                 Upcoming
               </Button>
             </div>
-
             <div className='prompt-results'>
               <Block
                 type='all-day'
