@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "dev:local": "VAULT=\"$HOME/Documents/Joshua\" npm run dev",
-    "build": "tsc -noEmit -skipLibCheck && MODE=production node esbuild.config.mjs",
+    "dev:vault": "VAULT=\"$(cd ../../.. && pwd)\" node esbuild.config.mjs",
+    "build": "MODE=production VAULT=\"$(cd ../../.. && pwd)\" node esbuild.config.mjs",
+    "build:dist": "tsc -noEmit -skipLibCheck && MODE=production node esbuild.config.mjs",
     "check": "tsc -noEmit -skipLibCheck"
   },
   "dependencies": {
