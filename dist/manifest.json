@@ -1,8 +1,8 @@
 {
   "id": "time-ruler",
   "name": "Time Ruler",
-  "version": "2.7.1",
-  "minAppVersion": "0.15.0",
+  "version": "2.8.0",
+  "minAppVersion": "1.11.4",
   "description": "A drag-and-drop time ruler combining the best of a task list and a calendar view (integrates with Tasks, Full Calendar, and Dataview).",
   "author": "Joshua Tazman Reinier",
   "authorUrl": "https://joshuareinier.com",

@@ -81,6 +81,15 @@ _Note:_ Double-spaces are used between brackets because without them, Obsidian t
 - To **refresh** events, click the `Refresh` button (the circular arrow) in the toolbar.
 - For Google Calendar Users - You can find your iCal link at - "Calendar Settings\\[Your Calendar]\\Integrate Calendar\\Public address in iCal format\\".
 
+### Google Calendar sign-in (editable calendars)
+
+Editable Google Calendar access uses Obsidian's built-in [SecretStorage](https://docs.obsidian.md/plugins/guides/secret-storage) instead of a value baked into the plugin. In Settings, save your Google API key, OAuth client ID, and OAuth client secret as secrets (shared across any plugin that uses SecretStorage), then select each one in Time Ruler's settings before clicking "Sign In with Google". Requires Obsidian 1.11.4+.
+
+## Commands
+
+- **Move today's tasks to daily note**: Moves every top-level task scheduled or due today into today's daily note, grouped under headings that are backlinks (`[[original heading]]`) to where each task came from. The tasks land as normal list items, so you can reorder them by hand.
+- **Move daily note tasks back to their headings**: Reverses the above - moves tasks nested under a `[[...]]` backlink heading in today's daily note back to the heading the backlink points to, and removes the now-empty backlink heading.
+
 ## Buttons
 
 - **Search**: Jump to a specific task.

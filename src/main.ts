@@ -33,6 +33,9 @@ type TimeRulerSettings = {
       >
     }
   >
+  googleApiKeySecretId: string
+  googleClientIdSecretId: string
+  googleClientSecretSecretId: string
   calendars: string[]
   fieldFormat: FieldFormat['main']
   muted: boolean
@@ -62,6 +65,9 @@ type TimeRulerSettings = {
 
 export const DEFAULT_SETTINGS: TimeRulerSettings = {
   google: {},
+  googleApiKeySecretId: '',
+  googleClientIdSecretId: '',
+  googleClientSecretSecretId: '',
   calendars: [],
   fieldFormat: 'dataview',
   muted: false,
@@ -153,6 +159,28 @@ export default class TimeRulerPlugin extends Plugin {
         this.openMenu(menu, context)
       )
     )
+
+    this.addCommand({
+      id: 'move-today-tasks-to-daily-note',
+      name: "Move today's tasks to daily note",
+      icon: 'ruler',
+      callback: async () => {
+        if (!getters.getObsidianAPI())
+          await this.activateView(this.settings.openInMain)
+        await getters.getObsidianAPI().moveTodayTasksToDailyNote()
+      },
+    })
+
+    this.addCommand({
+      id: 'move-daily-note-tasks-back',
+      name: 'Move daily note tasks back to their headings',
+      icon: 'ruler',
+      callback: async () => {
+        if (!getters.getObsidianAPI())
+          await this.activateView(this.settings.openInMain)
+        await getters.getObsidianAPI().moveDailyNoteTasksBack()
+      },
+    })
 
     this.addCommand({
       id: 'find-task',

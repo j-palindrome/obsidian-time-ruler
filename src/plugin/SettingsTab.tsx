@@ -4,6 +4,7 @@ import {
   App,
   Notice,
   PluginSettingTab,
+  SecretComponent,
   Setting,
   TextComponent,
   ValueComponent,
@@ -337,9 +338,54 @@ export default class SettingsTab extends PluginSettingTab {
       )
 
     new Setting(containerEl)
-      .setName('Google API Token')
+      .setName('Google API key')
       .setDesc(
-        'Paste your Google API token to enable Google Calendar integration.'
+        'Select a secret from SecretStorage holding your Google API key.'
+      )
+      .addComponent(
+        (el) =>
+          new SecretComponent(this.app, el)
+            .setValue(this.plugin.settings.googleApiKeySecretId)
+            .onChange((value) => {
+              this.plugin.settings.googleApiKeySecretId = value
+              this.plugin.saveSettings()
+            })
+      )
+
+    new Setting(containerEl)
+      .setName('Google OAuth client ID')
+      .setDesc(
+        'Select a secret from SecretStorage holding your Google OAuth client ID.'
+      )
+      .addComponent(
+        (el) =>
+          new SecretComponent(this.app, el)
+            .setValue(this.plugin.settings.googleClientIdSecretId)
+            .onChange((value) => {
+              this.plugin.settings.googleClientIdSecretId = value
+              this.plugin.saveSettings()
+            })
+      )
+
+    new Setting(containerEl)
+      .setName('Google OAuth client secret')
+      .setDesc(
+        'Select a secret from SecretStorage holding your Google OAuth client secret.'
+      )
+      .addComponent(
+        (el) =>
+          new SecretComponent(this.app, el)
+            .setValue(this.plugin.settings.googleClientSecretSecretId)
+            .onChange((value) => {
+              this.plugin.settings.googleClientSecretSecretId = value
+              this.plugin.saveSettings()
+            })
+      )
+
+    new Setting(containerEl)
+      .setName('Google sign-in')
+      .setDesc(
+        'Sign in to Google Calendar. Requires the secrets above to be configured first.'
       )
       .addButton((button) => {
         button.setButtonText('Sign In with Google')

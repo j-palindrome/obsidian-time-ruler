@@ -400,6 +400,256 @@ export default class ObsidianAPI extends Component {
     openTask({ ...task, path: filePath, position })
   }
 
+  private async ensureHeadingExists(
+    filePath: string,
+    headingText: string,
+    level = 2
+  ) {
+    const file = await this.getFile(filePath)
+    invariant(file)
+    const text = await this.app.vault.read(file)
+    const headingRegex = new RegExp(
+      `^#+ ${_.escapeRegExp(headingText)}$`,
+      'm'
+    )
+    if (headingRegex.test(text)) return
+    const prefix = '#'.repeat(level)
+    const separator = text.length === 0 ? '' : text.endsWith('\n') ? '\n' : '\n\n'
+    await this.app.vault.process(
+      file,
+      (currentText) => currentText + separator + `${prefix} ${headingText}\n`
+    )
+  }
+
+  /**
+   * Like moveTask(), but inserts under a heading matched by its literal text
+   * rather than a `path#heading` string. moveTask()/findPosition() split
+   * their path argument on the first `#`, which breaks when the heading
+   * itself contains a `#` (as our `[[File#Heading]]` backlink headings do),
+   * so backlink moves go through here instead.
+   */
+  private async moveTaskUnderHeadingText(
+    task: TaskProps,
+    destFilePath: string,
+    headingText: string
+  ) {
+    if (task.page) {
+      alert("Moving pages isn't supported.")
+      return
+    }
+    const file = await this.getFile(task.path)
+    invariant(file)
+
+    const fileText = await this.app.vault.read(file)
+    const lines = fileText.split('\n')
+
+    const followingLines = lines.slice(task.position.start.line + 1)
+    const nextLine = followingLines.findIndex((line) => !line.startsWith(' '))
+
+    const copyLines = lines.splice(
+      task.position.start.line,
+      (nextLine === -1 ? followingLines.length : nextLine) + 1
+    )
+
+    await this.app.vault.modify(file, lines.join('\n'))
+
+    const moveFile = await this.getFile(destFilePath)
+    invariant(moveFile)
+
+    const copyTask = { ...task, path: destFilePath }
+    const textTask = taskToText(copyTask, this.settings.fieldFormat)
+    const pasteLines = [textTask].concat(copyLines.slice(1))
+
+    const headingRegex = new RegExp(`^#+ ${_.escapeRegExp(headingText)}$`)
+    let insertLine = 0
+    await this.app.vault.process(moveFile, (text) => {
+      const destLines = text.split('\n')
+      const headingIndex = destLines.findIndex((line) =>
+        headingRegex.test(line)
+      )
+      insertLine = headingIndex === -1 ? destLines.length : headingIndex + 1
+      destLines.splice(insertLine, 0, ...pasteLines)
+      return destLines.join('\n')
+    })
+
+    openTask({
+      ...task,
+      path: destFilePath,
+      position: {
+        start: { col: 0, line: insertLine, offset: 0 },
+        end: { col: 0, line: insertLine, offset: 0 },
+      },
+    })
+  }
+
+  /**
+   * Moves every top-level task scheduled/due today into today's daily note,
+   * grouped under headings that are backlinks (`[[original heading]]`) to
+   * where each task came from. The tasks land as normal list items, so they
+   * can be reordered by hand like anything else in the daily note.
+   */
+  async moveTodayTasksToDailyNote() {
+    const dailyNoteInfo = getters.get('dailyNoteInfo')
+    const todayISODate = DateTime.now().toISODate() as string
+    const dailyNotePath = parsePathFromDate(todayISODate, dailyNoteInfo)
+
+    const tasks = getters.get('tasks')
+    const todayTasks = _.filter(_.values(tasks), (task) => {
+      if (task.completed || task.page || task.parent) return false
+      const date = task.scheduled || task.due
+      if (!date || DateTime.fromISO(date).toISODate() !== todayISODate)
+        return false
+      return parseFileFromPath(task.path) !== dailyNotePath
+    })
+
+    if (todayTasks.length === 0) {
+      new Notice(
+        "Time Ruler: no tasks scheduled for today outside today's daily note."
+      )
+      return
+    }
+
+    await this.createFileFromPath(dailyNotePath)
+
+    const grouped = _.groupBy(todayTasks, (task) =>
+      task.path.replace(/\.md/, '')
+    )
+
+    for (const [originalPath, groupTasks] of Object.entries(grouped)) {
+      const headingText = `[[${originalPath}]]`
+      await this.ensureHeadingExists(dailyNotePath, headingText)
+      for (const task of groupTasks) {
+        try {
+          await this.moveTaskUnderHeadingText(task, dailyNotePath, headingText)
+        } catch (err) {
+          console.error('Time Ruler: failed to move task to daily note', task, err)
+        }
+      }
+    }
+
+    new Notice(
+      `Time Ruler: moved ${todayTasks.length} task(s) to today's daily note.`
+    )
+  }
+
+  private async insertBlockAtHeading(
+    filePath: string,
+    headingText: string | null,
+    blockLines: string[]
+  ) {
+    const file = await this.getFile(filePath)
+    invariant(file)
+    await this.app.vault.process(file, (text) => {
+      const destLines = text.split('\n')
+      let insertLine: number
+      if (headingText) {
+        const headingRegex = new RegExp(`^#+ ${_.escapeRegExp(headingText)}$`)
+        const headingIndex = destLines.findIndex((line) =>
+          headingRegex.test(line)
+        )
+        insertLine = headingIndex === -1 ? destLines.length : headingIndex + 1
+      } else {
+        insertLine = 0
+      }
+      destLines.splice(insertLine, 0, ...blockLines)
+      return destLines.join('\n')
+    })
+  }
+
+  /**
+   * Reverses moveTodayTasksToDailyNote(): finds `[[original heading]]`
+   * backlink headings in today's daily note and moves the tasks nested
+   * under each one back to the heading its backlink points to. Operates
+   * directly on the file text (not the parsed task cache) since Dataview
+   * normalizes heading text - including the brackets and `#` in our
+   * backlinks - into a slug, so a parsed task's `path` no longer contains
+   * the literal `[[...]]` text we wrote.
+   */
+  async moveDailyNoteTasksBack() {
+    const dailyNoteInfo = getters.get('dailyNoteInfo')
+    const todayISODate = DateTime.now().toISODate() as string
+    const dailyNotePath = parsePathFromDate(todayISODate, dailyNoteInfo)
+
+    const file = await this.getFile(dailyNotePath)
+    invariant(file)
+    const text = await this.app.vault.read(file)
+    const lines = text.split('\n')
+
+    const backlinkHeadingRegex = /^#+ \[\[(.+)\]\]$/
+    const blocks: {
+      originalPath: string
+      headingLine: number
+      start: number
+      end: number
+    }[] = []
+
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(backlinkHeadingRegex)
+      if (!match) continue
+      let end = i + 1
+      while (end < lines.length && !/^#+ /.test(lines[end])) end++
+      blocks.push({
+        originalPath: match[1],
+        headingLine: i,
+        start: i + 1,
+        end,
+      })
+    }
+
+    if (blocks.length === 0) {
+      new Notice(
+        "Time Ruler: no backlink headings found in today's daily note."
+      )
+      return
+    }
+
+    let moved = 0
+    // process from the bottom up so earlier line numbers stay valid as we splice
+    for (let b = blocks.length - 1; b >= 0; b--) {
+      const { originalPath, headingLine, start, end } = blocks[b]
+      const bodyLines = lines.slice(start, end)
+
+      const taskBlocks: string[][] = []
+      let k = 0
+      while (k < bodyLines.length) {
+        const line = bodyLines[k]
+        if (/^\s*$/.test(line) || line.startsWith(' ')) {
+          k++
+          continue
+        }
+        const blockLines = [line]
+        let m = k + 1
+        while (m < bodyLines.length && bodyLines[m].startsWith(' ')) {
+          blockLines.push(bodyLines[m])
+          m++
+        }
+        taskBlocks.push(blockLines)
+        k = m
+      }
+
+      // remove the whole backlink heading section from the daily note
+      lines.splice(headingLine, end - headingLine)
+
+      const destFilePath = parseFileFromPath(originalPath)
+      const destHeading = originalPath.includes('#')
+        ? originalPath.slice(originalPath.indexOf('#') + 1)
+        : null
+
+      for (const blockLines of taskBlocks) {
+        try {
+          await this.insertBlockAtHeading(destFilePath, destHeading, blockLines)
+          moved++
+        } catch (err) {
+          console.error('Time Ruler: failed to move task back', blockLines, err)
+        }
+      }
+    }
+
+    await this.app.vault.modify(file, lines.join('\n'))
+
+    new Notice(`Time Ruler: moved ${moved} task(s) back to their original headings.`)
+  }
+
   createNewTask = (
     newTask: Partial<TaskProps>,
     selectedHeading: string | null,

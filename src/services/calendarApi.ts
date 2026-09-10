@@ -14,11 +14,6 @@ import {
 import { getters, setters } from '../app/store'
 import TimeRulerPlugin from '../main'
 import { toISO } from './util'
-import {
-  GOOGLE_API_KEY,
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-} from './keys.secret.json'
 
 let reportedOffline = false
 export default class CalendarAPI extends Component {
@@ -35,6 +30,30 @@ export default class CalendarAPI extends Component {
     this.settings = settings
     this.plugin = plugin
     this.removeCalendar = removeCalendar
+  }
+
+  private getGoogleApiKey() {
+    return (
+      this.plugin.app.secretStorage.getSecret(
+        this.settings.googleApiKeySecretId
+      ) || ''
+    )
+  }
+
+  private getGoogleClientId() {
+    return (
+      this.plugin.app.secretStorage.getSecret(
+        this.settings.googleClientIdSecretId
+      ) || ''
+    )
+  }
+
+  private getGoogleClientSecret() {
+    return (
+      this.plugin.app.secretStorage.getSecret(
+        this.settings.googleClientSecretSecretId
+      ) || ''
+    )
   }
 
   async loadEvents() {
@@ -325,7 +344,7 @@ export default class CalendarAPI extends Component {
     }
 
     const params = new URLSearchParams({
-      key: GOOGLE_API_KEY || '',
+      key: this.getGoogleApiKey(),
     })
     if (timeMin)
       params.append(
@@ -372,8 +391,8 @@ export default class CalendarAPI extends Component {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: GOOGLE_CLIENT_ID || '',
-        client_secret: GOOGLE_CLIENT_SECRET || '',
+        client_id: this.getGoogleClientId(),
+        client_secret: this.getGoogleClientSecret(),
         refresh_token: this.plugin.settings.google[email].refreshToken || '',
         grant_type: 'refresh_token',
       }).toString(),
@@ -404,7 +423,7 @@ export default class CalendarAPI extends Component {
       eventData.calendarId!
     )}/events/${encodeURIComponent(
       eventData.id!.replace(/::.*$/, '')
-    )}?key=${encodeURIComponent(GOOGLE_API_KEY || '')}`
+    )}?key=${encodeURIComponent(this.getGoogleApiKey())}`
 
     setters.patchEvents({
       [eventData.id!]: {
@@ -432,7 +451,7 @@ export default class CalendarAPI extends Component {
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
       calendarId
     )}/events/${encodeURIComponent(eventId)}?key=${encodeURIComponent(
-      GOOGLE_API_KEY || ''
+      this.getGoogleApiKey()
     )}`
 
     await this.request(
@@ -452,7 +471,7 @@ export default class CalendarAPI extends Component {
 
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
       eventData.calendarId!
-    )}/events?key=${encodeURIComponent(GOOGLE_API_KEY || '')}`
+    )}/events?key=${encodeURIComponent(this.getGoogleApiKey())}`
 
     const response = await this.request(
       {
