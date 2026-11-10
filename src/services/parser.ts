@@ -157,7 +157,7 @@ export function textToTask(
       const parsedPathDate = parseDateFromPath(item.path, dailyNoteInfo)
 
       if (parsedPathDate)
-        titleDate = parsedPathDate.toISOString(false).slice(0, 10)
+        titleDate = parsedPathDate.format('YYYY-MM-DD')
       if (titleDate) rawScheduled = DateTime.fromISO(titleDate)
     }
 
@@ -557,7 +557,7 @@ export function taskToText(
         )
         let scheduledDate = task.scheduled.slice(0, 10)
         const includeDate =
-          !date || date.toISOString(false).slice(0, 10) !== scheduledDate
+          !date || date.format('YYYY-MM-DD') !== scheduledDate
 
         let scheduledTime = task.scheduled.slice(11, 16).replace(/^0/, '')
         if (
