@@ -39,6 +39,117 @@ const SIMPLE_DUE = / ?> ?(\d{4}-\d{2}-\d{2})/u
 const KANBAN_DATE = / ?@\{(\d{4}-\d{2}-\d{2})\}/u
 const KANBAN_TIME = / ?@@\{(\d{2}:\d{2})\}/u
 
+// Operon guards its fields in `{{key:: value}}`, which Dataview does not read
+// as inline fields, so the ruler has to parse them from the raw line.
+const OPERON_FIELD = /\{\{([A-Za-z][\w-]*)\s*:: ((?:[^{}]|\{[^{}]*\})*)\}\}/gu
+const OPERON_FIELD_SEARCH = /\{\{[A-Za-z][\w-]*\s*:: /u
+
+const OPERON_PRIORITY_TO_NUMBER: Record<string, number> = {
+  s: TaskPriorities.HIGHEST,
+  a: TaskPriorities.HIGH,
+  b: TaskPriorities.MEDIUM,
+  c: TaskPriorities.DEFAULT,
+  d: TaskPriorities.LOW,
+  e: TaskPriorities.LOWEST,
+  f: TaskPriorities.LOWEST,
+}
+
+const OPERON_NUMBER_TO_PRIORITY: Record<number, string> = {
+  [TaskPriorities.HIGHEST]: 'S',
+  [TaskPriorities.HIGH]: 'A',
+  [TaskPriorities.MEDIUM]: 'B',
+  [TaskPriorities.DEFAULT]: 'C',
+  [TaskPriorities.LOW]: 'D',
+  [TaskPriorities.LOWEST]: 'E',
+}
+
+type OperonField = { key: string; value: string; raw: string }
+
+const parseOperonFields = (text: string): OperonField[] => {
+  const fields: OperonField[] = []
+  const search = new RegExp(OPERON_FIELD.source, 'gu')
+  let match = search.exec(text)
+  while (match) {
+    fields.push({ raw: match[0], key: match[1], value: match[2].trim() })
+    match = search.exec(text)
+  }
+  return fields
+}
+
+const operonFieldsToObject = (text: string) => {
+  const fields: Record<string, string> = {}
+  for (const field of parseOperonFields(text)) fields[field.key] = field.value
+  return fields
+}
+
+const operonDateTime = (value: string | undefined) => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2})?/u.test(value)) return
+  const date = DateTime.fromISO(value.replace(' ', 'T'))
+  return date.isValid ? date : undefined
+}
+
+const operonDateTimeString = (date: DateTime) =>
+  date.toFormat("yyyy-MM-dd'T'HH:mm:ss")
+
+/** What the line itself says, ignoring the note title. */
+const readOperonLine = (text: string) => {
+  const fields = operonFieldsToObject(text)
+  const start = operonDateTime(fields.datetimeStart)
+  const end = operonDateTime(fields.datetimeEnd)
+  const day = operonDateTime(fields.dateScheduled)
+
+  let scheduled: TaskProps['scheduled']
+  if (start) scheduled = toISO(start)
+  else if (day) scheduled = day.toFormat('yyyy-MM-dd')
+
+  let duration: TaskProps['duration']
+  const estimate = Number(fields.estimate)
+  if (fields.estimate !== undefined && Number.isFinite(estimate) && estimate > 0) {
+    const totalMinutes = Math.round(estimate / 60)
+    duration = {
+      hour: Math.floor(totalMinutes / 60),
+      minute: totalMinutes % 60,
+    }
+  } else if (start && end && end > start) {
+    const length = end.diff(start).shiftTo('hour', 'minute')
+    duration = { hour: length.hours, minute: length.minutes }
+  }
+
+  const dateOf = (key: string) =>
+    operonDateTime(fields[key])?.toFormat('yyyy-MM-dd')
+
+  const created = operonDateTime(fields.datetimeCreated)
+
+  return {
+    fields,
+    scheduled,
+    duration,
+    due: dateOf('dateDue'),
+    start: dateOf('dateStarted'),
+    completion: dateOf('dateCompleted'),
+    created: created ? toISO(created) : undefined,
+    priority:
+      fields.priority === undefined
+        ? undefined
+        : OPERON_PRIORITY_TO_NUMBER[fields.priority.toLowerCase()],
+  }
+}
+
+const setOperonField = (text: string, key: string, value: string) => {
+  const existing = parseOperonFields(text).find((field) => field.key === key)
+  if (!existing) return `${text.replace(/\s+$/u, '')} {{${key}:: ${value}}}`
+  if (existing.value === value) return text
+  return text.replace(existing.raw, `{{${key}:: ${value}}}`)
+}
+
+const removeOperonField = (text: string, key: string) => {
+  const existing = parseOperonFields(text).find((field) => field.key === key)
+  if (!existing) return text
+  return text
+    .replace(new RegExp(`\\s*${_.escapeRegExp(existing.raw)}`, 'u'), '')
+    .replace(/\s+$/u, '')
+}
+
 export function textToTask(
   item: any,
   dailyNoteInfo: AppState['dailyNoteInfo'],
@@ -54,6 +165,8 @@ export function textToTask(
     'u'
   )
   const BLOCK_REFERENCE = /\^[a-z0-9]+$/u
+
+  const operon = mainFormat === 'operon' ? readOperonLine(item.text) : undefined
 
   const titleLine: string = item.text.match(/(.*?)(\n|$)/u)?.[1] ?? ''
 
@@ -78,6 +191,10 @@ export function textToTask(
     originalTitle = originalTitle
       .replace(KANBAN_DATE, '')
       .replace(KANBAN_TIME, '')
+  } else if (mainFormat === 'operon') {
+    originalTitle = originalTitle
+      .replace(OPERON_FIELD, ' ')
+      .replace(/\s{2,}/gu, ' ')
   }
 
   let title: string = originalTitle
@@ -106,6 +223,12 @@ export function textToTask(
   }
 
   const parseScheduledAndLength = () => {
+    // Operon keeps its own scheduling in `{{dateScheduled}}` /
+    // `{{datetimeStart}}`; when it has one, that wins. Without it the task
+    // still follows the note title below.
+    if (operon?.scheduled)
+      return { scheduled: operon.scheduled, length: operon.duration }
+
     let rawScheduled = item.scheduled as DateTime | undefined
     let rawLength = (item.length || item.duration) as Duration | undefined
     let duration: TaskProps['duration']
@@ -305,12 +428,17 @@ export function textToTask(
   }
 
   const { length, scheduled } = parseScheduledAndLength()
-  const due = parseDateKey('due')
-  const completion = item.completed ? parseDateKey('completion') : undefined
-  const start = parseDateKey('start')
-  const created = parseDateKey('created')
+  const due = operon?.due ?? parseDateKey('due')
+  const completion = operon
+    ? operon.completion
+    : item.completed
+    ? parseDateKey('completion')
+    : undefined
+  const start = operon?.start ?? parseDateKey('start')
+  const created = operon?.created ?? parseDateKey('created')
   const repeat = parseRepeat()
-  const priority = parsePriority()
+  const priority =
+    operon?.priority !== undefined ? operon.priority : parsePriority()
   const reminder = parseReminder()
 
   const query = parseQuery()
@@ -484,6 +612,7 @@ const detectFieldFormat = (
   defaultFormat: FieldFormat['main']
 ): FieldFormat => {
   const parseMain = (): FieldFormat['main'] => {
+    if (OPERON_FIELD_SEARCH.test(text)) return 'operon'
     if (SIMPLE_SCHEDULED_DATE.test(text) || SIMPLE_DUE.test(text))
       return 'simple'
     for (let emoji of Object.keys(TasksEmojiToKey)) {
@@ -513,11 +642,99 @@ const detectFieldFormat = (
   }
 }
 
+const taskToOperonText = (
+  task: TaskProps,
+  dailyNoteInfo: AppState['dailyNoteInfo']
+) => {
+  let text = task.originalText ?? task.originalTitle ?? ''
+  const current = readOperonLine(text)
+  const pathDate = parseDateFromPath(task.path ?? '', dailyNoteInfo)
+  const pathDateString = pathDate ? pathDate.format('YYYY-MM-DD') : undefined
+
+  const scheduled = task.scheduled
+  const fromNoteTitle =
+    !current.scheduled &&
+    !!scheduled &&
+    isDateISO(scheduled) &&
+    scheduled === pathDateString
+
+  if (!fromNoteTitle && (scheduled ?? null) !== (current.scheduled ?? null)) {
+    if (!scheduled) {
+      for (const key of ['dateScheduled', 'datetimeStart', 'datetimeEnd'])
+        text = removeOperonField(text, key)
+    } else {
+      text = setOperonField(text, 'dateScheduled', scheduled.slice(0, 10))
+      if (isDateISO(scheduled)) {
+        text = removeOperonField(text, 'datetimeStart')
+        text = removeOperonField(text, 'datetimeEnd')
+      } else {
+        const start = DateTime.fromISO(scheduled)
+        text = setOperonField(text, 'datetimeStart', operonDateTimeString(start))
+        const duration = task.duration
+        if (duration && duration.hour + duration.minute > 0)
+          text = setOperonField(
+            text,
+            'datetimeEnd',
+            operonDateTimeString(start.plus(duration))
+          )
+        else text = removeOperonField(text, 'datetimeEnd')
+      }
+    }
+  }
+
+  // Resizing a block is a change of the planned length, so it goes to
+  // `estimate` (seconds); `duration` is the time Operon's timer measured.
+  const durationChanged =
+    (task.duration?.hour ?? 0) !== (current.duration?.hour ?? 0) ||
+    (task.duration?.minute ?? 0) !== (current.duration?.minute ?? 0)
+  if (durationChanged) {
+    if (task.duration && task.duration.hour + task.duration.minute > 0)
+      text = setOperonField(
+        text,
+        'estimate',
+        String(task.duration.hour * 3600 + task.duration.minute * 60)
+      )
+    else text = removeOperonField(text, 'estimate')
+  }
+
+  const completion = task.completed
+    ? task.completion ?? DateTime.now().toFormat('yyyy-MM-dd')
+    : undefined
+  if ((task.due ?? null) !== (current.due ?? null))
+    text = task.due
+      ? setOperonField(text, 'dateDue', task.due)
+      : removeOperonField(text, 'dateDue')
+  if ((task.start ?? null) !== (current.start ?? null))
+    text = task.start
+      ? setOperonField(text, 'dateStarted', task.start)
+      : removeOperonField(text, 'dateStarted')
+  if ((completion ?? null) !== (current.completion ?? null))
+    text = completion
+      ? setOperonField(text, 'dateCompleted', completion)
+      : removeOperonField(text, 'dateCompleted')
+
+  const currentPriority = current.priority ?? TaskPriorities.DEFAULT
+  if (task.priority !== currentPriority) {
+    const letter = OPERON_NUMBER_TO_PRIORITY[task.priority]
+    text = letter
+      ? setOperonField(text, 'priority', letter)
+      : removeOperonField(text, 'priority')
+  }
+
+  return `- [${task.completed ? 'x' : task.status}] ${text.replace(/\s+$/u, '')}`
+}
+
 export function taskToText(
   task: TaskProps,
   defaultFieldFormat: FieldFormat['main']
 ) {
   const dailyNoteInfo = getters.get('dailyNoteInfo')
+
+  const { main, reminder } = detectFieldFormat(
+    task.originalText,
+    defaultFieldFormat
+  )
+  if (main === 'operon') return taskToOperonText(task, dailyNoteInfo)
 
   let draft = `- [${
     task.completed ? 'x' : task.status
@@ -530,11 +747,6 @@ export function taskToText(
       draft += `[${key}:: ${value}]`
     })
   }
-
-  const { main, reminder } = detectFieldFormat(
-    task.originalText,
-    defaultFieldFormat
-  )
 
   const formatReminder = (): string => {
     if (!task.reminder) return ''

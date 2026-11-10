@@ -5,7 +5,7 @@ import { BlockComponentProps } from 'src/components/Block'
 /// <reference types="vite/client" />
 declare global {
   type FieldFormat = {
-    main: 'dataview' | 'full-calendar' | 'tasks' | 'simple' | 'kanban'
+    main: 'dataview' | 'full-calendar' | 'tasks' | 'simple' | 'kanban' | 'operon'
     reminder: 'native' | 'tasks' | 'kanban'
     scheduled: 'default' | 'kanban'
   }
